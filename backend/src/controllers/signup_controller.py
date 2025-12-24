@@ -38,6 +38,12 @@ def create_user(app, payload: Dict[str, Any]) -> Dict[str, Any]:
 
     doc: Dict[str, Any] = {'username': username, 'password': hashed, 'role': role}
 
+    # store common contact fields when provided
+    if payload.get('email'):
+        doc['email'] = payload.get('email')
+    if payload.get('mobile'):
+        doc['mobile'] = payload.get('mobile')
+
     # attach role-specific fields
     if role == 'student' or role == 'faculty':
         if payload.get('full_name'):
@@ -52,8 +58,6 @@ def create_user(app, payload: Dict[str, Any]) -> Dict[str, Any]:
     if role == 'recruiter':
         doc['first_name'] = payload.get('first_name')
         doc['last_name'] = payload.get('last_name')
-        doc['email'] = payload.get('email')
-        doc['mobile'] = payload.get('mobile')
 
     client = getattr(app, 'mongo_client', None)
     if client is not None:
@@ -115,3 +119,42 @@ def verify_user_credentials(app, username: str, password: str) -> Optional[Tuple
             return None
 
     return None
+
+
+def reset_user_password(app, username: str, new_password: str) -> str:
+    """Reset a user's password across all role collections or in-memory store.
+
+    Returns the role whose password was updated. Raises ValueError if the
+    user does not exist.
+    """
+    if not username or not new_password:
+        raise ValueError('username and new password required')
+
+    hashed = generate_password_hash(new_password)
+
+    client = getattr(app, 'mongo_client', None)
+    role_found: Optional[str] = None
+
+    if client is not None:
+        db = client.get_database('gradedgedev')
+        for role, colname in COLLECTION_MAP.items():
+            col = db.get_collection(colname)
+            res = col.update_one({'username': username}, {'$set': {'password': hashed}})
+            if res.matched_count:
+                role_found = role
+                break
+
+    if role_found is None:
+        store = _ensure_store(app)
+        for role, bucket in store.items():
+            user = bucket.get(username)
+            if user:
+                user['password'] = hashed
+                role_found = role
+                break
+
+    if role_found is None:
+        raise ValueError('user not found')
+
+    return role_found
+
