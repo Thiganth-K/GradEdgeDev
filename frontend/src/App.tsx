@@ -84,7 +84,7 @@ function App() {
         <Route path="/faculty/manage" element={loggedIn && role === 'admin' ? <FacultyManage /> : <LoginPage onLoginSuccess={handleLoginSuccess} />} />
         <Route path="/faculty/welcome" element={loggedIn && role === 'faculty' ? <FacultyWelcome username={username} onLogout={handleLogout} /> : <LoginPage onLoginSuccess={handleLoginSuccess} />} />
         <Route path="/student/welcome" element={loggedIn && role === 'student' ? <StudentWelcome username={username} onLogout={handleLogout} /> : <LoginPage onLoginSuccess={handleLoginSuccess} />} />
-        <Route path="/student/dashboard" element={loggedIn && role === 'student' ? <StudentDashboard /> : <LoginPage onLoginSuccess={handleLoginSuccess} />} />
+        <Route path="/student/dashboard" element={loggedIn && role === 'student' ? <StudentDashboard username={username} onLogout={handleLogout} /> : <LoginPage onLoginSuccess={handleLoginSuccess} />} />
         <Route path="/recruiter/welcome" element={loggedIn && role === 'recruiter' ? <RecruiterWelcome username={username} onLogout={handleLogout} /> : <LoginPage onLoginSuccess={handleLoginSuccess} />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
