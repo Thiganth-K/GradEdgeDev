@@ -1,4 +1,5 @@
-from flask import Blueprint, request, jsonify, current_app
+from fastapi import APIRouter, Request
+from fastapi.responses import JSONResponse
 from werkzeug.security import check_password_hash
 import os
 import random
@@ -13,7 +14,7 @@ except Exception:
     send_otp_email = None
 
 
-auth_bp = Blueprint('auth_bp', __name__)
+router = APIRouter()
 
 
 def _ensure_otp_store(app):
@@ -24,16 +25,27 @@ def _ensure_otp_store(app):
     return store
 
 
-@auth_bp.route('/api/auth/login', methods=['POST'])
-def login():
-    data = request.get_json(silent=True) or request.form or {}
+async def _get_data(request: Request) -> dict:
+    try:
+        if 'application/json' in (request.headers.get('content-type') or ''):
+            return await request.json() or {}
+        form = await request.form()
+        return dict(form) if form else {}
+    except Exception:
+        return {}
+
+
+@router.post('/api/auth/login')
+async def login(request: Request) -> JSONResponse:
+    data = await _get_data(request)
     username = data.get('username') or data.get('name')
     password = data.get('password')
 
     if not username or not password:
-        return jsonify({'ok': False, 'message': 'username and password required'}), 400
+        return JSONResponse({'ok': False, 'message': 'username and password required'}, status_code=400)
 
-    client = getattr(current_app, 'mongo_client', None)
+    app = request.app
+    client = getattr(app, 'mongo_client', None)
     # Try DB-auth if available
     if client is not None:
         try:
@@ -45,27 +57,27 @@ def login():
                 role = user_doc.get('role', 'student')
                 redirect = '/admin/welcome' if role in ('admin', 'faculty') else '/'
                 try:
-                    log_event(current_app, username, role, 'login')
+                    log_event(app, username, role, 'login')
                 except Exception:
-                    current_app.logger.exception('Failed to record login event')
-                return jsonify({'ok': True, 'redirect': redirect, 'role': role, 'username': username})
+                    app.logger.exception('Failed to record login event')
+                return JSONResponse({'ok': True, 'redirect': redirect, 'role': role, 'username': username})
 
             # Use general verifier across role collections
             try:
-                res = verify_user_credentials(current_app, username, password)
+                res = verify_user_credentials(app, username, password)
                 if res:
                     role, user = res
                     try:
-                        log_event(current_app, username, role, 'login')
+                        log_event(app, username, role, 'login')
                     except Exception:
-                        current_app.logger.exception('Failed to record login event')
+                        app.logger.exception('Failed to record login event')
                     redirect = '/admin/welcome' if role in ('admin', 'faculty') else '/'
-                    return jsonify({'ok': True, 'role': role, 'redirect': redirect, 'username': username}), 200
+                    return JSONResponse({'ok': True, 'role': role, 'redirect': redirect, 'username': username}, status_code=200)
             except Exception:
-                current_app.logger.exception('DB auth failure')
+                app.logger.exception('DB auth failure')
 
         except Exception:
-            current_app.logger.exception('DB auth check failed')
+            app.logger.exception('DB auth check failed')
 
     # Fallback to env credentials for admin
     env_user = os.environ.get('ADMIN_USERNAME') or os.environ.get('ADMIN_USER') or os.environ.get('ADMIN')
@@ -77,82 +89,83 @@ def login():
 
     if env_user and env_pass and username == env_user and password == env_pass:
         try:
-            log_event(current_app, username, 'admin', 'login')
+            log_event(app, username, 'admin', 'login')
         except Exception:
-            current_app.logger.exception('Failed to record login event')
-        return jsonify({'ok': True, 'redirect': '/admin/welcome', 'role': 'admin', 'username': username})
+            app.logger.exception('Failed to record login event')
+        return JSONResponse({'ok': True, 'redirect': '/admin/welcome', 'role': 'admin', 'username': username})
 
     # Try faculty accounts (DB or in-memory)
     try:
-        if verify_faculty_credentials(current_app, username, password):
+        if verify_faculty_credentials(app, username, password):
             try:
-                log_event(current_app, username, 'faculty', 'login')
+                log_event(app, username, 'faculty', 'login')
             except Exception:
-                current_app.logger.exception('Failed to record login event')
-            return jsonify({'ok': True, 'redirect': '/admin/welcome', 'role': 'faculty', 'username': username})
+                app.logger.exception('Failed to record login event')
+            return JSONResponse({'ok': True, 'redirect': '/admin/welcome', 'role': 'faculty', 'username': username})
     except Exception:
-        current_app.logger.exception('Faculty auth check failed')
+        app.logger.exception('Faculty auth check failed')
 
-    return jsonify({'ok': False, 'message': 'Invalid credentials'}), 401
+    return JSONResponse({'ok': False, 'message': 'Invalid credentials'}, status_code=401)
 
 
-
-@auth_bp.route('/api/auth/logout', methods=['POST'])
-def logout():
-    data = request.get_json(silent=True) or request.form or {}
+@router.post('/api/auth/logout')
+async def logout(request: Request) -> JSONResponse:
+    data = await _get_data(request)
     username = data.get('username')
     role = data.get('role', 'unknown')
+    app = request.app
     if username:
         try:
-            log_event(current_app, username, role, 'logout')
+            log_event(app, username, role, 'logout')
         except Exception:
-            current_app.logger.exception('Failed to record logout event')
-    return jsonify({'ok': True, 'message': 'logged out'})
+            app.logger.exception('Failed to record logout event')
+    return JSONResponse({'ok': True, 'message': 'logged out'})
 
 
 
-@auth_bp.route('/api/auth/signup', methods=['POST'])
-def signup():
-    data = request.get_json(silent=True) or request.form or {}
+@router.post('/api/auth/signup')
+async def signup(request: Request) -> JSONResponse:
+    data = await _get_data(request)
     username = data.get('username')
     password = data.get('password')
     role = (data.get('role') or 'student').lower()
 
     if not username or not password:
-        return jsonify({'ok': False, 'message': 'username and password required'}), 400
+        return JSONResponse({'ok': False, 'message': 'username and password required'}, status_code=400)
 
     # Legacy direct signup is disabled. Use the OTP flow instead.
-    return jsonify({'ok': False, 'message': 'Use /api/auth/signup/init and /api/auth/signup/verify for email-verified signup'}), 400
+    return JSONResponse({'ok': False, 'message': 'Use /api/auth/signup/init and /api/auth/signup/verify for email-verified signup'}, status_code=400)
 
 
 
-@auth_bp.route('/api/auth/signup/init', methods=['POST'])
-def signup_init():
-    data = request.get_json(silent=True) or request.form or {}
+@router.post('/api/auth/signup/init')
+async def signup_init(request: Request) -> JSONResponse:
+    data = await _get_data(request)
     username = data.get('username')
     password = data.get('password')
     email = data.get('email')
     role = (data.get('role') or 'student').lower()
 
     if not username or not password or not email:
-        return jsonify({'ok': False, 'message': 'username, password and email required'}), 400
+        return JSONResponse({'ok': False, 'message': 'username, password and email required'}, status_code=400)
 
     # Check username availability
-    client = getattr(current_app, 'mongo_client', None)
+    app = request.app
+    client = getattr(app, 'mongo_client', None)
     if client is not None:
         db = client.get_database('gradedgedev')
         for col in COLLECTION_MAP.values():
             if db.get_collection(col).find_one({'username': username}):
-                return jsonify({'ok': False, 'message': 'username already exists'}), 400
+                return JSONResponse({'ok': False, 'message': 'username already exists'}, status_code=400)
     else:
-        store = _ensure_store(current_app)
+        store = _ensure_store(app)
         for bucket in store.values():
             if username in bucket:
-                return jsonify({'ok': False, 'message': 'username already exists'}), 400
+                return JSONResponse({'ok': False, 'message': 'username already exists'}, status_code=400)
 
     # generate 4-digit OTP (valid for 2 minutes)
     otp = str(random.randint(1000, 9999))
-    otp_store = _ensure_otp_store(current_app)
+    otp_store = _ensure_otp_store(app)
     expires = datetime.utcnow() + timedelta(minutes=2)
     otp_store[email] = {'otp': otp, 'expires': expires, 'payload': data}
 
@@ -160,11 +173,11 @@ def signup_init():
     # OTP in server-side store so local development can use the logged code.
     try:
         if send_otp_email is None:
-            current_app.logger.warning('send_otp_email not configured; OTP=%s', otp)
+            app.logger.warning('send_otp_email not configured; OTP=%s', otp)
         else:
             send_otp_email(email, otp)
     except Exception:
-        current_app.logger.exception('Failed to send OTP email; using logged OTP for dev')
+        app.logger.exception('Failed to send OTP email; using logged OTP for dev')
         debug = os.environ.get('OTP_DEBUG', 'false').lower() in ('1', 'true', 'yes')
         payload = {
             'ok': True,
@@ -172,70 +185,72 @@ def signup_init():
         }
         if debug:
             payload['otp'] = otp
-        return jsonify(payload), 200
+        return JSONResponse(payload, status_code=200)
 
     debug = os.environ.get('OTP_DEBUG', 'false').lower() in ('1', 'true', 'yes')
     payload = {'ok': True, 'message': 'OTP sent to email'}
     if debug:
         payload['otp'] = otp
-    return jsonify(payload), 200
+    return JSONResponse(payload, status_code=200)
 
 
-@auth_bp.route('/api/auth/signup/verify', methods=['POST'])
-def signup_verify():
-    data = request.get_json(silent=True) or request.form or {}
+@router.post('/api/auth/signup/verify')
+async def signup_verify(request: Request) -> JSONResponse:
+    data = await _get_data(request)
     email = data.get('email')
     otp = str(data.get('otp') or '')
 
     if not email or not otp:
-        return jsonify({'ok': False, 'message': 'email and otp required'}), 400
+        return JSONResponse({'ok': False, 'message': 'email and otp required'}, status_code=400)
 
-    otp_store = _ensure_otp_store(current_app)
+    app = request.app
+    otp_store = _ensure_otp_store(app)
     entry = otp_store.get(email)
     if not entry:
-        return jsonify({'ok': False, 'message': 'no pending signup for this email'}), 400
+        return JSONResponse({'ok': False, 'message': 'no pending signup for this email'}, status_code=400)
     if entry.get('expires') < datetime.utcnow():
         otp_store.pop(email, None)
-        return jsonify({'ok': False, 'message': 'otp expired'}), 400
+        return JSONResponse({'ok': False, 'message': 'otp expired'}, status_code=400)
     if entry.get('otp') != otp:
-        return jsonify({'ok': False, 'message': 'invalid otp'}), 400
+        return JSONResponse({'ok': False, 'message': 'invalid otp'}, status_code=400)
 
     payload = entry.get('payload') or {}
     username = payload.get('username')
     role = (payload.get('role') or 'student').lower()
 
     try:
-        user = create_user(current_app, payload)
+        user = create_user(app, payload)
         try:
-            log_event(current_app, username, role, 'signup')
+            log_event(app, username, role, 'signup')
         except Exception:
-            current_app.logger.exception('Failed to record signup event')
+            app.logger.exception('Failed to record signup event')
         otp_store.pop(email, None)
-        return jsonify({'ok': True, 'user': user}), 200
+        return JSONResponse({'ok': True, 'user': user}, status_code=200)
     except ValueError as ve:
-        return jsonify({'ok': False, 'message': str(ve)}), 400
+        return JSONResponse({'ok': False, 'message': str(ve)}, status_code=400)
     except Exception as exc:
-        current_app.logger.exception('Signup verify failed: %s', exc)
-        return jsonify({'ok': False, 'message': 'internal error'}), 500
+        app.logger.exception('Signup verify failed: %s', exc)
+        return JSONResponse({'ok': False, 'message': 'internal error'}, status_code=500)
 
 
-@auth_bp.route('/api/auth/signup/resend', methods=['POST'])
-def signup_resend():
+@router.post('/api/auth/signup/resend')
+async def signup_resend(request: Request) -> JSONResponse:
     """Regenerate and resend OTP for an existing pending signup.
 
     Expects: { email }
     Uses same OTP_DEBUG behavior as signup_init.
     """
-    data = request.get_json(silent=True) or request.form or {}
+    data = await _get_data(request)
     email = data.get('email')
 
     if not email:
-        return jsonify({'ok': False, 'message': 'email required'}), 400
+        return JSONResponse({'ok': False, 'message': 'email required'}, status_code=400)
 
-    otp_store = _ensure_otp_store(current_app)
+    app = request.app
+    otp_store = _ensure_otp_store(app)
     entry = otp_store.get(email)
     if not entry:
-        return jsonify({'ok': False, 'message': 'no pending signup for this email'}), 400
+        return JSONResponse({'ok': False, 'message': 'no pending signup for this email'}, status_code=400)
 
     # Generate new OTP and extend expiry (2 minutes)
     otp = str(random.randint(1000, 9999))
@@ -246,11 +261,11 @@ def signup_resend():
 
     try:
         if send_otp_email is None:
-            current_app.logger.warning('send_otp_email not configured (resend); OTP=%s', otp)
+            app.logger.warning('send_otp_email not configured (resend); OTP=%s', otp)
         else:
             send_otp_email(email, otp)
     except Exception:
-        current_app.logger.exception('Failed to resend OTP email; using logged OTP for dev')
+        app.logger.exception('Failed to resend OTP email; using logged OTP for dev')
         debug = os.environ.get('OTP_DEBUG', 'false').lower() in ('1', 'true', 'yes')
         payload = {
             'ok': True,
@@ -258,30 +273,31 @@ def signup_resend():
         }
         if debug:
             payload['otp'] = otp
-        return jsonify(payload), 200
+        return JSONResponse(payload, status_code=200)
 
     debug = os.environ.get('OTP_DEBUG', 'false').lower() in ('1', 'true', 'yes')
     payload = {'ok': True, 'message': 'OTP resent to email'}
     if debug:
         payload['otp'] = otp
-    return jsonify(payload), 200
+    return JSONResponse(payload, status_code=200)
 
 
-@auth_bp.route('/api/auth/password-reset/init', methods=['POST'])
-def password_reset_init():
+@router.post('/api/auth/password-reset/init')
+async def password_reset_init(request: Request) -> JSONResponse:
     """Start password reset by sending a 4-digit OTP to the user's email.
 
     Expects: { username, email }
     """
-    data = request.get_json(silent=True) or request.form or {}
+    data = await _get_data(request)
     username = data.get('username')
     email = data.get('email')
 
     if not username or not email:
-        return jsonify({'ok': False, 'message': 'username and email required'}), 400
+        return JSONResponse({'ok': False, 'message': 'username and email required'}, status_code=400)
 
     # locate user across role collections or in-memory store
-    client = getattr(current_app, 'mongo_client', None)
+    app = request.app
+    client = getattr(app, 'mongo_client', None)
     user_doc = None
     stored_email = None
     role = None
@@ -297,7 +313,7 @@ def password_reset_init():
                 role = r
                 break
     else:
-        store = _ensure_store(current_app)
+        store = _ensure_store(app)
         for r, bucket in store.items():
             doc = bucket.get(username)
             if doc:
@@ -307,26 +323,26 @@ def password_reset_init():
                 break
 
     if not user_doc:
-        return jsonify({'ok': False, 'message': 'user not found'}), 404
+        return JSONResponse({'ok': False, 'message': 'user not found'}, status_code=404)
 
     email_normalized = email.strip().lower()
     if stored_email and stored_email != email_normalized:
-        return jsonify({'ok': False, 'message': 'email does not match our records'}), 400
+        return JSONResponse({'ok': False, 'message': 'email does not match our records'}, status_code=400)
 
     # generate 4-digit OTP (valid for 2 minutes)
     otp = str(random.randint(1000, 9999))
-    otp_store = _ensure_otp_store(current_app)
+    otp_store = _ensure_otp_store(app)
     key = f'reset:{username}:{email_normalized}'
     expires = datetime.utcnow() + timedelta(minutes=2)
     otp_store[key] = {'otp': otp, 'expires': expires, 'username': username, 'role': role, 'email': email_normalized}
 
     try:
         if send_otp_email is None:
-            current_app.logger.warning('send_otp_email not configured for password reset; OTP=%s', otp)
+            app.logger.warning('send_otp_email not configured for password reset; OTP=%s', otp)
         else:
             send_otp_email(email, otp)
     except Exception:
-        current_app.logger.exception('Failed to send password reset OTP email; using logged OTP for dev')
+        app.logger.exception('Failed to send password reset OTP email; using logged OTP for dev')
         debug = os.environ.get('OTP_DEBUG', 'false').lower() in ('1', 'true', 'yes')
         payload = {
             'ok': True,
@@ -334,74 +350,76 @@ def password_reset_init():
         }
         if debug:
             payload['otp'] = otp
-        return jsonify(payload), 200
+        return JSONResponse(payload, status_code=200)
 
     debug = os.environ.get('OTP_DEBUG', 'false').lower() in ('1', 'true', 'yes')
     payload = {'ok': True, 'message': 'Password reset OTP sent to email'}
     if debug:
         payload['otp'] = otp
-    return jsonify(payload), 200
+    return JSONResponse(payload, status_code=200)
 
 
-@auth_bp.route('/api/auth/password-reset/verify', methods=['POST'])
-def password_reset_verify():
+@router.post('/api/auth/password-reset/verify')
+async def password_reset_verify(request: Request) -> JSONResponse:
     """Verify OTP and update the user's password.
 
     Expects: { username, email, otp, new_password }
     """
-    data = request.get_json(silent=True) or request.form or {}
+    data = await _get_data(request)
     username = data.get('username')
     email = data.get('email')
     otp = str(data.get('otp') or '')
     new_password = data.get('new_password')
 
     if not username or not email or not otp or not new_password:
-        return jsonify({'ok': False, 'message': 'username, email, otp and new_password required'}), 400
+        return JSONResponse({'ok': False, 'message': 'username, email, otp and new_password required'}, status_code=400)
 
-    otp_store = _ensure_otp_store(current_app)
+    app = request.app
+    otp_store = _ensure_otp_store(app)
     key = f'reset:{username}:{email.strip().lower()}'
     entry = otp_store.get(key)
     if not entry:
-        return jsonify({'ok': False, 'message': 'no pending password reset for this user/email'}), 400
+        return JSONResponse({'ok': False, 'message': 'no pending password reset for this user/email'}, status_code=400)
     if entry.get('expires') < datetime.utcnow():
         otp_store.pop(key, None)
-        return jsonify({'ok': False, 'message': 'otp expired'}), 400
+        return JSONResponse({'ok': False, 'message': 'otp expired'}, status_code=400)
     if entry.get('otp') != otp:
-        return jsonify({'ok': False, 'message': 'invalid otp'}), 400
+        return JSONResponse({'ok': False, 'message': 'invalid otp'}, status_code=400)
 
     try:
-        role = reset_user_password(current_app, username, new_password)
+        role = reset_user_password(app, username, new_password)
         try:
-            log_event(current_app, username, role, 'password_reset')
+            log_event(app, username, role, 'password_reset')
         except Exception:
-            current_app.logger.exception('Failed to record password reset event')
+            app.logger.exception('Failed to record password reset event')
         otp_store.pop(key, None)
-        return jsonify({'ok': True, 'message': 'password updated successfully'}), 200
+        return JSONResponse({'ok': True, 'message': 'password updated successfully'}, status_code=200)
     except ValueError as ve:
-        return jsonify({'ok': False, 'message': str(ve)}), 400
+        return JSONResponse({'ok': False, 'message': str(ve)}, status_code=400)
     except Exception as exc:
-        current_app.logger.exception('Password reset verify failed: %s', exc)
-        return jsonify({'ok': False, 'message': 'internal error'}), 500
+        app.logger.exception('Password reset verify failed: %s', exc)
+        return JSONResponse({'ok': False, 'message': 'internal error'}, status_code=500)
 
 
-@auth_bp.route('/api/auth/password-reset/resend', methods=['POST'])
-def password_reset_resend():
+@router.post('/api/auth/password-reset/resend')
+async def password_reset_resend(request: Request) -> JSONResponse:
     """Regenerate and resend OTP for a pending password reset.
 
     Expects: { username, email }
     """
-    data = request.get_json(silent=True) or request.form or {}
+    data = await _get_data(request)
     username = data.get('username')
     email = data.get('email')
 
     if not username or not email:
-        return jsonify({'ok': False, 'message': 'username and email required'}), 400
+        return JSONResponse({'ok': False, 'message': 'username and email required'}, status_code=400)
 
-    otp_store = _ensure_otp_store(current_app)
+    app = request.app
+    otp_store = _ensure_otp_store(app)
     key = f'reset:{username}:{email.strip().lower()}'
     entry = otp_store.get(key)
     if not entry:
-        return jsonify({'ok': False, 'message': 'no pending password reset for this user/email'}), 400
+        return JSONResponse({'ok': False, 'message': 'no pending password reset for this user/email'}, status_code=400)
 
     # Generate new OTP and extend expiry (2 minutes)
     otp = str(random.randint(1000, 9999))
@@ -412,11 +430,11 @@ def password_reset_resend():
 
     try:
         if send_otp_email is None:
-            current_app.logger.warning('send_otp_email not configured (password reset resend); OTP=%s', otp)
+            app.logger.warning('send_otp_email not configured (password reset resend); OTP=%s', otp)
         else:
             send_otp_email(email, otp)
     except Exception:
-        current_app.logger.exception('Failed to resend password reset OTP email; using logged OTP for dev')
+        app.logger.exception('Failed to resend password reset OTP email; using logged OTP for dev')
         debug = os.environ.get('OTP_DEBUG', 'false').lower() in ('1', 'true', 'yes')
         payload = {
             'ok': True,
@@ -424,10 +442,10 @@ def password_reset_resend():
         }
         if debug:
             payload['otp'] = otp
-        return jsonify(payload), 200
+        return JSONResponse(payload, status_code=200)
 
     debug = os.environ.get('OTP_DEBUG', 'false').lower() in ('1', 'true', 'yes')
     payload = {'ok': True, 'message': 'Password reset OTP resent to email'}
     if debug:
         payload['otp'] = otp
-    return jsonify(payload), 200
+    return JSONResponse(payload, status_code=200)

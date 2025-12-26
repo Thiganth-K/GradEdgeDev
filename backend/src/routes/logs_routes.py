@@ -1,16 +1,25 @@
-from flask import Blueprint, jsonify, current_app, request
+from fastapi import APIRouter, Request
+from fastapi.responses import JSONResponse
+
 from src.controllers.logs_controller import get_logs
 
-logs_bp = Blueprint('logs_bp', __name__)
+router = APIRouter()
 
 
-@logs_bp.route('/api/admin/logs', methods=['GET'])
-def list_logs():
-    # For now, this endpoint returns recent auth logs. It's intended for admin UIs.
-    # Note: no robust server-side auth is enforced here; caller should ensure only admin calls it.
+@router.get('/api/admin/logs')
+async def list_logs(request: Request) -> JSONResponse:
+    """Return recent auth logs for admin UI consumers.
+
+    Note: server-side auth is minimal; callers must ensure only admin users call this.
+    """
+    app = request.app
     try:
-        limit = int(request.args.get('limit', '200'))
-    except Exception:
-        limit = 200
-    docs = get_logs(current_app, limit=limit)
-    return jsonify({'ok': True, 'logs': docs})
+        try:
+            limit = int(request.query_params.get('limit', '200'))
+        except Exception:
+            limit = 200
+        docs = get_logs(app, limit=limit)
+        return JSONResponse({'ok': True, 'logs': docs}, status_code=200)
+    except Exception as exc:
+        app.logger.exception('Failed to list logs: %s', exc)
+        return JSONResponse({'ok': False, 'logs': []}, status_code=500)
