@@ -1,6 +1,6 @@
 import React from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { LayoutDashboard, Brain, Code, MessageSquare, BookOpen, Rocket, History, LogOut } from 'lucide-react'
+import { LayoutDashboard, Brain, Code, MessageSquare, BookOpen, Rocket, History, User, LogOut } from 'lucide-react'
 
 interface StudentLayoutProps {
   children: React.ReactNode
@@ -62,15 +62,21 @@ const StudentLayout: React.FC<StudentLayoutProps> = ({ children, username, onLog
 
         {/* User Profile & Logout */}
         <div className="p-4 border-t border-red-700">
-          <div className="flex items-center gap-3 mb-3">
+          <button
+            onClick={() => navigate('/student/profile')}
+            className="w-full flex items-center gap-3 mb-3 p-2 rounded-lg hover:bg-red-700 transition-colors"
+          >
             <div className="w-10 h-10 rounded-full bg-red-700 flex items-center justify-center">
               <span className="text-sm font-semibold">{username.charAt(0).toUpperCase()}</span>
             </div>
-            <div className="flex-1">
+            <div className="flex-1 text-left">
               <div className="text-sm font-semibold">{username}</div>
-              <div className="text-xs text-red-200">Student</div>
+              <div className="text-xs text-red-200 flex items-center gap-1">
+                <User className="w-3 h-3" />
+                <span>View Profile</span>
+              </div>
             </div>
-          </div>
+          </button>
           <button
             onClick={onLogout}
             className="w-full flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-red-100 hover:bg-red-700 transition-colors"
