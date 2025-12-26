@@ -9,9 +9,10 @@ from src.controllers.faculty_controller import verify_faculty_credentials
 from src.controllers.signup_controller import create_user, verify_user_credentials, _ensure_store, COLLECTION_MAP, reset_user_password
 from src.controllers.logs_controller import log_event
 try:
-    from src.mail.mail import send_otp_email
+    from src.mail.mail import send_otp_email, send_welcome_email
 except Exception:
     send_otp_email = None
+    send_welcome_email = None
 
 
 router = APIRouter()
@@ -23,6 +24,19 @@ def _ensure_otp_store(app):
         store = {}
         setattr(app, '_otp_store', store)
     return store
+
+
+def _generate_welcome_message(role: str, username: str | None) -> str:
+    name = username or 'there'
+    role = (role or 'student').lower()
+    if role == 'admin':
+        return f"Welcome, {name}! You can now manage users, logs, and platform settings."
+    if role == 'faculty':
+        return f"Welcome, {name}! You can now manage your students and track their performance."
+    if role == 'recruiter':
+        return f"Welcome, {name}! You can now explore candidates and manage your hiring pipeline."
+    # default to student
+    return f"Welcome, {name}! Your student dashboard is ready to explore."
 
 
 async def _get_data(request: Request) -> dict:
@@ -225,7 +239,15 @@ async def signup_verify(request: Request) -> JSONResponse:
         except Exception:
             app.logger.exception('Failed to record signup event')
         otp_store.pop(email, None)
-        return JSONResponse({'ok': True, 'user': user}, status_code=200)
+        welcome = _generate_welcome_message(role, username)
+        # Fire-and-forget welcome email; failures are logged but do not break signup
+        to_email = payload.get('email')
+        if send_welcome_email is not None and to_email:
+            try:
+                send_welcome_email(to_email, role, username, welcome)
+            except Exception:
+                app.logger.exception('Failed to send welcome email')
+        return JSONResponse({'ok': True, 'user': user, 'welcome_message': welcome}, status_code=200)
     except ValueError as ve:
         return JSONResponse({'ok': False, 'message': str(ve)}, status_code=400)
     except Exception as exc:

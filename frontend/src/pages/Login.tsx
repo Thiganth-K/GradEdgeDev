@@ -248,7 +248,9 @@ export default function LoginPage({ onLoginSuccess }: Props) {
         setAwaitingOtp(false)
         setOtp('')
         setOtpSecondsLeft(null)
-        setError('Signup successful — please sign in')
+        // Prefer backend-provided welcome message when available
+        const welcome = (vdata as any).welcome_message as string | undefined
+        setError(welcome || 'Signup successful — please sign in')
         return
       }
 
