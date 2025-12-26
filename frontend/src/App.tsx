@@ -1,13 +1,13 @@
 import './App.css'
 import AdminWelcomePage from './pages/Admin/Welcome'
 import { postJson } from './lib/api'
-import FacultyPage from './pages/Admin/Faculty'
 import FacultyManage from './pages/Faculty/Manage'
 import FacultyWelcome from './pages/Faculty/Welcome'
 import { useEffect, useState } from 'react'
 import StudentWelcome from './pages/Student/Welcome'
 import RecruiterWelcome from './pages/Recruiter/Welcome'
 import LoginPage from './pages/Login'
+import StudentDashboard from './pages/Student/Dashboard'
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom'
 
 function App() {
@@ -74,7 +74,7 @@ function App() {
           path="/admin/welcome"
           element={
             loggedIn && role === 'admin' ? (
-              <AdminWelcomePage username={username} onLogout={handleLogout} onManage={() => navigate('/faculty/manage')} />
+              <AdminWelcomePage username={username} onLogout={handleLogout} />
             ) : (
               <LoginPage onLoginSuccess={handleLoginSuccess} />
             )
@@ -84,6 +84,7 @@ function App() {
         <Route path="/faculty/manage" element={loggedIn && role === 'admin' ? <FacultyManage /> : <LoginPage onLoginSuccess={handleLoginSuccess} />} />
         <Route path="/faculty/welcome" element={loggedIn && role === 'faculty' ? <FacultyWelcome username={username} onLogout={handleLogout} /> : <LoginPage onLoginSuccess={handleLoginSuccess} />} />
         <Route path="/student/welcome" element={loggedIn && role === 'student' ? <StudentWelcome username={username} onLogout={handleLogout} /> : <LoginPage onLoginSuccess={handleLoginSuccess} />} />
+        <Route path="/student/dashboard" element={loggedIn && role === 'student' ? <StudentDashboard username={username} onLogout={handleLogout} /> : <LoginPage onLoginSuccess={handleLoginSuccess} />} />
         <Route path="/recruiter/welcome" element={loggedIn && role === 'recruiter' ? <RecruiterWelcome username={username} onLogout={handleLogout} /> : <LoginPage onLoginSuccess={handleLoginSuccess} />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
