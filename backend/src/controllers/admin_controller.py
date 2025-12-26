@@ -1,6 +1,5 @@
 import os
 from werkzeug.security import generate_password_hash
-from flask import current_app
 
 
 def ensure_admin(app, username: str | None = None, password: str | None = None):
