@@ -134,6 +134,12 @@ const Dashboard: React.FC<DashboardProps> = ({ username, onLogout }) => {
   return (
     <StudentLayout username={username} onLogout={onLogout}>
       <div className="p-6 bg-gray-50 min-h-screen">
+        
+        {/* Welcome Note */}
+        <div className="mb-6 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg p-6 shadow-lg">
+          <h1 className="text-3xl font-bold text-white mb-2">Welcome back, {username}! 👋</h1>
+          <p className="text-blue-50 text-lg">Ready to level up your skills today? Let's make it count!</p>
+        </div>
 
         {/* Top Bar with Buttons */}
         <div className="flex justify-end gap-3 mb-6">

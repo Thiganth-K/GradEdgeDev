@@ -1,15 +1,18 @@
-import './App.css'
 import AdminWelcomePage from './pages/Admin/Welcome'
+import AdminLogsPage from './pages/Admin/Logs'
 import { postJson, getJson } from './lib/api'
 import FacultyManage from './pages/Faculty/Manage'
 import FacultyWelcome from './pages/Faculty/Welcome'
 import { useEffect, useState } from 'react'
-import StudentWelcome from './pages/Student/Welcome'
 import RecruiterWelcome from './pages/Recruiter/Welcome'
 import LoginPage from './pages/Login'
 import StudentDashboard from './pages/Student/Dashboard'
+import StudentProfile from './pages/Student/Profile'
 import InstitutionalWelcome from './pages/Institutional/Welcome'
 import InstitutionalPage from './pages/Admin/Institutional'
+import FacultyManagement from './pages/Institutional/FacultyManagement'
+import BatchManagement from './pages/Institutional/BatchManagement'
+import StudentManagement from './pages/Institutional/StudentManagement'
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom'
 
 function App() {
@@ -38,10 +41,13 @@ function App() {
     const p = location.pathname || '/'
     if (p === '/' || p === '/login') {
       if (role === 'faculty') navigate(`/faculty/${facultyId}/welcome`)
-      else if (role === 'student') navigate('/student/welcome')
+      else if (role === 'student') navigate('/student/dashboard')
       else if (role === 'recruiter') navigate('/recruiter/welcome')
       else if (role === 'institutional') navigate('/institutional/welcome')
       else navigate('/admin/welcome')
+    } else if (role === 'student' && !p.startsWith('/student/')) {
+      // Always redirect students to dashboard if they're not already on a student page
+      navigate('/student/dashboard')
     }
     // reset flag after performing redirect once
     setShouldAutoRedirect(false)
@@ -66,10 +72,17 @@ function App() {
   }, [loggedIn, role, username])
 
   function handleLoginSuccess(name: string, r?: string) {
+    const userRole = r || 'admin'
     setUsername(name)
-    setRole(r || 'admin')
+    setRole(userRole)
     if (r === 'faculty') setFacultyId(null)
     setLoggedIn(true)
+    
+    // Persist login state to localStorage
+    localStorage.setItem('logged_in', 'true')
+    localStorage.setItem('username', name)
+    localStorage.setItem('role', userRole)
+    
     // enable the auto-redirect for this freshly completed login
     setShouldAutoRedirect(true)
   }
@@ -107,6 +120,16 @@ function App() {
             )
           }
         />
+        <Route
+          path="/admin/logs"
+          element={
+            loggedIn && role === 'admin' ? (
+              <AdminLogsPage />
+            ) : (
+              <LoginPage onLoginSuccess={handleLoginSuccess} />
+            )
+          }
+        />
         <Route path="/admin/faculty" element={loggedIn && role === 'admin' ? <FacultyManage /> : <LoginPage onLoginSuccess={handleLoginSuccess} />} />
         <Route path="/faculty/manage" element={loggedIn && role === 'admin' ? <FacultyManage /> : <LoginPage onLoginSuccess={handleLoginSuccess} />} />
         <Route
@@ -131,10 +154,13 @@ function App() {
           }
         />
         <Route path="/admin/institutional" element={loggedIn && role === 'admin' ? <InstitutionalPage /> : <LoginPage onLoginSuccess={handleLoginSuccess} />} />
-        <Route path="/student/welcome" element={loggedIn && role === 'student' ? <StudentWelcome username={username} onLogout={handleLogout} /> : <LoginPage onLoginSuccess={handleLoginSuccess} />} />
         <Route path="/student/dashboard" element={loggedIn && role === 'student' ? <StudentDashboard username={username} onLogout={handleLogout} /> : <LoginPage onLoginSuccess={handleLoginSuccess} />} />
+        <Route path="/student/profile" element={loggedIn && role === 'student' ? <StudentProfile username={username} onLogout={handleLogout} /> : <LoginPage onLoginSuccess={handleLoginSuccess} />} />
         <Route path="/recruiter/welcome" element={loggedIn && role === 'recruiter' ? <RecruiterWelcome username={username} onLogout={handleLogout} /> : <LoginPage onLoginSuccess={handleLoginSuccess} />} />
         <Route path="/institutional/welcome" element={loggedIn && role === 'institutional' ? <InstitutionalWelcome username={username} onLogout={handleLogout} /> : <LoginPage onLoginSuccess={handleLoginSuccess} />} />
+        <Route path="/institutional/faculty" element={loggedIn && role === 'institutional' ? <FacultyManagement username={username} /> : <LoginPage onLoginSuccess={handleLoginSuccess} />} />
+        <Route path="/institutional/batch" element={loggedIn && role === 'institutional' ? <BatchManagement username={username} /> : <LoginPage onLoginSuccess={handleLoginSuccess} />} />
+        <Route path="/institutional/students" element={loggedIn && role === 'institutional' ? <StudentManagement username={username} /> : <LoginPage onLoginSuccess={handleLoginSuccess} />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </div>

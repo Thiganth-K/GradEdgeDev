@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import AdminWelcomeCard from '../../components/Admin/AdminWelcomeCard.tsx'
-import AdminLogs from '../../components/Admin/AdminLogs'
 import { getJson } from '../../lib/api'
 
 type AdminMeResponse = {
@@ -20,7 +19,6 @@ export default function AdminWelcomePage({ username: propUsername, fallbackUsern
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | undefined>(undefined)
   const [data, setData] = useState<AdminMeResponse | undefined>(undefined)
-  const [showLogs, setShowLogs] = useState<boolean>(false)
 
   useEffect(() => {
     let cancelled = false
@@ -62,11 +60,11 @@ export default function AdminWelcomePage({ username: propUsername, fallbackUsern
   }
 
   function handleViewLogs() {
-    setShowLogs((s) => !s)
+    navigate('/admin/logs')
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-5xl items-center justify-center px-6 py-12">
+    <main className="min-h-screen bg-white">
       <AdminWelcomeCard
         title="Admin Welcome"
         subtitle={subtitle}
@@ -78,8 +76,6 @@ export default function AdminWelcomePage({ username: propUsername, fallbackUsern
         onManageInstitutional={handleManageInstitutional}
         onViewLogs={handleViewLogs}
       />
-
-      {showLogs ? <AdminLogs /> : null}
     </main>
   )
 }
