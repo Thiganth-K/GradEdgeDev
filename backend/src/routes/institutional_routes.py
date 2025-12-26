@@ -18,6 +18,8 @@ from src.controllers.faculty_controller import (
 from src.controllers.student_controller import (
     batch_create_students,
     list_students_by_institution,
+    update_student_for_institution,
+    delete_student_for_institution,
 )
 
 router = APIRouter()
@@ -160,6 +162,35 @@ async def institutional_list_students(institutional_id: str, request: Request) -
         return JSONResponse({'ok': False, 'error': str(ve)}, status_code=400)
     except Exception as exc:
         app.logger.exception('Failed to list students: %s', exc)
+        return JSONResponse({'ok': False, 'error': 'internal error'}, status_code=500)
+
+
+@router.put('/api/institutional/{institutional_id}/students/{enrollment_id}')
+async def institutional_update_student(institutional_id: str, enrollment_id: str, request: Request) -> JSONResponse:
+    app = request.app
+    try:
+        payload = await _get_json_body(request)
+        doc = update_student_for_institution(app, institutional_id, enrollment_id, payload)
+        return JSONResponse({'ok': True, 'data': doc}, status_code=200)
+    except ValueError as ve:
+        return JSONResponse({'ok': False, 'error': str(ve)}, status_code=400)
+    except Exception as exc:
+        app.logger.exception('Failed to update student: %s', exc)
+        return JSONResponse({'ok': False, 'error': 'internal error'}, status_code=500)
+
+
+@router.delete('/api/institutional/{institutional_id}/students/{enrollment_id}')
+async def institutional_delete_student(institutional_id: str, enrollment_id: str, request: Request) -> JSONResponse:
+    app = request.app
+    try:
+        ok = delete_student_for_institution(app, institutional_id, enrollment_id)
+        if not ok:
+            return JSONResponse({'ok': False, 'error': 'not found'}, status_code=404)
+        return JSONResponse({'ok': True}, status_code=200)
+    except ValueError as ve:
+        return JSONResponse({'ok': False, 'error': str(ve)}, status_code=400)
+    except Exception as exc:
+        app.logger.exception('Failed to delete student: %s', exc)
         return JSONResponse({'ok': False, 'error': 'internal error'}, status_code=500)
 
 
