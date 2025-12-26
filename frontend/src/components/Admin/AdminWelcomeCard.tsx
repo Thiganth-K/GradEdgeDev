@@ -7,6 +7,7 @@ type Props = {
   onLogout?: () => void
   onManage?: () => void
   onViewLogs?: () => void
+  onManageInstitutional?: () => void
 }
 
 export default function AdminWelcomeCard({
@@ -17,11 +18,20 @@ export default function AdminWelcomeCard({
   error,
   onLogout,
   onManage,
+  onManageInstitutional,
   onViewLogs,
 }: Props) {
   return (
     <div className="w-full max-w-xl rounded-xl border border-slate-200 bg-white p-6">
       <div className="flex items-start justify-end space-x-2">
+        {onManageInstitutional ? (
+          <button
+            onClick={onManageInstitutional}
+            className="rounded-md bg-slate-100 px-3 py-1 text-sm font-medium text-slate-800 hover:bg-slate-200"
+          >
+            Manage institutional
+          </button>
+        ) : null}
         {onManage ? (
           <button
             onClick={onManage}

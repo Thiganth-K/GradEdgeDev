@@ -57,6 +57,10 @@ export default function AdminWelcomePage({ username: propUsername, fallbackUsern
     navigate('/faculty/manage')
   }
 
+  function handleManageInstitutional() {
+    navigate('/admin/institutional')
+  }
+
   function handleViewLogs() {
     setShowLogs((s) => !s)
   }
@@ -71,6 +75,7 @@ export default function AdminWelcomePage({ username: propUsername, fallbackUsern
         error={error}
         onLogout={onLogout}
         onManage={handleManage}
+        onManageInstitutional={handleManageInstitutional}
         onViewLogs={handleViewLogs}
       />
 
