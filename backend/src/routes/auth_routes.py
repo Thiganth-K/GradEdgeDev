@@ -35,6 +35,8 @@ def _generate_welcome_message(role: str, username: str | None) -> str:
         return f"Welcome, {name}! You can now manage your students and track their performance."
     if role == 'recruiter':
         return f"Welcome, {name}! You can now explore candidates and manage your hiring pipeline."
+    if role == 'institutional':
+        return f"Welcome, {name}! Your institutional dashboard is ready to manage your cohorts."
     # default to student
     return f"Welcome, {name}! Your student dashboard is ready to explore."
 
@@ -69,7 +71,16 @@ async def login(request: Request) -> JSONResponse:
             user_doc = users_coll.find_one({'username': username})
             if user_doc and 'password' in user_doc and check_password_hash(user_doc['password'], password):
                 role = user_doc.get('role', 'student')
-                redirect = '/admin/welcome' if role in ('admin', 'faculty') else '/'
+                if role in ('admin', 'faculty'):
+                    redirect = '/admin/welcome'
+                elif role == 'student':
+                    redirect = '/student/welcome'
+                elif role == 'recruiter':
+                    redirect = '/recruiter/welcome'
+                elif role == 'institutional':
+                    redirect = '/institutional/welcome'
+                else:
+                    redirect = '/'
                 try:
                     log_event(app, username, role, 'login')
                 except Exception:
@@ -85,7 +96,16 @@ async def login(request: Request) -> JSONResponse:
                         log_event(app, username, role, 'login')
                     except Exception:
                         app.logger.exception('Failed to record login event')
-                    redirect = '/admin/welcome' if role in ('admin', 'faculty') else '/'
+                    if role in ('admin', 'faculty'):
+                        redirect = '/admin/welcome'
+                    elif role == 'student':
+                        redirect = '/student/welcome'
+                    elif role == 'recruiter':
+                        redirect = '/recruiter/welcome'
+                    elif role == 'institutional':
+                        redirect = '/institutional/welcome'
+                    else:
+                        redirect = '/'
                     return JSONResponse({'ok': True, 'role': role, 'redirect': redirect, 'username': username}, status_code=200)
             except Exception:
                 app.logger.exception('DB auth failure')
@@ -139,169 +159,26 @@ async def logout(request: Request) -> JSONResponse:
 
 @router.post('/api/auth/signup')
 async def signup(request: Request) -> JSONResponse:
-    data = await _get_data(request)
-    username = data.get('username')
-    password = data.get('password')
-    role = (data.get('role') or 'student').lower()
-
-    if not username or not password:
-        return JSONResponse({'ok': False, 'message': 'username and password required'}, status_code=400)
-
-    # Legacy direct signup is disabled. Use the OTP flow instead.
-    return JSONResponse({'ok': False, 'message': 'Use /api/auth/signup/init and /api/auth/signup/verify for email-verified signup'}, status_code=400)
-
+    """Signup has been disabled on this deployment."""
+    return JSONResponse({'ok': False, 'message': 'signup is disabled'}, status_code=403)
 
 
 @router.post('/api/auth/signup/init')
 async def signup_init(request: Request) -> JSONResponse:
-    data = await _get_data(request)
-    username = data.get('username')
-    password = data.get('password')
-    email = data.get('email')
-    role = (data.get('role') or 'student').lower()
-
-    if not username or not password or not email:
-        return JSONResponse({'ok': False, 'message': 'username, password and email required'}, status_code=400)
-
-    # Check username availability
-    app = request.app
-    client = getattr(app, 'mongo_client', None)
-    if client is not None:
-        db = client.get_database('gradedgedev')
-        for col in COLLECTION_MAP.values():
-            if db.get_collection(col).find_one({'username': username}):
-                return JSONResponse({'ok': False, 'message': 'username already exists'}, status_code=400)
-    else:
-        store = _ensure_store(app)
-        for bucket in store.values():
-            if username in bucket:
-                return JSONResponse({'ok': False, 'message': 'username already exists'}, status_code=400)
-
-    # generate 4-digit OTP (valid for 2 minutes)
-    otp = str(random.randint(1000, 9999))
-    otp_store = _ensure_otp_store(app)
-    expires = datetime.utcnow() + timedelta(minutes=2)
-    otp_store[email] = {'otp': otp, 'expires': expires, 'payload': data}
-
-    # attempt to send email (if configured). Even if this fails we keep the
-    # OTP in server-side store so local development can use the logged code.
-    try:
-        if send_otp_email is None:
-            app.logger.warning('send_otp_email not configured; OTP=%s', otp)
-        else:
-            send_otp_email(email, otp)
-    except Exception:
-        app.logger.exception('Failed to send OTP email; using logged OTP for dev')
-        debug = os.environ.get('OTP_DEBUG', 'false').lower() in ('1', 'true', 'yes')
-        payload = {
-            'ok': True,
-            'message': 'OTP generated; email send failed (check server logs for code)',
-        }
-        if debug:
-            payload['otp'] = otp
-        return JSONResponse(payload, status_code=200)
-
-    debug = os.environ.get('OTP_DEBUG', 'false').lower() in ('1', 'true', 'yes')
-    payload = {'ok': True, 'message': 'OTP sent to email'}
-    if debug:
-        payload['otp'] = otp
-    return JSONResponse(payload, status_code=200)
+    """Signup has been disabled on this deployment."""
+    return JSONResponse({'ok': False, 'message': 'signup is disabled'}, status_code=403)
 
 
 @router.post('/api/auth/signup/verify')
 async def signup_verify(request: Request) -> JSONResponse:
-    data = await _get_data(request)
-    email = data.get('email')
-    otp = str(data.get('otp') or '')
-
-    if not email or not otp:
-        return JSONResponse({'ok': False, 'message': 'email and otp required'}, status_code=400)
-
-    app = request.app
-    otp_store = _ensure_otp_store(app)
-    entry = otp_store.get(email)
-    if not entry:
-        return JSONResponse({'ok': False, 'message': 'no pending signup for this email'}, status_code=400)
-    if entry.get('expires') < datetime.utcnow():
-        otp_store.pop(email, None)
-        return JSONResponse({'ok': False, 'message': 'otp expired'}, status_code=400)
-    if entry.get('otp') != otp:
-        return JSONResponse({'ok': False, 'message': 'invalid otp'}, status_code=400)
-
-    payload = entry.get('payload') or {}
-    username = payload.get('username')
-    role = (payload.get('role') or 'student').lower()
-
-    try:
-        user = create_user(app, payload)
-        try:
-            log_event(app, username, role, 'signup')
-        except Exception:
-            app.logger.exception('Failed to record signup event')
-        otp_store.pop(email, None)
-        welcome = _generate_welcome_message(role, username)
-        # Fire-and-forget welcome email; failures are logged but do not break signup
-        to_email = payload.get('email')
-        if send_welcome_email is not None and to_email:
-            try:
-                send_welcome_email(to_email, role, username, welcome)
-            except Exception:
-                app.logger.exception('Failed to send welcome email')
-        return JSONResponse({'ok': True, 'user': user, 'welcome_message': welcome}, status_code=200)
-    except ValueError as ve:
-        return JSONResponse({'ok': False, 'message': str(ve)}, status_code=400)
-    except Exception as exc:
-        app.logger.exception('Signup verify failed: %s', exc)
-        return JSONResponse({'ok': False, 'message': 'internal error'}, status_code=500)
+    """Signup has been disabled on this deployment."""
+    return JSONResponse({'ok': False, 'message': 'signup is disabled'}, status_code=403)
 
 
 @router.post('/api/auth/signup/resend')
 async def signup_resend(request: Request) -> JSONResponse:
-    """Regenerate and resend OTP for an existing pending signup.
-
-    Expects: { email }
-    Uses same OTP_DEBUG behavior as signup_init.
-    """
-    data = await _get_data(request)
-    email = data.get('email')
-
-    if not email:
-        return JSONResponse({'ok': False, 'message': 'email required'}, status_code=400)
-
-    app = request.app
-    otp_store = _ensure_otp_store(app)
-    entry = otp_store.get(email)
-    if not entry:
-        return JSONResponse({'ok': False, 'message': 'no pending signup for this email'}, status_code=400)
-
-    # Generate new OTP and extend expiry (2 minutes)
-    otp = str(random.randint(1000, 9999))
-    expires = datetime.utcnow() + timedelta(minutes=2)
-    entry['otp'] = otp
-    entry['expires'] = expires
-    otp_store[email] = entry
-
-    try:
-        if send_otp_email is None:
-            app.logger.warning('send_otp_email not configured (resend); OTP=%s', otp)
-        else:
-            send_otp_email(email, otp)
-    except Exception:
-        app.logger.exception('Failed to resend OTP email; using logged OTP for dev')
-        debug = os.environ.get('OTP_DEBUG', 'false').lower() in ('1', 'true', 'yes')
-        payload = {
-            'ok': True,
-            'message': 'OTP regenerated; email resend failed (check server logs for code)',
-        }
-        if debug:
-            payload['otp'] = otp
-        return JSONResponse(payload, status_code=200)
-
-    debug = os.environ.get('OTP_DEBUG', 'false').lower() in ('1', 'true', 'yes')
-    payload = {'ok': True, 'message': 'OTP resent to email'}
-    if debug:
-        payload['otp'] = otp
-    return JSONResponse(payload, status_code=200)
+    """Signup has been disabled on this deployment."""
+    return JSONResponse({'ok': False, 'message': 'signup is disabled'}, status_code=403)
 
 
 @router.post('/api/auth/password-reset/init')
