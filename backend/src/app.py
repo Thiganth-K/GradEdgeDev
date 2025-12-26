@@ -1,4 +1,5 @@
-from flask import Flask, send_file, abort
+from fastapi import FastAPI, Request, HTTPException
+from fastapi.responses import FileResponse
 from pathlib import Path
 import os
 import sys
@@ -24,50 +25,57 @@ try:
 except Exception:
 	load_env_file = None
 
-app = Flask(__name__)
-
-# Register admin routes if available
-try:
-	from src.routes.admin_routes import admin_bp
-	app.register_blueprint(admin_bp)
-except Exception as _:
-	logging.warning('Admin routes not available')
-
-# Register auth routes
-try:
-	from src.routes.auth_routes import auth_bp
-	app.register_blueprint(auth_bp)
-except Exception:
-	logging.warning('Auth routes not available')
-
-# Register faculty routes
-try:
-	from src.routes.faculty_routes import faculty_bp
-	app.register_blueprint(faculty_bp)
-except Exception:
-	logging.warning('Faculty routes not available')
-
-# Register logs routes
-try:
-	from src.routes.logs_routes import logs_bp
-	app.register_blueprint(logs_bp)
-except Exception:
-	logging.warning('Logs routes not available')
+app = FastAPI()
+app.logger = logging.getLogger('gradedgedev')
 
 # Resolve project root (two levels up from backend/src)
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 LOGIN_FILE = PROJECT_ROOT / 'frontend' / 'pages' / 'login.html'
+ADMIN_WELCOME = PROJECT_ROOT / 'frontend' / 'pages' / 'admin' / 'welcome.html'
+
+# Include routers if available
+try:
+	from src.routes.admin_routes import router as admin_router
+	app.include_router(admin_router)
+except Exception:
+	logging.warning('Admin routes not available')
+
+try:
+	from src.routes.auth_routes import router as auth_router
+	app.include_router(auth_router)
+except Exception:
+	logging.warning('Auth routes not available')
+
+try:
+	from src.routes.faculty_routes import router as faculty_router
+	app.include_router(faculty_router)
+except Exception:
+	logging.warning('Faculty routes not available')
+
+try:
+	from src.routes.logs_routes import router as logs_router
+	app.include_router(logs_router)
+except Exception:
+	logging.warning('Logs routes not available')
 
 
-@app.route('/')
-@app.route('/login')
-def login():
+@app.get('/')
+@app.get('/login')
+async def login() -> FileResponse:
 	if LOGIN_FILE.exists():
-		return send_file(str(LOGIN_FILE))
-	return abort(404, description='Login page not found')
+		return FileResponse(str(LOGIN_FILE))
+	raise HTTPException(status_code=404, detail='Login page not found')
 
 
-if __name__ == '__main__':
+@app.get('/admin/welcome')
+async def admin_welcome() -> FileResponse:
+	if ADMIN_WELCOME.exists():
+		return FileResponse(str(ADMIN_WELCOME))
+	raise HTTPException(status_code=404, detail='Admin welcome page not found')
+
+
+@app.on_event('startup')
+async def on_startup() -> None:
 	# Optionally connect to MongoDB. Support either MONGODB_URI or legacy MONGO_URI keys
 	mongo_uri = os.environ.get('MONGODB_URI') or os.environ.get('MONGO_URI')
 	if mongo_uri and connect_db is not None:
@@ -80,10 +88,9 @@ if __name__ == '__main__':
 	else:
 		app.mongo_client = None
 
-	# Ensure admin user exists (if DB available)
+	# Ensure admin user exists (if DB available) and seed default users
 	try:
 		from src.controllers.admin_controller import ensure_admin
-		# seed default users (admin/faculty/student/recruiter)
 		try:
 			from src.metadata.users import seed_users
 			seed_users(app)
@@ -93,17 +100,9 @@ if __name__ == '__main__':
 	except Exception as exc:
 		logging.warning('ensure_admin failed: %s', exc)
 
-	# Serve admin welcome page route
-	try:
-		ADMIN_WELCOME = PROJECT_ROOT / 'frontend' / 'pages' / 'admin' / 'welcome.html'
 
-		@app.route('/admin/welcome')
-		def admin_welcome():
-			if ADMIN_WELCOME.exists():
-				return send_file(str(ADMIN_WELCOME))
-			return abort(404, description='Admin welcome page not found')
-	except Exception:
-		logging.warning('Failed to register admin welcome route')
+if __name__ == '__main__':
+	import uvicorn
 
 	# Run development server: python backend/src/app.py
-	app.run(host='127.0.0.1', port=5000, debug=True)
+	uvicorn.run('src.app:app', host='127.0.0.1', port=5000, reload=True)

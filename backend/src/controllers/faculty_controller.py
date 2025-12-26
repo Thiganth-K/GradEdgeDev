@@ -1,6 +1,5 @@
 from typing import Optional, Dict, Any
 from werkzeug.security import generate_password_hash, check_password_hash
-from flask import current_app
 
 COLLECTION = 'faculty'
 
