@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts'
+import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts'
 import { TrendingUp, Bell, Calendar, Flame, Target, Award, BookOpen, Code, Users, Clock, CheckCircle2, Activity, Video, X } from 'lucide-react'
 import StudentLayout from '../../components/Student/StudentLayout'
 
@@ -27,7 +27,6 @@ const Dashboard: React.FC<DashboardProps> = ({ username, onLogout }) => {
   ]
 
   const [selectedSkill, setSelectedSkill] = useState<string | null>(null)
-  const [hoveredSkill, setHoveredSkill] = useState<string | null>(null)
   const [showNotifications, setShowNotifications] = useState(false)
   const [showUpcomingSessions, setShowUpcomingSessions] = useState(false)
 
@@ -81,8 +80,10 @@ const Dashboard: React.FC<DashboardProps> = ({ username, onLogout }) => {
     },
   ]
 
-  // Track read announcements
+  // Track read announcements and notice board paging/preview
   const [readAnnouncements, setReadAnnouncements] = useState<Set<number>>(new Set())
+  const [activeAnnouncementIndex, setActiveAnnouncementIndex] = useState(0) // start index for current page
+  const [previewAnnouncement, setPreviewAnnouncement] = useState<Announcement | null>(null)
 
   const toggleReadStatus = (id: number) => {
     setReadAnnouncements(prev => {
@@ -300,172 +301,113 @@ const Dashboard: React.FC<DashboardProps> = ({ username, onLogout }) => {
           })}
         </div>
 
-      {/* Top Section: Speedometer Analysis and Notice Board */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        {/* 360° Readiness Analysis - Speedometer Style */}
-        <div className="bg-white rounded-lg shadow p-6">
+      {/* Top Section: Readiness Pentagon Graph (60%) and Notice Board (40%) */}
+      <div className="flex flex-col lg:flex-row gap-6 mb-6">
+        {/* 360° Readiness Analysis - Pentagon (Radar) Graph */}
+        <div className="bg-white rounded-lg shadow p-6 lg:w-3/5">
           <div className="flex items-center gap-2 mb-6">
             <TrendingUp className="w-5 h-5 text-red-600" />
             <h2 className="text-lg font-semibold text-gray-800">360° Readiness Analysis</h2>
           </div>
-          
-          {/* Interactive Speedometer Cards */}
-          <div className="grid grid-cols-2 gap-4 mb-4">
-            {radarData.map((skill) => {
-              const isSelected = selectedSkill === skill.subject
-              const isHovered = hoveredSkill === skill.subject
-              const rotation = (skill.score / 100) * 180 - 90 // -90 to 90 degrees
-              
-              return (
-                <div
-                  key={skill.subject}
-                  onClick={() => setSelectedSkill(isSelected ? null : skill.subject)}
-                  onMouseEnter={() => setHoveredSkill(skill.subject)}
-                  onMouseLeave={() => setHoveredSkill(null)}
-                  className={`${skill.bgColor} rounded-xl p-4 cursor-pointer transition-all duration-300 border-2 ${
-                    isSelected 
-                      ? 'border-red-500 shadow-lg scale-105' 
-                      : isHovered 
-                      ? 'border-gray-300 shadow-md scale-102' 
-                      : 'border-transparent shadow'
-                  }`}
-                >
-                  <div className="flex flex-col items-center">
-                    {/* Skill Name at Top */}
-                    <h3 className="text-sm font-semibold text-gray-800 text-center mb-3">{skill.subject}</h3>
-                    
-                    {/* Speedometer Gauge */}
-                    <div className="relative w-32 h-16 mb-2">
-                      <svg viewBox="0 0 200 100" className="w-full h-full">
-                        {/* Background Arc - Grey */}
-                        <path
-                          d="M 20 90 A 80 80 0 0 1 180 90"
-                          fill="none"
-                          stroke="#e5e7eb"
-                          strokeWidth="16"
-                          strokeLinecap="round"
-                        />
-                        
-                        {/* Progress Arc - Gradient */}
-                        <defs>
-                          <linearGradient id={`speedometer-${skill.subject}`} x1="0%" y1="0%" x2="100%" y2="0%">
-                            <stop offset="0%" stopColor="#ef4444" />
-                            <stop offset="50%" stopColor="#f97316" />
-                            <stop offset="100%" stopColor="#22c55e" />
-                          </linearGradient>
-                        </defs>
-                        <path
-                          d="M 20 90 A 80 80 0 0 1 180 90"
-                          fill="none"
-                          stroke={`url(#speedometer-${skill.subject})`}
-                          strokeWidth="16"
-                          strokeLinecap="round"
-                          strokeDasharray={`${(skill.score / 100) * 251.2} 251.2`}
-                          className="transition-all duration-1000 ease-out"
-                          style={{
-                            filter: isHovered ? 'drop-shadow(0 0 8px rgba(239, 68, 68, 0.6))' : 'none'
-                          }}
-                        />
-                        
-                        {/* Tick Marks */}
-                        {[0, 25, 50, 75, 100].map((tick) => {
-                          const angle = (tick / 100) * 180 - 90
-                          const radians = (angle * Math.PI) / 180
-                          const x1 = 100 + 72 * Math.cos(radians)
-                          const y1 = 90 + 72 * Math.sin(radians)
-                          const x2 = 100 + 80 * Math.cos(radians)
-                          const y2 = 90 + 80 * Math.sin(radians)
-                          
-                          return (
-                            <line
-                              key={tick}
-                              x1={x1}
-                              y1={y1}
-                              x2={x2}
-                              y2={y2}
-                              stroke="#9ca3af"
-                              strokeWidth="2"
-                            />
-                          )
-                        })}
-                        
-                        {/* Needle */}
-                        <g
-                          transform={`rotate(${rotation} 100 90)`}
-                          className="transition-all duration-1000 ease-out"
-                          style={{
-                            transformOrigin: '100px 90px'
-                          }}
-                        >
-                          <path
-                            d="M 100 90 L 95 85 L 100 20 L 105 85 Z"
-                            fill="#ef4444"
-                            className={isHovered ? 'animate-pulse' : ''}
-                          />
-                          <circle cx="100" cy="90" r="8" fill="#dc2626" />
-                          <circle cx="100" cy="90" r="4" fill="#fff" />
-                        </g>
-                      </svg>
-                      
-                      {/* Score Display */}
-                      <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-2">
-                        <span className={`text-2xl font-bold bg-gradient-to-r ${skill.color} bg-clip-text text-transparent`}>
-                          {skill.score}
-                        </span>
-                        <span className="text-sm text-gray-500">%</span>
+
+          <div className="flex flex-col items-center">
+            {/* Pentagon Radar Graph - top center */}
+            <div className="w-full flex justify-center mb-4">
+              <div className="w-56 h-56 md:w-64 md:h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <RadarChart data={radarData} outerRadius="80%">
+                    <PolarGrid stroke="#e5e7eb" />
+                    <PolarAngleAxis dataKey="subject" tick={{ fill: '#4b5563', fontSize: 11 }} />
+                    <PolarRadiusAxis angle={90} domain={[0, 100]} tick={false} />
+                    <Radar
+                      name="Readiness"
+                      dataKey="score"
+                      stroke="#ef4444"
+                      fill="#f97316"
+                      fillOpacity={0.35}
+                    />
+                  </RadarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Skill Summary Cards: first row 3, second row 2 centered */}
+            <div className="w-full mt-2 space-y-3">
+              {/* First row: 3 cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {radarData.slice(0, 3).map((skill) => {
+                  const isSelected = selectedSkill === skill.subject
+                  const statusLabel =
+                    skill.score >= 80 ? 'Excellent' : skill.score >= 70 ? 'Good' : 'Needs Focus'
+                  const statusColor =
+                    skill.score >= 80
+                      ? 'text-green-700'
+                      : skill.score >= 70
+                      ? 'text-yellow-700'
+                      : 'text-red-700'
+
+                  return (
+                    <button
+                      key={skill.subject}
+                      type="button"
+                      onClick={() => setSelectedSkill(isSelected ? null : skill.subject)}
+                      className={`rounded-lg border-2 px-4 py-3 text-center bg-white transition-all ${
+                        isSelected
+                          ? 'border-red-500 shadow-sm bg-red-50'
+                          : 'border-red-200 hover:border-red-400 hover:bg-red-50'
+                      }`}
+                    >
+                      <p className="text-xs font-semibold text-gray-600 mb-1">{skill.subject}</p>
+                      <div className="flex items-baseline justify-center gap-1">
+                        <span className="text-2xl font-bold text-gray-900">{skill.score}</span>
+                        <span className="text-sm text-gray-500">/ 100</span>
                       </div>
-                    </div>
-                    
-                    {/* Status Badge */}
-                    <div className="mt-1">
-                      {skill.score >= 80 ? (
-                        <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
-                          Excellent
-                        </span>
-                      ) : skill.score >= 70 ? (
-                        <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">
-                          Good
-                        </span>
-                      ) : (
-                        <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">
-                          Needs Focus
-                        </span>
-                      )}
-                    </div>
-                    
-                    {/* Additional Info on Selection */}
-                    {isSelected && (
-                      <div className="mt-3 pt-3 border-t border-gray-300 w-full animate-fadeIn">
-                        <div className="space-y-1 text-xs">
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Target:</span>
-                            <span className="font-semibold text-gray-800">90%</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Gap:</span>
-                            <span className="font-semibold text-red-600">{90 - skill.score}%</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Rank:</span>
-                            <span className="font-semibold text-blue-600">Top 15%</span>
-                          </div>
-                        </div>
+                      <p className={`mt-1 text-xs font-medium ${statusColor}`}>{statusLabel}</p>
+                    </button>
+                  )
+                })}
+              </div>
+
+              {/* Second row: 2 cards centered under the first row */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:w-2/3 mx-auto">
+                {radarData.slice(3).map((skill) => {
+                  const isSelected = selectedSkill === skill.subject
+                  const statusLabel =
+                    skill.score >= 80 ? 'Excellent' : skill.score >= 70 ? 'Good' : 'Needs Focus'
+                  const statusColor =
+                    skill.score >= 80
+                      ? 'text-green-700'
+                      : skill.score >= 70
+                      ? 'text-yellow-700'
+                      : 'text-red-700'
+
+                  return (
+                    <button
+                      key={skill.subject}
+                      type="button"
+                      onClick={() => setSelectedSkill(isSelected ? null : skill.subject)}
+                      className={`rounded-lg border-2 px-4 py-3 text-center bg-white transition-all ${
+                        isSelected
+                          ? 'border-red-500 shadow-sm bg-red-50'
+                          : 'border-red-200 hover:border-red-400 hover:bg-red-50'
+                      }`}
+                    >
+                      <p className="text-xs font-semibold text-gray-600 mb-1">{skill.subject}</p>
+                      <div className="flex items-baseline justify-center gap-1">
+                        <span className="text-2xl font-bold text-gray-900">{skill.score}</span>
+                        <span className="text-sm text-gray-500">/ 100</span>
                       </div>
-                    )}
-                  </div>
-                </div>
-              )
-            })}
+                      <p className={`mt-1 text-xs font-medium ${statusColor}`}>{statusLabel}</p>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
           </div>
-          
-          <p className="text-xs text-gray-500 text-center mt-4 flex items-center justify-center gap-1">
-            <span>🎯</span>
-            <span>Click on any speedometer to see detailed insights</span>
-          </p>
         </div>
 
         {/* Notice Board - Upcoming Announcements */}
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="bg-white rounded-lg shadow p-6 lg:w-2/5">
           <div className="flex items-center gap-2 mb-4">
             <Bell className="w-5 h-5 text-red-600" />
             <h2 className="text-lg font-semibold text-gray-800">Notice Board</h2>
@@ -479,46 +421,101 @@ const Dashboard: React.FC<DashboardProps> = ({ username, onLogout }) => {
               </div>
             </div>
           ) : (
-            <div className="space-y-3 mb-4 max-h-96 overflow-y-auto">
-              {announcements.map((announcement) => {
-                const isRead = readAnnouncements.has(announcement.id)
+            <div className="space-y-4 mb-2">
+              {(() => {
+                const pageSize = 3
+                const start = activeAnnouncementIndex
+                const end = Math.min(start + pageSize, announcements.length)
+                const isFirst = start === 0
+                const isLast = end >= announcements.length
+
                 return (
-                  <div
-                    key={announcement.id}
-                    onClick={() => toggleReadStatus(announcement.id)}
-                    className={`rounded-lg p-4 border cursor-pointer transition-all duration-200 ${
-                      isRead
-                        ? 'bg-red-50 border-red-200 opacity-60 hover:opacity-70'
-                        : 'bg-gradient-to-br from-red-50 to-red-100 border-red-300 shadow-sm hover:shadow-md'
-                    }`}
-                  >
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex-1">
-                        <h3 className={`font-semibold mb-1 ${isRead ? 'text-red-600' : 'text-red-700'}`}>
-                          {announcement.title}
-                        </h3>
-                        <p className={`text-sm mb-2 ${isRead ? 'text-gray-500' : 'text-gray-700'}`}>
-                          {announcement.description}
-                        </p>
-                        <div className="flex items-center gap-3 text-xs">
-                          <div className="flex items-center gap-1 text-red-600">
-                            <Calendar className="w-3 h-3" />
-                            <span>{announcement.date}</span>
+                  <>
+                    <div className="space-y-3">
+                      {announcements.slice(start, end).map((announcement) => {
+                        const isRead = readAnnouncements.has(announcement.id)
+                        return (
+                          <div
+                            key={announcement.id}
+                            onClick={() => {
+                              toggleReadStatus(announcement.id)
+                              setPreviewAnnouncement(announcement)
+                            }}
+                            className={`rounded-lg p-4 border cursor-pointer transition-all duration-200 ${
+                              isRead
+                                ? 'bg-red-50 border-red-200 opacity-60 hover:opacity-70'
+                                : 'bg-gradient-to-br from-red-50 to-red-100 border-red-300 shadow-sm hover:shadow-md'
+                            }`}
+                          >
+                            <div className="flex items-start justify-between mb-2">
+                              <div className="flex-1">
+                                <h3 className={`font-semibold mb-1 ${isRead ? 'text-red-600' : 'text-red-700'}`}>
+                                  {announcement.title}
+                                </h3>
+                                <p className={`text-sm mb-2 ${isRead ? 'text-gray-500' : 'text-gray-700'}`}>
+                                  {announcement.description}
+                                </p>
+                                <div className="flex items-center gap-3 text-xs">
+                                  <div className="flex items-center gap-1 text-red-600">
+                                    <Calendar className="w-3 h-3" />
+                                    <span>{announcement.date}</span>
+                                  </div>
+                                  <span className="px-2 py-0.5 rounded-full bg-red-200 text-red-800 font-medium">
+                                    {announcement.category}
+                                  </span>
+                                </div>
+                              </div>
+                              {!isRead && (
+                                <div className="ml-3 flex-shrink-0">
+                                  <div className="w-2 h-2 rounded-full bg-red-600"></div>
+                                </div>
+                              )}
+                            </div>
                           </div>
-                          <span className="px-2 py-0.5 rounded-full bg-red-200 text-red-800 font-medium">
-                            {announcement.category}
-                          </span>
-                        </div>
-                      </div>
-                      {!isRead && (
-                        <div className="ml-3 flex-shrink-0">
-                          <div className="w-2 h-2 rounded-full bg-red-600"></div>
-                        </div>
-                      )}
+                        )
+                      })}
                     </div>
-                  </div>
+
+                    <div className="flex items-center justify-between mt-2">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setActiveAnnouncementIndex((prev) => (prev - pageSize > 0 ? prev - pageSize : 0))
+                        }
+                        disabled={isFirst}
+                        className={`px-3 py-1 text-xs font-medium rounded-md border ${
+                          isFirst
+                            ? 'border-gray-200 text-gray-300 cursor-not-allowed'
+                            : 'border-gray-300 text-gray-700 hover:bg-gray-100'
+                        }`}
+                      >
+                        Prev
+                      </button>
+
+                      <span className="text-xs text-gray-500">
+                        Showing {start + 1}-{end} of {announcements.length}
+                      </span>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setActiveAnnouncementIndex((prev) =>
+                            prev + pageSize < announcements.length ? prev + pageSize : prev
+                          )
+                        }
+                        disabled={isLast}
+                        className={`px-3 py-1 text-xs font-medium rounded-md border ${
+                          isLast
+                            ? 'border-gray-200 text-gray-300 cursor-not-allowed'
+                            : 'border-gray-300 text-gray-700 hover:bg-gray-100'
+                        }`}
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </>
                 )
-              })}
+              })()}
             </div>
           )}
         </div>
@@ -599,6 +596,47 @@ const Dashboard: React.FC<DashboardProps> = ({ username, onLogout }) => {
           </div>
         </div>
       </div>
+
+      {/* Announcement Preview Modal */}
+      {previewAnnouncement && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
+          <div className="bg-red-50 border border-red-200 shadow-xl rounded-xl max-w-lg w-full mx-4">
+            <div className="flex items-center justify-between px-5 py-3 border-b border-red-100">
+              <div className="flex flex-col">
+                <span className="text-xs font-semibold text-red-500 uppercase tracking-wide">
+                  Announcement Preview
+                </span>
+                <h3 className="text-base font-semibold text-red-900 truncate pr-6">
+                  {previewAnnouncement.title}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPreviewAnnouncement(null)}
+                className="text-red-500 hover:text-red-700 p-1 rounded-full hover:bg-red-100"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="px-5 py-4 space-y-3">
+              <p className="text-sm text-red-900 leading-relaxed">
+                {previewAnnouncement.description}
+              </p>
+
+              <div className="flex items-center justify-between text-xs text-red-700 mt-2">
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-3 h-3" />
+                  <span>{previewAnnouncement.date}</span>
+                </div>
+                <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-800 font-medium">
+                  {previewAnnouncement.category}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Improvement Focus Areas */}
       <div className="bg-white rounded-lg shadow p-6 mb-6">
