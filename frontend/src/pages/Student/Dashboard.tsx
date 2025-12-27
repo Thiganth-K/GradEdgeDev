@@ -1,5 +1,10 @@
 import React, { useState } from 'react'
-import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts'
+import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts'
+import Box from '@mui/material/Box'
+import Stack from '@mui/material/Stack'
+import FormControlLabel from '@mui/material/FormControlLabel'
+import Checkbox from '@mui/material/Checkbox'
+import { RadarChart as MuiRadarChart } from '@mui/x-charts/RadarChart'
 import { TrendingUp, Bell, Calendar, Flame, Target, Award, BookOpen, Code, Users, Clock, CheckCircle2, Activity, Video, X } from 'lucide-react'
 import StudentLayout from '../../components/Student/StudentLayout'
 
@@ -25,6 +30,10 @@ const Dashboard: React.FC<DashboardProps> = ({ username, onLogout }) => {
     { subject: 'Domain', score: 80, fullMark: 100, color: 'from-cyan-500 to-cyan-600', bgColor: 'bg-cyan-50' },
     { subject: 'Projects', score: 85, fullMark: 100, color: 'from-green-500 to-green-600', bgColor: 'bg-green-50' },
   ]
+
+  // MUI Radar options
+  const [hideMark, setHideMark] = useState(false)
+  const [fillArea, setFillArea] = useState(false)
 
   const [selectedSkill, setSelectedSkill] = useState<string | null>(null)
   const [showNotifications, setShowNotifications] = useState(false)
@@ -317,22 +326,40 @@ const Dashboard: React.FC<DashboardProps> = ({ username, onLogout }) => {
 
             <div className="flex flex-col items-center">
               {/* Pentagon Radar Graph - top center */}
-              <div className="w-full flex justify-center mb-4">
-                <div className="w-56 h-56 md:w-64 md:h-64">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <RadarChart data={radarData} outerRadius="80%">
-                      <PolarGrid stroke="#e5e7eb" />
-                      <PolarAngleAxis dataKey="subject" tick={{ fill: '#4b5563', fontSize: 11 }} />
-                      <PolarRadiusAxis angle={90} domain={[0, 100]} tick={false} />
-                      <Radar
-                        name="Readiness"
-                        dataKey="score"
-                        stroke="#ef4444"
-                        fill="#f97316"
-                        fillOpacity={0.35}
-                      />
-                    </RadarChart>
-                  </ResponsiveContainer>
+              <div className="w-full flex flex-col items-center mb-4">
+                <div className="w-full max-w-md mb-3">
+                  <Stack direction="row" spacing={2} className="justify-center">
+                    <FormControlLabel
+                      control={<Checkbox checked={!hideMark} onChange={(e) => setHideMark(!e.target.checked)} />}
+                      labelPlacement="end"
+                      label="with mark"
+                    />
+                    <FormControlLabel
+                      control={<Checkbox checked={fillArea} onChange={(e) => setFillArea(e.target.checked)} />}
+                      labelPlacement="end"
+                      label="fill area"
+                    />
+                  </Stack>
+                </div>
+
+                <div className="w-full flex justify-center">
+                  <Box sx={{ width: '100%', maxWidth: 400 }}>
+                    <MuiRadarChart
+                      height={300}
+                      radar={{ max: 100, metrics: radarData.map((r) => r.subject) }}
+                      series={[
+                        {
+                          label: 'You',
+                          data: radarData.map((r) => r.score),
+                          hideMark: hideMark,
+                          fillArea: fillArea,
+                          color: '#ef4444',
+                          stroke: '#ef4444',
+                          areaOpacity: 0.35,
+                        },
+                      ]}
+                    />
+                  </Box>
                 </div>
               </div>
 

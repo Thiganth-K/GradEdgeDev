@@ -1,8 +1,10 @@
 ->Neha
-☐ admin dashboard with welcome component to have the neat btns for the available fns
-☐ institution management ui update
-☐ faculty management ui update 
+✔ admin dashboard with welcome component to have the neat btns for the available fns @done (12/27/2025, 5:35:08 AM)
+✔ institution management ui update @done (12/27/2025, 5:35:10 AM)
+✔ faculty management ui update @done (12/27/2025, 5:35:13 AM)
 ☐ look for any interactive pentagon graph
+☐ alignment of the student dashboard 
+
 
 ->Najila
 ☐ Login page ui improvenments work only in the login.tsx
