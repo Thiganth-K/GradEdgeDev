@@ -7,6 +7,7 @@ COLLECTION_MAP = {
     'faculty': 'faculty',
     'student': 'students',
     'recruiter': 'recruiters',
+    'institutional': 'institutionals',
 }
 
 
@@ -58,6 +59,13 @@ def create_user(app, payload: Dict[str, Any]) -> Dict[str, Any]:
     if role == 'recruiter':
         doc['first_name'] = payload.get('first_name')
         doc['last_name'] = payload.get('last_name')
+
+    if role == 'institutional':
+        # Minimal institutional metadata; can be extended later
+        if payload.get('institutional_id'):
+            doc['institutional_id'] = payload.get('institutional_id')
+        if payload.get('institution_name'):
+            doc['institution_name'] = payload.get('institution_name')
 
     client = getattr(app, 'mongo_client', None)
     if client is not None:

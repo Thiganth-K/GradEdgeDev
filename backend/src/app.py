@@ -58,6 +58,18 @@ try:
 except Exception:
 	logging.warning('Logs routes not available')
 
+try:
+	from src.routes.institutional_routes import router as institutional_router
+	app.include_router(institutional_router)
+except Exception:
+	logging.warning('Institutional routes not available')
+
+try:
+	from src.routes.student_routes import router as student_router
+	app.include_router(student_router)
+except Exception:
+	logging.warning('Student routes not available')
+
 
 @app.get('/')
 @app.get('/login')
