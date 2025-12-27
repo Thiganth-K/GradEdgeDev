@@ -157,28 +157,176 @@ async def logout(request: Request) -> JSONResponse:
 
 
 
+def _ensure_pending_signup_store(app):
+    store = getattr(app, '_pending_signup_store', None)
+    if store is None:
+        store = {}
+        setattr(app, '_pending_signup_store', store)
+    return store
+
+
 @router.post('/api/auth/signup')
 async def signup(request: Request) -> JSONResponse:
-    """Signup has been disabled on this deployment."""
-    return JSONResponse({'ok': False, 'message': 'signup is disabled'}, status_code=403)
+    """Direct signup without OTP (optional, but we use OTP flow primarily)."""
+    # For now, we enforce the OTP flow via /init and /verify
+    return JSONResponse({'ok': False, 'message': 'Please use the signup flow with OTP verification'}, status_code=400)
 
 
 @router.post('/api/auth/signup/init')
 async def signup_init(request: Request) -> JSONResponse:
-    """Signup has been disabled on this deployment."""
-    return JSONResponse({'ok': False, 'message': 'signup is disabled'}, status_code=403)
+    """Initiate signup: Validate payload, check existence, generate OTP."""
+    try:
+        data = await _get_data(request)
+        username = data.get('username')
+        password = data.get('password')
+        email = data.get('email')
+        role = (data.get('role') or 'student').lower()
+
+        if not username or not password or not email:
+            return JSONResponse({'ok': False, 'message': 'username, password and email required'}, status_code=400)
+
+        # Check if user already exists
+        app = request.app
+        
+        # We can't easily dry-run create_user, but we can check existence manually
+        # OR just try to assume it's free and let verify catch it (but better to catch early)
+        client = getattr(app, 'mongo_client', None)
+        if client is not None:
+             db = client.get_database('gradedgedev')
+             if role in COLLECTION_MAP:
+                 if db.get_collection(COLLECTION_MAP[role]).find_one({'username': username}):
+                      return JSONResponse({'ok': False, 'message': 'username already exists'}, status_code=400)
+        else:
+             # in-memory check
+             store = _ensure_store(app)
+             if username in store.get(role, {}):
+                  return JSONResponse({'ok': False, 'message': 'username already exists'}, status_code=400)
+
+        # Generate OTP
+        otp = str(random.randint(1000, 9999))
+        email_normalized = email.strip().lower()
+
+        # Store pending signup data
+        pending_store = _ensure_pending_signup_store(app)
+        key = f"signup:{email_normalized}"
+        
+        # Store full payload for creation later
+        pending_store[key] = {
+            'payload': data,
+            'otp': otp,
+            'expires': datetime.utcnow() + timedelta(minutes=2)
+        }
+
+        # Send OTP
+        try:
+            if send_otp_email:
+                send_otp_email(email_normalized, otp)
+            else:
+                app.logger.warning('send_otp_email not configured; OTP=%s', otp)
+        except Exception:
+            app.logger.exception('Failed to send signup OTP')
+
+        debug = os.environ.get('OTP_DEBUG', 'false').lower() in ('1', 'true', 'yes')
+        resp = {'ok': True, 'message': 'OTP sent to email'}
+        if debug:
+            resp['otp'] = otp
+        
+        return JSONResponse(resp, status_code=200)
+
+    except Exception as e:
+        app.logger.exception('Signup init failed')
+        return JSONResponse({'ok': False, 'message': str(e)}, status_code=500)
 
 
 @router.post('/api/auth/signup/verify')
 async def signup_verify(request: Request) -> JSONResponse:
-    """Signup has been disabled on this deployment."""
-    return JSONResponse({'ok': False, 'message': 'signup is disabled'}, status_code=403)
+    """Verify OTP and create user."""
+    try:
+        data = await _get_data(request)
+        email = data.get('email')
+        otp = data.get('otp')
+
+        if not email or not otp:
+            return JSONResponse({'ok': False, 'message': 'email and otp required'}, status_code=400)
+
+        app = request.app
+        pending_store = _ensure_pending_signup_store(app)
+        key = f"signup:{email.strip().lower()}"
+        entry = pending_store.get(key)
+
+        if not entry:
+            return JSONResponse({'ok': False, 'message': 'no pending signup found for this email'}, status_code=400)
+        
+        if entry['expires'] < datetime.utcnow():
+            pending_store.pop(key, None)
+            return JSONResponse({'ok': False, 'message': 'otp expired'}, status_code=400)
+
+        if str(entry['otp']) != str(otp):
+            return JSONResponse({'ok': False, 'message': 'invalid otp'}, status_code=400)
+
+        # Create user
+        payload = entry['payload']
+        try:
+            create_user(app, payload)
+            pending_store.pop(key, None) # Clear pending
+            
+            # Log event
+            try:
+                log_event(app, payload.get('username'), payload.get('role', 'student'), 'signup')
+            except:
+                pass
+
+            return JSONResponse({'ok': True, 'message': 'User created successfully'}, status_code=200)
+        except ValueError as ve:
+             return JSONResponse({'ok': False, 'message': str(ve)}, status_code=400)
+
+    except Exception as e:
+        app.logger.exception('Signup verify failed')
+        return JSONResponse({'ok': False, 'message': str(e)}, status_code=500)
 
 
 @router.post('/api/auth/signup/resend')
 async def signup_resend(request: Request) -> JSONResponse:
-    """Signup has been disabled on this deployment."""
-    return JSONResponse({'ok': False, 'message': 'signup is disabled'}, status_code=403)
+    """Resend OTP for pending signup."""
+    try:
+        data = await _get_data(request)
+        email = data.get('email')
+
+        if not email:
+            return JSONResponse({'ok': False, 'message': 'email required'}, status_code=400)
+
+        app = request.app
+        pending_store = _ensure_pending_signup_store(app)
+        key = f"signup:{email.strip().lower()}"
+        entry = pending_store.get(key)
+
+        if not entry:
+            return JSONResponse({'ok': False, 'message': 'no pending signup found'}, status_code=400)
+
+        # Regenerate OTP
+        otp = str(random.randint(1000, 9999))
+        entry['otp'] = otp
+        entry['expires'] = datetime.utcnow() + timedelta(minutes=2)
+        
+        # Send
+        try:
+            if send_otp_email:
+                send_otp_email(email, otp)
+            else:
+                app.logger.warning('send_otp_email not configured; OTP=%s', otp)
+        except Exception:
+            app.logger.exception('Failed to resend signup OTP')
+
+        debug = os.environ.get('OTP_DEBUG', 'false').lower() in ('1', 'true', 'yes')
+        resp = {'ok': True, 'message': 'OTP resent'}
+        if debug:
+            resp['otp'] = otp
+            
+        return JSONResponse(resp, status_code=200)
+
+    except Exception as e:
+        app.logger.exception('Signup resend failed')
+        return JSONResponse({'ok': False, 'message': str(e)}, status_code=500)
 
 
 @router.post('/api/auth/password-reset/init')

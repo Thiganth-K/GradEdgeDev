@@ -2,6 +2,21 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+
+  html,
+  body {
+    @apply font-sans;
+  }
+}
+
+@layer components {
+  .text-label-strong {
+    @apply text-[10px] font-bold uppercase tracking-[0.15em];
+  }
+}
+
+
 @layer utilities {
   @keyframes fadeIn {
     from {

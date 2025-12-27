@@ -282,12 +282,12 @@ export default function LoginPage({ onLoginSuccess }: Props) {
       {/* Card Container */}
       <div className="flex w-full max-w-4xl overflow-hidden rounded-2xl bg-white shadow-xl lg:min-h-[500px]">
         {/* Left Panel */}
-        <div className="hidden lg:flex w-5/12 flex-col justify-between bg-[#EA0029] p-8 text-white relative">
+        <div className="hidden lg:flex w-5/12 flex-col justify-between bg-red-500 p-8 text-white relative">
           {/* Decorative elements can go here if needed, but keeping it clean for now */}
           <div>
             <div className="inline-flex items-center rounded-full bg-white px-4 py-1.5 text-sm font-bold shadow-sm">
               <span className="text-slate-900">Grad</span>
-              <span className="text-[#EA0029]">Edge</span>
+              <span className="text-red-500">Edge</span>
             </div>
           </div>
 
@@ -314,7 +314,7 @@ export default function LoginPage({ onLoginSuccess }: Props) {
 
             <div className="mb-6">
               <h2 className="text-2xl font-bold text-slate-900">Portal Access</h2>
-              <p className="mt-1 text-[10px] font-bold text-[#EA0029] tracking-widest uppercase">
+              <p className="mt-1 text-[10px] font-bold text-red-500 tracking-widest uppercase">
                 {isSignup ? 'CREATE NEW ACCOUNT' : (isResetMode ? 'PASSWORD RECOVERY' : 'AUTHORIZED STUDENT LOGIN')}
               </p>
             </div>
@@ -467,7 +467,7 @@ export default function LoginPage({ onLoginSuccess }: Props) {
               {((isSignup && awaitingOtp) || (isResetMode && resetAwaitingOtp)) && (
                 <div className="space-y-3 bg-blue-50/50 p-4 rounded-lg border border-blue-100">
                   <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-[#EA0029] uppercase tracking-wide">Verification Code</label>
+                    <label className="text-[10px] font-bold text-red-500 uppercase tracking-wide">Verification Code</label>
                     <input
                       className="w-full rounded-lg bg-white border border-slate-200 px-4 py-3 text-sm tracking-widest"
                       value={isResetMode ? resetOtp : otp}
@@ -494,7 +494,7 @@ export default function LoginPage({ onLoginSuccess }: Props) {
                         `Expires in ${String(Math.floor(((isResetMode ? resetOtpSecondsLeft : otpSecondsLeft) || 0) / 60)).padStart(2, '0')}:${String(((isResetMode ? resetOtpSecondsLeft : otpSecondsLeft) || 0) % 60).padStart(2, '0')}`
                         : 'Expired'}
                     </span>
-                    <button type="button" onClick={isResetMode ? handleResendResetOtp : handleResendOtp} className="text-[#EA0029] font-medium underline">Resend Code</button>
+                    <button type="button" onClick={isResetMode ? handleResendResetOtp : handleResendOtp} className="text-red-500 font-medium underline">Resend Code</button>
                   </div>
                 </div>
               )}
@@ -503,7 +503,7 @@ export default function LoginPage({ onLoginSuccess }: Props) {
 
               <div className="pt-2">
                 <button
-                  className="w-full rounded-lg border border-[#EA0029] bg-white text-[#EA0029] py-3 text-xs font-bold uppercase tracking-widest hover:bg-[#EA0029] hover:text-white transition-all shadow-sm active:scale-[0.98]"
+                  className="w-full rounded-lg border border-red-500 bg-white text-red-500 py-3 text-xs font-bold uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all shadow-sm active:scale-[0.98]"
                   type="submit"
                   disabled={loading}
                 >
@@ -514,7 +514,7 @@ export default function LoginPage({ onLoginSuccess }: Props) {
               <div className="pt-1 text-center">
                 <button
                   type="button"
-                  className="text-[10px] font-bold text-slate-400 hover:text-[#EA0029] uppercase tracking-wide transition-colors"
+                  className="text-[10px] font-bold text-slate-400 hover:text-red-500 uppercase tracking-wide transition-colors"
                   onClick={() => {
                     if (isResetMode) {
                       setIsResetMode(false)

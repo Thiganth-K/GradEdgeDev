@@ -27,62 +27,71 @@ const StudentLayout: React.FC<StudentLayoutProps> = ({ children, username, onLog
   return (
     <div className="flex min-h-screen bg-gray-50">
       {/* Sidebar */}
-      <aside className="w-64 bg-gradient-to-b from-red-800 to-red-900 text-white flex flex-col fixed h-screen">
+      <aside className="w-64 bg-white border-r border-gray-100 flex flex-col fixed h-screen z-20">
         {/* Logo */}
-        <div className="p-6 flex items-center gap-3">
-          <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center">
-            <svg className="w-6 h-6 text-red-800" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M12 3L1 9l11 6 9-4.91V17h2V9M5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82z"/>
-            </svg>
+        <div className="p-8">
+          <div className="flex flex-col gap-1">
+            <h1 className="text-2xl font-bold tracking-tight text-gray-900">
+              Grad<span className="text-red-600">Edge</span>
+            </h1>
+            <span className="text-label-strong text-gray-400 ml-0.5">
+              Student Portal
+            </span>
           </div>
-          <span className="text-xl font-bold">GradEdge+</span>
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 px-3 py-4">
-          {navigationItems.map((item) => {
-            const Icon = item.icon
-            const active = isActive(item.path)
-            return (
-              <button
-                key={item.path}
-                onClick={() => navigate(item.path)}
-                className={`w-full flex items-center gap-3 px-4 py-3 mb-1 rounded-lg transition-colors ${
-                  active
-                    ? 'bg-red-700 text-white'
-                    : 'text-red-100 hover:bg-red-700/50'
-                }`}
-              >
-                <Icon className="w-5 h-5" />
-                <span className="text-sm font-medium">{item.label}</span>
-              </button>
-            )
-          })}
+        <nav className="flex-1 px-4 overflow-y-auto">
+          <div className="mb-2 px-4">
+            <span className="text-label-strong text-gray-400">Menu</span>
+          </div>
+          <div className="space-y-1">
+            {navigationItems.map((item) => {
+              const Icon = item.icon
+              const active = isActive(item.path)
+              return (
+                <button
+                  key={item.path}
+                  onClick={() => navigate(item.path)}
+                  className={`relative w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all group ${active
+                    ? 'bg-red-50 text-red-700 font-bold'
+                    : 'text-gray-500 hover:bg-red-50 hover:text-red-600 font-medium'
+                    }`}
+                >
+                  {/* Active Indicator Strip */}
+                  {active && (
+                    <div className="absolute left-0 top-1/2 -translate-y-1/2 h-8 w-1 bg-red-600 rounded-r-full"></div>
+                  )}
+
+                  <Icon className={`w-5 h-5 transition-colors ${active ? 'text-red-600' : 'text-gray-400 group-hover:text-red-600'}`} />
+                  <span className="text-sm">{item.label}</span>
+                </button>
+              )
+            })}
+          </div>
         </nav>
 
-        {/* User Profile & Logout */}
-        <div className="p-4 border-t border-red-700">
+        {/* Footer Actions */}
+        <div className="p-4 border-t border-gray-100">
           <button
             onClick={() => navigate('/student/profile')}
-            className="w-full flex items-center gap-3 mb-3 p-2 rounded-lg hover:bg-red-700 transition-colors"
+            className="w-full flex items-center p-2 rounded-lg hover:bg-red-50 transition-colors mb-2 group"
           >
-            <div className="w-10 h-10 rounded-full bg-red-700 flex items-center justify-center">
-              <span className="text-sm font-semibold">{username.charAt(0).toUpperCase()}</span>
+            <div className="w-8 h-8 rounded-full bg-red-50 text-red-600 flex items-center justify-center font-bold text-xs border border-red-100 group-hover:bg-red-100 transition-colors">
+              {username.charAt(0).toUpperCase()}
             </div>
-            <div className="flex-1 text-left">
-              <div className="text-sm font-semibold">{username}</div>
-              <div className="text-xs text-red-200 flex items-center gap-1">
-                <User className="w-3 h-3" />
-                <span>View Profile</span>
-              </div>
+            <div className="ml-3 flex-1 text-left">
+              <p className="text-sm font-medium text-gray-700 group-hover:text-red-700">{username}</p>
+              <p className="text-[10px] text-gray-400 group-hover:text-red-400">View Profile</p>
             </div>
+            <User className="w-4 h-4 text-gray-400 group-hover:text-red-600" />
           </button>
           <button
             onClick={onLogout}
-            className="w-full flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-red-100 hover:bg-red-700 transition-colors"
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-gray-500 hover:bg-red-50 hover:text-red-600 transition-colors group"
           >
-            <LogOut className="w-4 h-4" />
-            <span>Sign Out</span>
+            <LogOut className="w-5 h-5 group-hover:text-red-600" />
+            <span className="text-sm font-medium">Logout</span>
           </button>
         </div>
       </aside>
