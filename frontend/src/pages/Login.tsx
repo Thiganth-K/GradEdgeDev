@@ -278,264 +278,267 @@ export default function LoginPage({ onLoginSuccess }: Props) {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-5xl items-center justify-center px-6 py-12">
-      <div className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-6">
-        <div className="space-y-2">
-          <h1 className="text-2xl font-semibold tracking-tight">GradEdgeDev</h1>
-          <p className="text-sm text-slate-600">Enter your GradEdgeDev username and password to get started.</p>
-        </div>
-
-        <form onSubmit={onSubmit} className="mt-6 space-y-4">
-          <div className="space-y-1">
-            <label className="text-sm font-medium text-slate-700">GradEdgeDev username</label>
-            <input
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-400"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder="Enter username"
-              autoComplete="username"
-              required
-            />
+    <div className="flex min-h-screen w-full items-center justify-center bg-[#F0F2F5] font-sans p-4">
+      {/* Card Container */}
+      <div className="flex w-full max-w-4xl overflow-hidden rounded-2xl bg-white shadow-xl lg:min-h-[500px]">
+        {/* Left Panel */}
+        <div className="hidden lg:flex w-5/12 flex-col justify-between bg-[#EA0029] p-8 text-white relative">
+          {/* Decorative elements can go here if needed, but keeping it clean for now */}
+          <div>
+            <div className="inline-flex items-center rounded-full bg-white px-4 py-1.5 text-sm font-bold shadow-sm">
+              <span className="text-slate-900">Grad</span>
+              <span className="text-[#EA0029]">Edge</span>
+            </div>
           </div>
 
-          {!isResetMode && (
-            <div className="space-y-1">
-              <label className="text-sm font-medium text-slate-700">GradEdgeDev password</label>
-              <input
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-400"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter password"
-                type="password"
-                autoComplete="current-password"
-                required
-              />
+          <div className="z-10 mt-6 mb-auto">
+            <h1 className="text-4xl font-extrabold leading-[1.1] tracking-tight">
+              Bridge the <br />
+              Campus-to-<br />
+              Career <br />
+              Gap.
+            </h1>
+            <p className="mt-4 max-w-xs text-xs text-white/90 leading-relaxed font-medium">
+              Empowering the next generation with precise placement tracking and AI-driven prep.
+            </p>
+          </div>
+
+          <div className="z-10">
+            <p className="text-[10px] font-bold tracking-[0.2em] opacity-80 uppercase">Placement Intelligence Portal</p>
+          </div>
+        </div>
+
+        {/* Right Panel */}
+        <div className="flex w-full lg:w-7/12 items-center justify-center bg-white p-8">
+          <div className="w-full max-w-sm">
+
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold text-slate-900">Portal Access</h2>
+              <p className="mt-1 text-[10px] font-bold text-[#EA0029] tracking-widest uppercase">
+                {isSignup ? 'CREATE NEW ACCOUNT' : (isResetMode ? 'PASSWORD RECOVERY' : 'AUTHORIZED STUDENT LOGIN')}
+              </p>
             </div>
-          )}
 
-          {!isSignup && !isResetMode && (
-            <div className="-mt-1 mb-1 flex justify-end">
-              <button
-                type="button"
-                className="text-xs text-blue-600 underline"
-                onClick={() => {
-                  setIsResetMode(true)
-                  setIsSignup(false)
-                  setError(undefined)
-                  setAwaitingOtp(false)
-                  setOtp('')
-                  setOtpSecondsLeft(null)
-                }}
-              >
-                Forgot password?
-              </button>
-            </div>
-          )}
+            <form onSubmit={onSubmit} className="space-y-3">
+              {/* Common Fields */}
+              {!isResetMode && !isSignup && (
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">University ID</label>
+                  <input
+                    className="w-full rounded-lg bg-gray-50 border-none px-4 py-3 text-sm text-slate-800 focus:bg-white focus:ring-1 focus:ring-slate-200 transition-all placeholder-slate-300"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    placeholder="enter username"
+                    autoComplete="username"
+                    required
+                  />
+                </div>
+              )}
 
-          {isSignup && !isResetMode && (
-            <>
-              <div className="mb-2">
-                <label className="block text-sm">Role</label>
-                <select className="w-full border p-2" value={role} onChange={(e) => setRole(e.target.value as any)}>
-                  <option value="student">Student</option>
-                  <option value="faculty">Faculty</option>
-                  <option value="recruiter">Recruiter</option>
-                  <option value="admin">Admin</option>
-                </select>
-              </div>
-
-              {(role === 'student' || role === 'faculty') && (
+              {isSignup && (
                 <>
-                  <div className="mb-2">
-                    <label className="block text-sm">Full name</label>
-                    <input className="w-full border p-2" value={fullName} onChange={(e) => setFullName(e.target.value)} />
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Role</label>
+                    <select
+                      className="w-full rounded-lg bg-gray-50 border-none px-4 py-3 text-sm text-slate-800 focus:bg-white focus:ring-1 focus:ring-slate-200 outline-none"
+                      value={role}
+                      onChange={(e) => setRole(e.target.value as any)}
+                    >
+                      <option value="student">Student</option>
+                      <option value="faculty">Faculty</option>
+                      <option value="recruiter">Recruiter</option>
+                      <option value="admin">Admin</option>
+                    </select>
                   </div>
-                  {role === 'student' && null}
-                  {role === 'faculty' && (
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Username</label>
+                    <input
+                      className="w-full rounded-lg bg-gray-50 border-none px-4 py-3 text-sm text-slate-800 focus:bg-white focus:ring-1 focus:ring-slate-200"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      placeholder="Choose a username"
+                    />
+                  </div>
+
+                  {/* Role specific fields */}
+                  {(role === 'student' || role === 'faculty') && (
                     <>
-                      <div className="mb-2">
-                        <label className="block text-sm">Faculty ID</label>
-                        <input className="w-full border p-2" value={facultyId} onChange={(e) => setFacultyId(e.target.value)} />
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Full Name</label>
+                        <input className="w-full rounded-lg bg-gray-50 border-none px-4 py-3 text-sm" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Full name" />
                       </div>
-                      <div className="mb-2">
-                        <label className="block text-sm">Department</label>
-                        <input className="w-full border p-2" value={department} onChange={(e) => setDepartment(e.target.value)} />
+                      {role === 'faculty' && (
+                        <>
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Faculty ID</label>
+                            <input className="w-full rounded-lg bg-gray-50 border-none px-4 py-3 text-sm" value={facultyId} onChange={(e) => setFacultyId(e.target.value)} placeholder="Faculty ID" />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Department</label>
+                            <input className="w-full rounded-lg bg-gray-50 border-none px-4 py-3 text-sm" value={department} onChange={(e) => setDepartment(e.target.value)} placeholder="Department" />
+                          </div>
+                        </>
+                      )}
+                    </>
+                  )}
+                  {role === 'recruiter' && (
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">First Name</label>
+                        <input className="w-full rounded-lg bg-gray-50 border-none px-4 py-3 text-sm" value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="First Name" />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Last Name</label>
+                        <input className="w-full rounded-lg bg-gray-50 border-none px-4 py-3 text-sm" value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="Last Name" />
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Email</label>
+                    <input className="w-full rounded-lg bg-gray-50 border-none px-4 py-3 text-sm" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email address" type="email" />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Mobile</label>
+                    <input className="w-full rounded-lg bg-gray-50 border-none px-4 py-3 text-sm" value={mobile} onChange={(e) => setMobile(e.target.value)} placeholder="Mobile number" />
+                  </div>
+                </>
+              )}
+
+              {/* Password Login Mode */}
+              {!isResetMode && !isSignup && (
+                <div className="space-y-1">
+                  <div className="flex justify-between items-center mb-1">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Password</label>
+                    <button
+                      type="button"
+                      className="text-[10px] font-bold text-slate-400 hover:text-slate-600 uppercase tracking-wider"
+                      onClick={() => {
+                        setIsResetMode(true)
+                        setIsSignup(false)
+                        setError(undefined)
+                      }}
+                    >
+                      Forgot?
+                    </button>
+                  </div>
+                  <input
+                    className="w-full rounded-lg bg-gray-50 border-none px-4 py-3 text-sm text-slate-800 focus:bg-white focus:ring-1 focus:ring-slate-200 transition-all placeholder-slate-300"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="enter password"
+                    type="password"
+                    autoComplete="current-password"
+                    required
+                  />
+                </div>
+              )}
+
+              {/* Signup Password */}
+              {isSignup && !awaitingOtp && (
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Password</label>
+                  <input
+                    className="w-full rounded-lg bg-gray-50 border-none px-4 py-3 text-sm"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Create password"
+                    type="password"
+                  />
+                </div>
+              )}
+
+              {/* Reset Password Fields */}
+              {isResetMode && !resetAwaitingOtp && (
+                <>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Username</label>
+                    <input className="w-full rounded-lg bg-gray-50 border-none px-4 py-3 text-sm" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Your username" />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Email</label>
+                    <input className="w-full rounded-lg bg-gray-50 border-none px-4 py-3 text-sm" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Associated email" />
+                  </div>
+                </>
+              )}
+
+              {/* OTP Fields */}
+              {((isSignup && awaitingOtp) || (isResetMode && resetAwaitingOtp)) && (
+                <div className="space-y-3 bg-blue-50/50 p-4 rounded-lg border border-blue-100">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-[#EA0029] uppercase tracking-wide">Verification Code</label>
+                    <input
+                      className="w-full rounded-lg bg-white border border-slate-200 px-4 py-3 text-sm tracking-widest"
+                      value={isResetMode ? resetOtp : otp}
+                      onChange={(e) => isResetMode ? setResetOtp(e.target.value) : setOtp(e.target.value)}
+                      placeholder="Enter 4-digit code"
+                    />
+                  </div>
+                  {isResetMode && resetAwaitingOtp && (
+                    <>
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">New Password</label>
+                        <input className="w-full rounded-lg bg-white border border-slate-200 px-4 py-2 text-sm" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="New password" />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Confirm</label>
+                        <input className="w-full rounded-lg bg-white border border-slate-200 px-4 py-2 text-sm" type="password" value={confirmNewPassword} onChange={(e) => setConfirmNewPassword(e.target.value)} placeholder="Confirm password" />
                       </div>
                     </>
                   )}
-                </>
-              )}
-              {role === 'recruiter' && (
-                <>
-                  <div className="mb-2">
-                    <label className="block text-sm">First name</label>
-                    <input className="w-full border p-2" value={firstName} onChange={(e) => setFirstName(e.target.value)} />
+
+                  <div className="flex justify-between items-center text-xs text-slate-500">
+                    <span>
+                      {(isResetMode ? resetOtpSecondsLeft : otpSecondsLeft) ?
+                        `Expires in ${String(Math.floor(((isResetMode ? resetOtpSecondsLeft : otpSecondsLeft) || 0) / 60)).padStart(2, '0')}:${String(((isResetMode ? resetOtpSecondsLeft : otpSecondsLeft) || 0) % 60).padStart(2, '0')}`
+                        : 'Expired'}
+                    </span>
+                    <button type="button" onClick={isResetMode ? handleResendResetOtp : handleResendOtp} className="text-[#EA0029] font-medium underline">Resend Code</button>
                   </div>
-                  <div className="mb-2">
-                    <label className="block text-sm">Last name</label>
-                    <input className="w-full border p-2" value={lastName} onChange={(e) => setLastName(e.target.value)} />
-                  </div>
-                </>
+                </div>
               )}
 
-              {/* Contact fields for all signup users */}
-              <div className="mb-2">
-                <label className="block text-sm">Email</label>
-                <input className="w-full border p-2" value={email} onChange={(e) => setEmail(e.target.value)} />
-              </div>
-              <div className="mb-2">
-                <label className="block text-sm">Phone</label>
-                <input className="w-full border p-2" value={mobile} onChange={(e) => setMobile(e.target.value)} />
-              </div>
-            </>
-          )}
+              {error ? <div className="rounded-lg bg-red-50 p-3 text-sm text-red-600 font-medium border border-red-100">{error}</div> : null}
 
-          {isSignup && awaitingOtp && !isResetMode && (
-            <>
-              <div className="mb-2">
-                <label className="block text-sm">Verification code (4 digits)</label>
-                <input
-                  className="w-full border p-2"
-                  value={otp}
-                  onChange={(e) => setOtp(e.target.value)}
-                  placeholder="Enter OTP"
-                />
-              </div>
-              <div className="mb-1 text-xs text-slate-600">
-                {otpSecondsLeft !== null && otpSecondsLeft > 0 ? (
-                  <span>
-                    OTP expires in{' '}
-                    {String(Math.floor(otpSecondsLeft / 60)).padStart(2, '0')}:
-                    {String(otpSecondsLeft % 60).padStart(2, '0')}
-                  </span>
-                ) : (
-                  <span className="text-red-600">OTP expired. Please click Resend OTP.</span>
-                )}
-              </div>
-              <div className="mb-2 flex justify-end">
+              <div className="pt-2">
                 <button
-                  type="button"
-                  className="text-xs text-blue-600 underline disabled:opacity-60"
-                  onClick={handleResendOtp}
+                  className="w-full rounded-lg border border-[#EA0029] bg-white text-[#EA0029] py-3 text-xs font-bold uppercase tracking-widest hover:bg-[#EA0029] hover:text-white transition-all shadow-sm active:scale-[0.98]"
+                  type="submit"
                   disabled={loading}
                 >
-                  Resend OTP
-                </button>
-              </div>
-            </>
-          )}
-
-          {isResetMode && !resetAwaitingOtp && (
-            <>
-              <div className="mb-2">
-                <label className="block text-sm">Email for password reset</label>
-                <input
-                  className="w-full border p-2"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Enter the email associated with this account"
-                />
-              </div>
-            </>
-          )}
-
-          {isResetMode && resetAwaitingOtp && (
-            <>
-              <div className="mb-2">
-                <label className="block text-sm">Reset verification code (4 digits)</label>
-                <input
-                  className="w-full border p-2"
-                  value={resetOtp}
-                  onChange={(e) => setResetOtp(e.target.value)}
-                  placeholder="Enter reset OTP"
-                />
-              </div>
-              <div className="mb-1 text-xs text-slate-600">
-                {resetOtpSecondsLeft !== null && resetOtpSecondsLeft > 0 ? (
-                  <span>
-                    Reset OTP expires in{' '}
-                    {String(Math.floor(resetOtpSecondsLeft / 60)).padStart(2, '0')}:
-                    {String(resetOtpSecondsLeft % 60).padStart(2, '0')}
-                  </span>
-                ) : (
-                  <span className="text-red-600">Reset OTP expired. Please click Resend OTP.</span>
-                )}
-              </div>
-              <div className="mb-2 flex justify-end">
-                <button
-                  type="button"
-                  className="text-xs text-blue-600 underline disabled:opacity-60"
-                  onClick={handleResendResetOtp}
-                  disabled={loading}
-                >
-                  Resend reset OTP
+                  {loading ? 'Working...' : (isResetMode ? (resetAwaitingOtp ? 'Reset & Login' : 'Send Code') : (isSignup ? (awaitingOtp ? 'Verify & Sign up' : 'Sign up') : 'Sign In'))}
                 </button>
               </div>
 
-              <div className="mb-2">
-                <label className="block text-sm">New password</label>
-                <input
-                  className="w-full border p-2"
-                  type="password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="Enter new password"
-                />
+              <div className="pt-1 text-center">
+                <button
+                  type="button"
+                  className="text-[10px] font-bold text-slate-400 hover:text-[#EA0029] uppercase tracking-wide transition-colors"
+                  onClick={() => {
+                    if (isResetMode) {
+                      setIsResetMode(false)
+                      setError(undefined)
+                    } else {
+                      setIsSignup(!isSignup)
+                      setError(undefined)
+                      setAwaitingOtp(false)
+                    }
+                  }}
+                >
+                  {isResetMode ? 'Back to Login' : (isSignup ? 'Have an account? Sign In' : "Don't have an account? Sign Up")}
+                </button>
               </div>
-              <div className="mb-2">
-                <label className="block text-sm">Confirm new password</label>
-                <input
-                  className="w-full border p-2"
-                  type="password"
-                  value={confirmNewPassword}
-                  onChange={(e) => setConfirmNewPassword(e.target.value)}
-                  placeholder="Re-enter new password"
-                />
-              </div>
-            </>
-          )}
+            </form>
 
-          {error ? <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</div> : null}
+            <div className="mt-8 text-center">
+              <p className="text-[10px] italic text-slate-400 font-serif">"Your future isn't just an outcome, it's the result of your preparation."</p>
+            </div>
 
-          <div className="mt-4 flex items-center justify-between">
-            <button className="px-4 py-2 bg-blue-600 text-white rounded" disabled={loading}>
-              {isResetMode ? 'Reset Password' : (isSignup ? 'Sign Up' : 'Sign In')}
-            </button>
-            <button
-              type="button"
-              className="text-sm text-blue-600"
-              onClick={() => {
-                if (isResetMode) {
-                  setIsResetMode(false)
-                } else {
-                  setIsSignup(!isSignup)
-                }
-                setError(undefined)
-                setAwaitingOtp(false)
-                setOtp('')
-                setOtpSecondsLeft(null)
-                setResetAwaitingOtp(false)
-                setResetOtp('')
-                setResetOtpSecondsLeft(null)
-                setNewPassword('')
-                setConfirmNewPassword('')
-              }}
-            >
-              {isResetMode ? 'Back to sign in' : (isSignup ? 'Have an account? Sign in' : "Don't have an account? Sign up")}
-            </button>
           </div>
-
-          <button
-            className="w-full rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
-            type="submit"
-            disabled={loading}
-          >
-            {loading ? 'Working' : (isResetMode ? 'Reset password' : (isSignup ? 'Sign up' : 'Get started'))}
-          </button>
-        </form>
-
-        <p className="mt-4 text-xs text-slate-500">Backend: <span className="font-mono">POST /api/auth/login</span></p>
+        </div>
       </div>
-    </main>
+    </div>
   )
 }
+
