@@ -1,2 +1,21 @@
-☐ alter the sign up mail generation to instution creation to land the mail
-☐ 
+->Neha
+✔ admin dashboard with welcome component to have the neat btns for the available fns @done (12/27/2025, 5:35:08 AM)
+✔ institution management ui update @done (12/27/2025, 5:35:10 AM)
+✔ faculty management ui update @done (12/27/2025, 5:35:13 AM)
+☐ look for any interactive pentagon graph
+☐ alignment of the student dashboard 
+
+
+->Najila
+☐ Login page ui improvenments work only in the login.tsx
+☐ Add the welcome message on the top of the dashboard near the announcements and the   upcoming sessions
+☐ select a typography for the headings and the btns across the app
+
+->Aathi
+✔ separate pages for the admin function routes (view logs) and update the view logs ui too @done (12/27/2025, 5:24:42 AM)
+✔ design the institution dashboard need fns as management btns @done (12/27/2025, 5:24:44 AM)
+✔ need separate routes for the institution management btns landing page @done (12/27/2025, 5:24:53 AM)
+✔ while log in as student lands directly to the dashboard page @done (12/27/2025, 5:24:54 AM)
+✔ in the student dashboard add a feature to update username and the password by verifying the enrolled predefined mailid @done (12/27/2025, 5:24:55 AM)
+☐ update the student full name also in the student profile 
+
