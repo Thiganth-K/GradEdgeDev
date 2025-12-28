@@ -53,12 +53,12 @@ const Profile: React.FC<ProfileProps> = ({ username, onLogout }) => {
   async function loadProfile() {
     setLoading(true)
     setError(null)
-    
+
     try {
       const res = await getJson<{ ok: boolean; data?: StudentProfile; error?: string }>(
         `/api/student/${username}`
       )
-      
+
       if (res.ok) {
         if (res.data.ok && res.data.data) {
           setProfile(res.data.data)
@@ -150,7 +150,7 @@ const Profile: React.FC<ProfileProps> = ({ username, onLogout }) => {
 
     try {
       const payload: { new_username?: string; new_password?: string } = {}
-      
+
       if (newUsername.trim()) payload.new_username = newUsername.trim()
       if (newPassword.trim()) payload.new_password = newPassword.trim()
 
@@ -161,7 +161,7 @@ const Profile: React.FC<ProfileProps> = ({ username, onLogout }) => {
 
       if (res.ok && res.data.ok) {
         setSaveSuccess(true)
-        
+
         // If username changed, update localStorage and reload
         if (res.data.data?.username) {
           localStorage.setItem('username', res.data.data.username)
@@ -553,7 +553,7 @@ const Profile: React.FC<ProfileProps> = ({ username, onLogout }) => {
             </div>
           )}
         </div>
-        </div>
+      </div>
     </StudentLayout>
   )
 }

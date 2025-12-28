@@ -5,13 +5,9 @@ import Stack from '@mui/material/Stack'
 import FormControlLabel from '@mui/material/FormControlLabel'
 import Checkbox from '@mui/material/Checkbox'
 import { RadarChart as MuiRadarChart } from '@mui/x-charts/RadarChart'
-import { TrendingUp, Bell, Calendar, Flame, Target, Award, BookOpen, Code, Users, Clock, CheckCircle2, Activity, Video, X } from 'lucide-react'
+import { TrendingUp, Bell, Calendar, Flame, Target, Award, BookOpen, Code, Users, Clock, CheckCircle2, Activity, Video, X, ArrowUpRight } from 'lucide-react'
+import { motion, type Variants } from 'framer-motion'
 import StudentLayout from '../../components/Student/StudentLayout'
-
-interface DashboardProps {
-  username: string
-  onLogout: () => void
-}
 
 interface Announcement {
   id: number
@@ -21,7 +17,34 @@ interface Announcement {
   category: string
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ username, onLogout }) => {
+interface DashboardProps {
+  username?: string
+  onLogout: () => void
+}
+
+const Dashboard: React.FC<DashboardProps> = ({ username = 'Student', onLogout }) => {
+  // Animation Variants
+  const containerVariants: Variants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  }
+
+  const itemVariants: Variants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: {
+      y: 0,
+      opacity: 1,
+      transition: {
+        type: 'spring',
+        stiffness: 100
+      }
+    }
+  }
   // 360° Readiness Analysis Data
   const radarData = [
     { subject: 'Aptitude', score: 85, fullMark: 100, color: 'from-orange-500 to-orange-600', bgColor: 'bg-orange-50' },
@@ -108,10 +131,10 @@ const Dashboard: React.FC<DashboardProps> = ({ username, onLogout }) => {
 
   // Performance Stats
   const stats = [
-    { label: 'Current Streak', value: '15', unit: 'days', icon: Flame, color: 'bg-orange-500', textColor: 'text-orange-600', bgColor: 'bg-orange-50' },
-    { label: 'Attendance', value: '92', unit: '%', icon: CheckCircle2, color: 'bg-green-500', textColor: 'text-green-600', bgColor: 'bg-green-50' },
-    { label: 'Tests Completed', value: '24', unit: 'tests', icon: Target, color: 'bg-blue-500', textColor: 'text-blue-600', bgColor: 'bg-blue-50' },
-    { label: 'Avg Score', value: '78', unit: '%', icon: Award, color: 'bg-purple-500', textColor: 'text-purple-600', bgColor: 'bg-purple-50' },
+    { label: 'Current Streak', value: '15', unit: 'days', icon: Flame, color: 'bg-red-500', textColor: 'text-red-600', bgColor: 'bg-red-50' },
+    { label: 'Attendance', value: '92', unit: '%', icon: CheckCircle2, color: 'bg-red-500', textColor: 'text-red-600', bgColor: 'bg-red-50' },
+    { label: 'Tests Completed', value: '24', unit: 'tests', icon: Target, color: 'bg-red-500', textColor: 'text-red-600', bgColor: 'bg-red-50' },
+    { label: 'Avg Score', value: '78', unit: '%', icon: Award, color: 'bg-red-500', textColor: 'text-red-600', bgColor: 'bg-red-50' },
   ]
 
   // Weekly Activity Data
@@ -142,165 +165,182 @@ const Dashboard: React.FC<DashboardProps> = ({ username, onLogout }) => {
 
   return (
     <StudentLayout username={username} onLogout={onLogout}>
-      <div className="p-6 bg-gray-50 min-h-screen">
-        
-        {/* Welcome Note */}
-        <div className="mb-6 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg p-6 shadow-lg">
-          <h1 className="text-3xl font-bold text-white mb-2">Welcome back, {username}! 👋</h1>
-          <p className="text-blue-50 text-lg">Ready to level up your skills today? Let's make it count!</p>
-        </div>
+      <motion.div
+        className="p-6 bg-gray-50 min-h-screen"
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+      >
 
-        {/* Top Bar with Buttons */}
-        <div className="flex justify-end gap-3 mb-6">
-          {/* Upcoming Sessions Button */}
-          <div className="relative">
-            <button
-              onClick={() => {
-                setShowUpcomingSessions(!showUpcomingSessions)
-                setShowNotifications(false)
-              }}
-              className="flex items-center gap-2 px-4 py-2 bg-white border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:shadow-md transition-all"
-            >
-              <Video className="w-5 h-5 text-blue-600" />
-              <span className="text-sm font-medium text-gray-700">Upcoming Sessions</span>
-              <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-semibold rounded-full">
-                {upcomingSessions.length}
-              </span>
-            </button>
-
-            {/* Upcoming Sessions Dropdown */}
-            {showUpcomingSessions && (
-              <div className="absolute right-0 mt-2 w-96 bg-white rounded-lg shadow-xl border border-gray-200 z-50 animate-fadeIn">
-                <div className="p-4 border-b border-gray-200">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-semibold text-gray-800">Upcoming Sessions</h3>
-                    <button
-                      onClick={() => setShowUpcomingSessions(false)}
-                      className="text-gray-400 hover:text-gray-600"
-                    >
-                      <X className="w-5 h-5" />
-                    </button>
-                  </div>
-                </div>
-                <div className="max-h-96 overflow-y-auto">
-                  {upcomingSessions.map((session) => (
-                    <div
-                      key={session.id}
-                      className="p-4 border-b border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer"
-                    >
-                      <div className="flex gap-3">
-                        <div className={`${session.color} w-1 rounded-full flex-shrink-0`}></div>
-                        <div className="flex-1 min-w-0">
-                          <h4 className="font-semibold text-gray-800 mb-1">{session.title}</h4>
-                          <p className="text-sm text-gray-600 mb-2">{session.instructor}</p>
-                          <div className="flex items-center gap-3 text-xs text-gray-500">
-                            <div className="flex items-center gap-1">
-                              <Clock className="w-3 h-3" />
-                              <span>{session.time}</span>
-                            </div>
-                            <span>•</span>
-                            <span>{session.duration}</span>
-                          </div>
-                          <span className={`inline-block mt-2 px-2 py-0.5 rounded text-xs font-medium ${session.color} bg-opacity-10`}>
-                            {session.type}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <div className="p-3 border-t border-gray-200">
-                  <button className="w-full text-center text-sm text-blue-600 hover:text-blue-700 font-medium">
-                    View Full Schedule →
-                  </button>
-                </div>
-              </div>
-            )}
+        {/* Header Banner: Welcome & Actions */}
+        <motion.div
+          className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8"
+          variants={itemVariants}
+        >
+          <div>
+            <h1 className="text-2xl font-bold text-gray-800">Welcome back, {username}! 👋</h1>
+            <p className="text-gray-500">Ready to level up your skills today?</p>
           </div>
 
-          {/* Notifications Button */}
-          <div className="relative">
-            <button
-              onClick={() => {
-                setShowNotifications(!showNotifications)
-                setShowUpcomingSessions(false)
-              }}
-              className="relative flex items-center gap-2 px-4 py-2 bg-white border-2 border-gray-200 rounded-lg hover:border-red-500 hover:shadow-md transition-all"
-            >
-              <Bell className="w-5 h-5 text-red-600" />
-              <span className="text-sm font-medium text-gray-700">Notifications</span>
-              {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 px-2 py-0.5 bg-red-600 text-white text-xs font-bold rounded-full animate-pulse">
-                  {unreadCount}
+          <div className="flex gap-3">
+            {/* Upcoming Sessions Button */}
+            <div className="relative">
+              <button
+                onClick={() => {
+                  setShowUpcomingSessions(!showUpcomingSessions)
+                  setShowNotifications(false)
+                }}
+                className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg hover:border-blue-500 hover:shadow-sm transition-all"
+              >
+                <Video className="w-5 h-5 text-blue-600" />
+                <span className="text-sm font-medium text-gray-700">Upcoming Sessions</span>
+                <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-semibold rounded-full">
+                  {upcomingSessions.length}
                 </span>
-              )}
-            </button>
+              </button>
 
-            {/* Notifications Dropdown */}
-            {showNotifications && (
-              <div className="absolute right-0 mt-2 w-96 bg-white rounded-lg shadow-xl border border-gray-200 z-50 animate-fadeIn">
-                <div className="p-4 border-b border-gray-200">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-semibold text-gray-800">Notifications</h3>
-                    <button
-                      onClick={() => setShowNotifications(false)}
-                      className="text-gray-400 hover:text-gray-600"
-                    >
-                      <X className="w-5 h-5" />
-                    </button>
+              {/* Upcoming Sessions Dropdown */}
+              {showUpcomingSessions && (
+                <div className="absolute right-0 mt-2 w-96 bg-white rounded-lg shadow-xl border border-gray-200 z-50 animate-fadeIn">
+                  <div className="p-4 border-b border-gray-200">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-lg font-semibold text-gray-800">Upcoming Sessions</h3>
+                      <button
+                        onClick={() => setShowUpcomingSessions(false)}
+                        className="text-gray-400 hover:text-gray-600"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
+                    </div>
                   </div>
-                </div>
-                <div className="max-h-96 overflow-y-auto">
-                  {notifications.map((notification) => {
-                    const typeColors = {
-                      info: 'bg-blue-100 text-blue-600',
-                      success: 'bg-green-100 text-green-600',
-                      warning: 'bg-yellow-100 text-yellow-600'
-                    }
-                    return (
+                  <div className="max-h-96 overflow-y-auto">
+                    {upcomingSessions.map((session) => (
                       <div
-                        key={notification.id}
-                        className={`p-4 border-b border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer ${!notification.read ? 'bg-blue-50/30' : ''
-                          }`}
+                        key={session.id}
+                        className="p-4 border-b border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer"
                       >
                         <div className="flex gap-3">
-                          <div className={`${typeColors[notification.type as keyof typeof typeColors]} p-2 rounded-lg h-fit`}>
-                            <Bell className="w-4 h-4" />
-                          </div>
+                          <div className={`${session.color} w-1 rounded-full flex-shrink-0`}></div>
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-start justify-between gap-2">
-                              <h4 className="font-semibold text-gray-800">{notification.title}</h4>
-                              {!notification.read && (
-                                <div className="w-2 h-2 bg-blue-600 rounded-full flex-shrink-0 mt-1"></div>
-                              )}
+                            <h4 className="font-semibold text-gray-800 mb-1">{session.title}</h4>
+                            <p className="text-sm text-gray-600 mb-2">{session.instructor}</p>
+                            <div className="flex items-center gap-3 text-xs text-gray-500">
+                              <div className="flex items-center gap-1">
+                                <Clock className="w-3 h-3" />
+                                <span>{session.time}</span>
+                              </div>
+                              <span>•</span>
+                              <span>{session.duration}</span>
                             </div>
-                            <p className="text-sm text-gray-600 mt-1">{notification.message}</p>
-                            <p className="text-xs text-gray-400 mt-2">{notification.time}</p>
+                            <span className={`inline-block mt-2 px-2 py-0.5 rounded text-xs font-medium ${session.color} bg-opacity-10`}>
+                              {session.type}
+                            </span>
                           </div>
                         </div>
                       </div>
-                    )
-                  })}
+                    ))}
+                  </div>
+                  <div className="p-3 border-t border-gray-200">
+                    <button className="w-full text-center text-sm text-blue-600 hover:text-blue-700 font-medium">
+                      View Full Schedule →
+                    </button>
+                  </div>
                 </div>
-                <div className="p-3 border-t border-gray-200">
-                  <button className="w-full text-center text-sm text-blue-600 hover:text-blue-700 font-medium">
-                    View All Notifications →
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
+              )}
+            </div>
 
-        {/* Performance Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            {/* Notifications Button */}
+            <div className="relative">
+              <button
+                onClick={() => {
+                  setShowNotifications(!showNotifications)
+                  setShowUpcomingSessions(false)
+                }}
+                className="relative flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg hover:border-red-500 hover:shadow-sm transition-all"
+              >
+                <Bell className="w-5 h-5 text-red-600" />
+                <span className="text-sm font-medium text-gray-700">Notifications</span>
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 px-2 py-0.5 bg-red-600 text-white text-xs font-bold rounded-full animate-pulse">
+                    {unreadCount}
+                  </span>
+                )}
+              </button>
+
+              {/* Notifications Dropdown */}
+              {showNotifications && (
+                <div className="absolute right-0 mt-2 w-96 bg-white rounded-lg shadow-xl border border-gray-200 z-50 animate-fadeIn">
+                  <div className="p-4 border-b border-gray-200">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-lg font-semibold text-gray-800">Notifications</h3>
+                      <button
+                        onClick={() => setShowNotifications(false)}
+                        className="text-gray-400 hover:text-gray-600"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
+                    </div>
+                  </div>
+                  <div className="max-h-96 overflow-y-auto">
+                    {notifications.map((notification) => {
+                      const typeColors = {
+                        info: 'bg-blue-100 text-blue-600',
+                        success: 'bg-green-100 text-green-600',
+                        warning: 'bg-yellow-100 text-yellow-600'
+                      }
+                      return (
+                        <div
+                          key={notification.id}
+                          className={`p-4 border-b border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer ${!notification.read ? 'bg-blue-50/30' : ''
+                            }`}
+                        >
+                          <div className="flex gap-3">
+                            <div className={`${typeColors[notification.type as keyof typeof typeColors]} p-2 rounded-lg h-fit`}>
+                              <Bell className="w-4 h-4" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-start justify-between gap-2">
+                                <h4 className="font-semibold text-gray-800">{notification.title}</h4>
+                                {!notification.read && (
+                                  <div className="w-2 h-2 bg-blue-600 rounded-full flex-shrink-0 mt-1"></div>
+                                )}
+                              </div>
+                              <p className="text-sm text-gray-600 mt-1">{notification.message}</p>
+                              <p className="text-xs text-gray-400 mt-2">{notification.time}</p>
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                  <div className="p-3 border-t border-gray-200">
+                    <button className="w-full text-center text-sm text-blue-600 hover:text-blue-700 font-medium">
+                      View All Notifications →
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Stats Grid */}
+        <motion.div
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6"
+          variants={itemVariants}
+        >
           {stats.map((stat, index) => {
             const IconComponent = stat.icon
             return (
-              <div key={index} className={`${stat.bgColor} rounded-lg shadow p-5 border border-gray-200`}>
+              <motion.div
+                key={index}
+                className={`${stat.bgColor} rounded-lg shadow p-5 border border-gray-200`}
+                whileHover={{ scale: 1.05, y: -5, boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)" }}
+                transition={{ type: "spring", stiffness: 300 }}
+              >
                 <div className="flex items-start justify-between">
                   <div>
-                    <p className="text-sm text-gray-600 mb-1">{stat.label}</p>
+                    <p className="text-label-strong text-gray-500 mb-2">{stat.label}</p>
                     <div className="flex items-baseline gap-1">
                       <h3 className={`text-3xl font-bold ${stat.textColor}`}>{stat.value}</h3>
                       <span className="text-sm text-gray-500">{stat.unit}</span>
@@ -310,10 +350,10 @@ const Dashboard: React.FC<DashboardProps> = ({ username, onLogout }) => {
                     <IconComponent className="w-6 h-6 text-white" />
                   </div>
                 </div>
-              </div>
+              </motion.div>
             )
           })}
-        </div>
+        </motion.div>
 
         {/* Top Section: Readiness Pentagon Graph (60%) and Notice Board (40%) */}
         <div className="flex flex-col lg:flex-row gap-6 mb-6">
@@ -321,7 +361,7 @@ const Dashboard: React.FC<DashboardProps> = ({ username, onLogout }) => {
           <div className="bg-white rounded-lg shadow p-6 lg:w-3/5">
             <div className="flex items-center gap-2 mb-6">
               <TrendingUp className="w-5 h-5 text-red-600" />
-              <h2 className="text-lg font-semibold text-gray-800">360° Readiness Analysis</h2>
+              <h2 className="text-lg font-bold text-gray-800 uppercase tracking-wide">360° Readiness Analysis</h2>
             </div>
 
             <div className="flex flex-col items-center">
@@ -351,11 +391,7 @@ const Dashboard: React.FC<DashboardProps> = ({ username, onLogout }) => {
                         {
                           label: 'You',
                           data: radarData.map((r) => r.score),
-                          hideMark: hideMark,
-                          fillArea: fillArea,
-                          color: '#ef4444',
-                          stroke: '#ef4444',
-                          areaOpacity: 0.35,
+                          color: '#ea0029',
                         },
                       ]}
                     />
@@ -384,8 +420,8 @@ const Dashboard: React.FC<DashboardProps> = ({ username, onLogout }) => {
                         type="button"
                         onClick={() => setSelectedSkill(isSelected ? null : skill.subject)}
                         className={`rounded-lg border-2 px-4 py-3 text-center bg-white transition-all ${isSelected
-                            ? 'border-red-500 shadow-sm bg-red-50'
-                            : 'border-red-200 hover:border-red-400 hover:bg-red-50'
+                          ? 'border-red-500 shadow-sm bg-red-50'
+                          : 'border-red-200 hover:border-red-400 hover:bg-red-50'
                           }`}
                       >
                         <p className="text-xs font-semibold text-gray-600 mb-1">{skill.subject}</p>
@@ -418,8 +454,8 @@ const Dashboard: React.FC<DashboardProps> = ({ username, onLogout }) => {
                         type="button"
                         onClick={() => setSelectedSkill(isSelected ? null : skill.subject)}
                         className={`rounded-lg border-2 px-4 py-3 text-center bg-white transition-all ${isSelected
-                            ? 'border-red-500 shadow-sm bg-red-50'
-                            : 'border-red-200 hover:border-red-400 hover:bg-red-50'
+                          ? 'border-red-500 shadow-sm bg-red-50'
+                          : 'border-red-200 hover:border-red-400 hover:bg-red-50'
                           }`}
                       >
                         <p className="text-xs font-semibold text-gray-600 mb-1">{skill.subject}</p>
@@ -440,7 +476,7 @@ const Dashboard: React.FC<DashboardProps> = ({ username, onLogout }) => {
           <div className="bg-white rounded-lg shadow p-6 lg:w-2/5">
             <div className="flex items-center gap-2 mb-4">
               <Bell className="w-5 h-5 text-red-600" />
-              <h2 className="text-lg font-semibold text-gray-800">Notice Board</h2>
+              <h2 className="text-lg font-bold text-gray-800 uppercase tracking-wide">Notice Board</h2>
             </div>
 
             {announcements.length === 0 ? (
@@ -472,8 +508,8 @@ const Dashboard: React.FC<DashboardProps> = ({ username, onLogout }) => {
                                 setPreviewAnnouncement(announcement)
                               }}
                               className={`rounded-lg p-4 border cursor-pointer transition-all duration-200 ${isRead
-                                  ? 'bg-red-50 border-red-200 opacity-60 hover:opacity-70'
-                                  : 'bg-gradient-to-br from-red-50 to-red-100 border-red-300 shadow-sm hover:shadow-md'
+                                ? 'bg-red-50 border-red-200 opacity-60 hover:opacity-70'
+                                : 'bg-gradient-to-br from-red-50 to-red-100 border-red-300 shadow-sm hover:shadow-md'
                                 }`}
                             >
                               <div className="flex items-start justify-between mb-2">
@@ -489,7 +525,7 @@ const Dashboard: React.FC<DashboardProps> = ({ username, onLogout }) => {
                                       <Calendar className="w-3 h-3" />
                                       <span>{announcement.date}</span>
                                     </div>
-                                    <span className="px-2 py-0.5 rounded-full bg-red-200 text-red-800 font-medium">
+                                    <span className="px-2 py-0.5 rounded-full bg-red-200 text-red-800 text-label-strong">
                                       {announcement.category}
                                     </span>
                                   </div>
@@ -513,8 +549,8 @@ const Dashboard: React.FC<DashboardProps> = ({ username, onLogout }) => {
                           }
                           disabled={isFirst}
                           className={`px-3 py-1 text-xs font-medium rounded-md border ${isFirst
-                              ? 'border-gray-200 text-gray-300 cursor-not-allowed'
-                              : 'border-gray-300 text-gray-700 hover:bg-gray-100'
+                            ? 'border-gray-200 text-gray-300 cursor-not-allowed'
+                            : 'border-gray-300 text-gray-700 hover:bg-gray-100'
                             }`}
                         >
                           Prev
@@ -533,8 +569,8 @@ const Dashboard: React.FC<DashboardProps> = ({ username, onLogout }) => {
                           }
                           disabled={isLast}
                           className={`px-3 py-1 text-xs font-medium rounded-md border ${isLast
-                              ? 'border-gray-200 text-gray-300 cursor-not-allowed'
-                              : 'border-gray-300 text-gray-700 hover:bg-gray-100'
+                            ? 'border-gray-200 text-gray-300 cursor-not-allowed'
+                            : 'border-gray-300 text-gray-700 hover:bg-gray-100'
                             }`}
                         >
                           Next
@@ -549,12 +585,15 @@ const Dashboard: React.FC<DashboardProps> = ({ username, onLogout }) => {
         </div>
 
         {/* Weekly Activity & Recent Activities */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+        <motion.div
+          className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8"
+          variants={itemVariants}
+        >
           {/* Weekly Activity Chart */}
           <div className="lg:col-span-2 bg-white rounded-lg shadow p-6">
             <div className="flex items-center gap-2 mb-4">
               <Activity className="w-5 h-5 text-blue-600" />
-              <h2 className="text-lg font-semibold text-gray-800">Weekly Activity</h2>
+              <h2 className="text-lg font-bold text-gray-800 uppercase tracking-wide">Weekly Activity</h2>
             </div>
             <ResponsiveContainer width="100%" height={250}>
               <LineChart data={weeklyActivity}>
@@ -571,6 +610,9 @@ const Dashboard: React.FC<DashboardProps> = ({ username, onLogout }) => {
                   strokeWidth={2}
                   dot={{ fill: '#3b82f6', r: 4 }}
                   name="Hours"
+                  isAnimationActive={true}
+                  animationDuration={2000}
+                  animationEasing="ease-in-out"
                 />
                 <Line
                   type="monotone"
@@ -579,6 +621,9 @@ const Dashboard: React.FC<DashboardProps> = ({ username, onLogout }) => {
                   strokeWidth={2}
                   dot={{ fill: '#8b5cf6', r: 4 }}
                   name="Tests"
+                  isAnimationActive={true}
+                  animationDuration={2000}
+                  animationEasing="ease-in-out"
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -598,7 +643,7 @@ const Dashboard: React.FC<DashboardProps> = ({ username, onLogout }) => {
           <div className="bg-white rounded-lg shadow p-6">
             <div className="flex items-center gap-2 mb-4">
               <Clock className="w-5 h-5 text-gray-600" />
-              <h2 className="text-lg font-semibold text-gray-800">Recent Activity</h2>
+              <h2 className="text-lg font-bold text-gray-800 uppercase tracking-wide">Recent Activity</h2>
             </div>
             <div className="space-y-3">
               {recentActivities.map((activity, index) => {
@@ -622,7 +667,7 @@ const Dashboard: React.FC<DashboardProps> = ({ username, onLogout }) => {
               })}
             </div>
           </div>
-        </div>
+        </motion.div>
 
         {/* Announcement Preview Modal */}
         {previewAnnouncement && (
@@ -666,44 +711,67 @@ const Dashboard: React.FC<DashboardProps> = ({ username, onLogout }) => {
         )}
 
         {/* Improvement Focus Areas */}
-        <div className="bg-white rounded-lg shadow p-6 mb-6">
+        <motion.div
+          className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6"
+          variants={itemVariants}
+        >
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-2">
-              <Target className="w-5 h-5 text-red-600" />
-              <h2 className="text-lg font-semibold text-gray-800">Focus Areas for Improvement</h2>
+              <div className="p-2 bg-red-50 rounded-lg">
+                <Target className="w-5 h-5 text-red-600" />
+              </div>
+              <h2 className="text-lg font-bold text-gray-900 uppercase tracking-wide">Focus Areas for Improvement</h2>
             </div>
-            <button className="text-sm text-blue-600 hover:text-blue-700 font-medium">
+            <button className="text-sm text-red-600 hover:text-red-700 font-medium hover:underline decoration-red-200 underline-offset-4 transition-all">
               View Full Analysis →
             </button>
           </div>
-          <div className="space-y-4">
+          <div className="space-y-5">
             {improvementAreas.map((area, index) => {
               const progress = (area.current / area.target) * 100
               const isPriorityHigh = area.priority === 'High'
               return (
-                <div key={index} className="space-y-2">
+                <div key={index} className="space-y-3 p-4 rounded-xl hover:bg-gray-50 transition-all duration-300 hover:shadow-md group cursor-default border border-transparent hover:border-gray-100">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <h3 className="text-sm font-semibold text-gray-800">{area.area}</h3>
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${isPriorityHigh ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700'
+                      <h3 className="text-sm font-bold text-gray-800 group-hover:text-red-700 transition-colors">{area.area}</h3>
+                      <span className={`px-2.5 py-0.5 rounded-full text-label-strong ${isPriorityHigh
+                        ? 'bg-red-100 text-red-700 border border-red-200'
+                        : 'bg-orange-100 text-orange-700 border border-orange-200'
                         }`}>
                         {area.priority} Priority
                       </span>
                     </div>
                     <div className="flex items-center gap-2 text-sm">
-                      <span className="text-gray-600">{area.current}%</span>
-                      <TrendingUp className="w-4 h-4 text-gray-400" />
-                      <span className="text-gray-800 font-medium">{area.target}%</span>
+                      <span className="text-gray-500 font-medium">{area.current}%</span>
+                      <TrendingUp className="w-4 h-4 text-gray-400 group-hover:text-red-500 transition-colors" />
+                      <span className="text-gray-900 font-bold">{area.target}%</span>
                     </div>
                   </div>
-                  <div className="relative w-full bg-gray-200 rounded-full h-3">
-                    <div
-                      className={`h-3 rounded-full transition-all duration-500 ${isPriorityHigh ? 'bg-gradient-to-r from-red-500 to-red-600' : 'bg-gradient-to-r from-orange-500 to-orange-600'
+
+                  {/* Progress Bar Container */}
+                  <div className="relative w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
+                    {/* Background Track Pattern */}
+                    <div className="absolute inset-0 opacity-30 bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:8px_8px]"></div>
+
+                    {/* Animated Progress Fill */}
+                    <motion.div
+                      className={`h-full rounded-full relative overflow-hidden ${isPriorityHigh
+                        ? 'bg-gradient-to-r from-red-500 via-red-600 to-red-700 shadow-[0_0_10px_rgba(239,68,68,0.4)]'
+                        : 'bg-gradient-to-r from-orange-500 via-red-500 to-red-600 shadow-[0_0_10px_rgba(249,115,22,0.4)]'
                         }`}
-                      style={{ width: `${progress}%` }}
-                    ></div>
+                      initial={{ width: 0 }}
+                      whileInView={{ width: `${progress}%` }}
+                      transition={{ duration: 1.5, ease: "easeOut", delay: index * 0.2 }}
+                      viewport={{ once: true }}
+                    >
+                      {/* Shine effect */}
+                      <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-white/20 to-transparent"></div>
+                    </motion.div>
+
+                    {/* Target Marker */}
                     <div
-                      className="absolute top-0 w-1 h-3 bg-gray-400"
+                      className="absolute top-0 w-0.5 h-full bg-gray-400/50 z-10"
                       style={{ left: `${(area.target / 100) * 100}%` }}
                     ></div>
                   </div>
@@ -711,42 +779,93 @@ const Dashboard: React.FC<DashboardProps> = ({ username, onLogout }) => {
               )
             })}
           </div>
-        </div>
+        </motion.div>
 
         {/* Action Buttons */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <button className="bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg p-4 hover:from-blue-700 hover:to-blue-800 transition-all shadow-md hover:shadow-lg">
-            <div className="flex items-center justify-between">
-              <div className="text-left">
-                <h3 className="font-semibold mb-1">Take Assessment</h3>
-                <p className="text-sm text-blue-100">Test your skills now</p>
+        <motion.div
+          className="grid grid-cols-1 md:grid-cols-3 gap-6"
+          variants={itemVariants}
+        >
+          <motion.button
+            className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all text-left w-full group relative overflow-hidden"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            <div className="flex justify-between items-start">
+              <div className="relative z-10">
+                <span className="text-label-strong text-gray-400">Skill Check</span>
+                <h3 className="text-lg font-bold text-gray-900 mt-1">Take Assessment</h3>
               </div>
-              <Code className="w-8 h-8" />
-            </div>
-          </button>
-
-          <button className="bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg p-4 hover:from-purple-700 hover:to-purple-800 transition-all shadow-md hover:shadow-lg">
-            <div className="flex items-center justify-between">
-              <div className="text-left">
-                <h3 className="font-semibold mb-1">Schedule Mock Interview</h3>
-                <p className="text-sm text-purple-100">Practice interviews</p>
+              <div className="w-10 h-10 rounded-full bg-red-600 flex items-center justify-center text-white shadow-lg shadow-red-200 group-hover:scale-110 transition-transform relative z-10">
+                <ArrowUpRight className="w-5 h-5" />
               </div>
-              <Users className="w-8 h-8" />
             </div>
-          </button>
 
-          <button className="bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg p-4 hover:from-green-700 hover:to-green-800 transition-all shadow-md hover:shadow-lg">
-            <div className="flex items-center justify-between">
-              <div className="text-left">
-                <h3 className="font-semibold mb-1">View Learning Path</h3>
-                <p className="text-sm text-green-100">Personalized roadmap</p>
+            <div className="mt-8 flex items-center gap-2 relative z-10">
+              <div className="px-3 py-1.5 rounded-full bg-red-50 border border-red-100 flex items-center gap-2 group-hover:bg-red-100 transition-colors">
+                <Code className="w-3.5 h-3.5 text-red-600" />
+                <span className="text-xs font-semibold text-red-700">Test your skills now</span>
               </div>
-              <BookOpen className="w-8 h-8" />
             </div>
-          </button>
-        </div>
 
-      </div>
+            {/* Hover Effect Background */}
+            <div className="absolute top-0 right-0 w-32 h-32 bg-red-50 rounded-full blur-3xl opacity-0 group-hover:opacity-50 transition-opacity -mr-16 -mt-16"></div>
+          </motion.button>
+
+          <motion.button
+            className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all text-left w-full group relative overflow-hidden"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.98 }}
+            transition={{ type: "spring" as const, stiffness: 300, damping: 20 }}
+          >
+            <div className="flex justify-between items-start">
+              <div className="relative z-10">
+                <span className="text-label-strong text-gray-400">Preparation</span>
+                <h3 className="text-lg font-bold text-gray-900 mt-1">Mock Interview</h3>
+              </div>
+              <div className="w-10 h-10 rounded-full bg-red-600 flex items-center justify-center text-white shadow-lg shadow-red-200 group-hover:scale-110 transition-transform relative z-10">
+                <ArrowUpRight className="w-5 h-5" />
+              </div>
+            </div>
+
+            <div className="mt-8 flex items-center gap-2 relative z-10">
+              <div className="px-3 py-1.5 rounded-full bg-red-50 border border-red-100 flex items-center gap-2 group-hover:bg-red-100 transition-colors">
+                <Users className="w-3.5 h-3.5 text-red-600" />
+                <span className="text-xs font-semibold text-red-700">Practice interviews</span>
+              </div>
+            </div>
+
+            <div className="absolute top-0 right-0 w-32 h-32 bg-red-50 rounded-full blur-3xl opacity-0 group-hover:opacity-50 transition-opacity -mr-16 -mt-16"></div>
+          </motion.button>
+
+          <motion.button
+            className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all text-left w-full group relative overflow-hidden"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.98 }}
+            transition={{ type: "spring" as const, stiffness: 300, damping: 20 }}
+          >
+            <div className="flex justify-between items-start">
+              <div className="relative z-10">
+                <span className="text-label-strong text-gray-400">Roadmap</span>
+                <h3 className="text-lg font-bold text-gray-900 mt-1">Learning Path</h3>
+              </div>
+              <div className="w-10 h-10 rounded-full bg-red-600 flex items-center justify-center text-white shadow-lg shadow-red-200 group-hover:scale-110 transition-transform relative z-10">
+                <ArrowUpRight className="w-5 h-5" />
+              </div>
+            </div>
+
+            <div className="mt-8 flex items-center gap-2 relative z-10">
+              <div className="px-3 py-1.5 rounded-full bg-red-50 border border-red-100 flex items-center gap-2 group-hover:bg-red-100 transition-colors">
+                <BookOpen className="w-3.5 h-3.5 text-red-600" />
+                <span className="text-xs font-semibold text-red-700">Personalized roadmap</span>
+              </div>
+            </div>
+
+            <div className="absolute top-0 right-0 w-32 h-32 bg-red-50 rounded-full blur-3xl opacity-0 group-hover:opacity-50 transition-opacity -mr-16 -mt-16"></div>
+          </motion.button>
+        </motion.div>
+
+      </motion.div>
     </StudentLayout>
   )
 }

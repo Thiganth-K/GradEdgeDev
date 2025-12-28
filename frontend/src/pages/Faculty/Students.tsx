@@ -54,8 +54,15 @@ export default function FacultyStudents() {
                 getJson<any>(`/api/faculty/${facultyId}/students`),
                 getJson<any>(`/api/faculty/batches?faculty_id=${facultyId}`)
             ]);
-            if (studRes.ok && studRes.data) setStudents(studRes.data);
-            if (batchRes.ok && batchRes.batches) setBatches(batchRes.batches);
+            if (studRes.ok && studRes.data) {
+                // API shape: { ok: True, data: [...] }
+                const payload = (studRes.data as { data?: Student[] }).data || [];
+                setStudents(payload);
+            }
+            if (batchRes.ok && batchRes.data) {
+                const payload = (batchRes.data as { batches?: Batch[] }).batches || [];
+                setBatches(payload);
+            }
         } catch (e) { console.error(e); }
         setLoading(false);
     };
