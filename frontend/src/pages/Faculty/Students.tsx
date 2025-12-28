@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import FacultySidebar from '../../components/Faculty/Sidebar';
 import { getJson, postJson } from '../../lib/api';
-import { Menu, Search, Filter, Upload, X, Trash2, Edit2, ChevronDown } from 'lucide-react';
+import { Menu, Search, Upload, X, Trash2, Edit2, ChevronDown } from 'lucide-react';
 
 // --- Types ---
 type Student = {
@@ -37,7 +37,7 @@ export default function FacultyStudents() {
 
     // Modal State
     const [showUploadModal, setShowUploadModal] = useState(false);
-    const [uploadFile, setUploadFile] = useState<File | null>(null);
+    const [_uploadFile, setUploadFile] = useState<File | null>(null);
     const [previewData, setPreviewData] = useState<any[]>([]);
     const [selectedBatch, setSelectedBatch] = useState('');
     const [uploadStep, setUploadStep] = useState(1);

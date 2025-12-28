@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 import os
 import sys
@@ -25,13 +26,28 @@ try:
 except Exception:
 	load_env_file = None
 
+os.environ.setdefault('NODE_ENV', os.environ.get('NODE_ENV', 'development'))
+ENV = os.environ.get('NODE_ENV', 'development').lower()
+
 app = FastAPI()
 app.logger = logging.getLogger('gradedgedev')
+app.logger.info('Starting backend (env=%s)', ENV)
 
 # Resolve project root (two levels up from backend/src)
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 LOGIN_FILE = PROJECT_ROOT / 'frontend' / 'pages' / 'login.html'
 ADMIN_WELCOME = PROJECT_ROOT / 'frontend' / 'pages' / 'admin' / 'welcome.html'
+FRONTEND_DIST = PROJECT_ROOT / 'frontend' / 'dist'
+FRONTEND_INDEX = FRONTEND_DIST / 'index.html'
+
+# Serve built frontend assets when present (Vite output). With NODE_ENV=production, expect dist to be present.
+if FRONTEND_DIST.exists():
+	assets_dir = FRONTEND_DIST / 'assets'
+	if assets_dir.exists():
+		app.mount('/assets', StaticFiles(directory=str(assets_dir)), name='assets')
+	app.mount('/frontend', StaticFiles(directory=str(FRONTEND_DIST)), name='frontend')
+else:
+	app.logger.warning('frontend/dist not found; build the frontend (npm run build) to serve static assets from backend')
 
 # Include routers if available
 try:
@@ -80,6 +96,9 @@ except Exception:
 @app.get('/')
 @app.get('/login')
 async def login() -> FileResponse:
+	# Prefer built SPA index if available; otherwise fall back to legacy login.html
+	if FRONTEND_INDEX.exists():
+		return FileResponse(str(FRONTEND_INDEX))
 	if LOGIN_FILE.exists():
 		return FileResponse(str(LOGIN_FILE))
 	raise HTTPException(status_code=404, detail='Login page not found')
@@ -90,6 +109,16 @@ async def admin_welcome() -> FileResponse:
 	if ADMIN_WELCOME.exists():
 		return FileResponse(str(ADMIN_WELCOME))
 	raise HTTPException(status_code=404, detail='Admin welcome page not found')
+
+
+@app.get('/{full_path:path}', include_in_schema=False)
+async def spa_fallback(full_path: str) -> FileResponse:
+	"""Serve the built SPA index for any non-API path when available."""
+	if full_path.startswith('api'):
+		raise HTTPException(status_code=404, detail='Not found')
+	if FRONTEND_INDEX.exists():
+		return FileResponse(str(FRONTEND_INDEX))
+	raise HTTPException(status_code=404, detail='Not found')
 
 
 @app.on_event('startup')

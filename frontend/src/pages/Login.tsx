@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react'
+﻿import { useEffect, useState, type FormEvent } from 'react'
 import { postJson } from '../lib/api'
 
 type Props = {
@@ -8,7 +8,6 @@ type Props = {
 export default function LoginPage({ onLoginSuccess }: Props) {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | undefined>(undefined)
 
