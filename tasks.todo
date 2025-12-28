@@ -7,9 +7,9 @@
 
 
 ->Najila
-☐ Login page ui improvenments work only in the login.tsx
-☐ Add the welcome message on the top of the dashboard near the announcements and the   upcoming sessions
-☐ select a typography for the headings and the btns across the app
+✔ Login page ui improvenments work only in the login.tsx
+✔ Add the welcome message on the top of the dashboard near the announcements and the   upcoming sessions
+✔ select a typography for the headings and the btns across the app
 
 ->Aathi
 ✔ separate pages for the admin function routes (view logs) and update the view logs ui too @done (12/27/2025, 5:24:42 AM)
