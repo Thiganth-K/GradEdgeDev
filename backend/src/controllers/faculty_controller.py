@@ -145,6 +145,24 @@ def get_faculty(app, username: str) -> Optional[Dict[str, Any]]:
     return {k: v for k, v in data.items() if k != 'password'}
 
 
+def get_faculty_by_faculty_id(app, faculty_id: str) -> Optional[Dict[str, Any]]:
+    """Lookup faculty using the assigned faculty_id (not username)."""
+    if not faculty_id:
+        return None
+
+    if _use_db(app):
+        client = getattr(app, 'mongo_client')
+        db = client.get_database('gradedgedev')
+        coll = db.get_collection(COLLECTION)
+        doc = coll.find_one({'faculty_id': faculty_id}, {'_id': 0, 'password': 0})
+        return doc
+
+    for data in _FACULTY_STORE.values():
+        if data.get('faculty_id') == faculty_id:
+            return {k: v for k, v in data.items() if k != 'password'}
+    return None
+
+
 def get_faculty_for_institution(app, institutional_id: str, username: str) -> Optional[Dict[str, Any]]:
     if not institutional_id:
         raise ValueError('institutional_id required')

@@ -47,6 +47,12 @@ except Exception:
 	logging.warning('Auth routes not available')
 
 try:
+	from src.routes.faculty_features_routes import router as faculty_features_router
+	app.include_router(faculty_features_router)
+except Exception:
+	logging.warning('Faculty features routes not available')
+
+try:
 	from src.routes.faculty_routes import router as faculty_router
 	app.include_router(faculty_router)
 except Exception:
