@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react'
-import { Megaphone, Plus, Eye, X } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Megaphone, Plus, X } from 'lucide-react'
 import { getJson, postJson } from '../../../lib/api'
 
 type Announcement = {

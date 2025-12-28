@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import FacultySidebar from '../../components/Faculty/Sidebar'
 import { getJson, postJson } from '../../lib/api'

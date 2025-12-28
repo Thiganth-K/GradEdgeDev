@@ -7,7 +7,7 @@ import FacultyStudents from './pages/Faculty/Students'
 import FacultyBatches from './pages/Faculty/Batches'
 
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactElement } from 'react'
 import RecruiterWelcome from './pages/Recruiter/Welcome'
 import LoginPage from './pages/Login'
 import StudentDashboard from './pages/Student/Dashboard'
@@ -117,7 +117,7 @@ function App() {
   }
 
   // Common wrapper for protected faculty routes to avoid code duplication
-  const ProtectedFacultyRoute = ({ children }: { children: JSX.Element }) => {
+  const ProtectedFacultyRoute = ({ children }: { children: ReactElement }) => {
       return loggedIn && role === 'faculty' ? children : <LoginPage onLoginSuccess={handleLoginSuccess} />
   }
 

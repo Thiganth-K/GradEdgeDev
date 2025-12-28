@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react'
-import { Plus, Users, Upload, FileSpreadsheet, X, Search } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Plus, Users, Upload, FileSpreadsheet, X } from 'lucide-react'
 import { getJson, postJson } from '../../../lib/api'
 
 type Batch = {

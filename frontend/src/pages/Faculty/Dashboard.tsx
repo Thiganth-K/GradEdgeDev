@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import FacultySidebar from '../../components/Faculty/Sidebar'
 import { useParams, useNavigate } from 'react-router-dom'
 import { getJson } from '../../lib/api'
@@ -12,7 +12,6 @@ import {
   BarChart, 
   Bar, 
   XAxis, 
-  YAxis, 
   CartesianGrid, 
   Tooltip, 
   ResponsiveContainer,
@@ -49,7 +48,7 @@ const FacultyDashboard: React.FC<Props> = ({ username, onLogout }) => {
     placementEligible: 0, 
     avgAttendance: 0 
   })
-  const [loading, setLoading] = useState(true)
+   const [_loading, setLoading] = useState(true)
 
   // Sidebar controls
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
@@ -229,7 +228,7 @@ const FacultyDashboard: React.FC<Props> = ({ username, onLogout }) => {
                           />
                           {/* Use different colors for bars like in the design */}
                           <Bar dataKey="students" radius={[12, 12, 12, 12]}>
-                             {CHART_DATA.map((entry, index) => (
+                             {CHART_DATA.map((_entry, index) => (
                                 <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
                              ))}
                           </Bar>

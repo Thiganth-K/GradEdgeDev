@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react'
-import { Calendar, Plus, MapPin, Clock, X } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Plus, MapPin, Clock, X } from 'lucide-react'
 import { getJson, postJson } from '../../../lib/api'
 
 type Session = {
