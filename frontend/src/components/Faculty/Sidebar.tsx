@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom'
 import { 
   LayoutDashboard, 
   Users, 
+  Layers,
   LogOut, 
   ChevronLeft, 
   ChevronRight,
@@ -104,7 +105,8 @@ export default function FacultySidebar({
                )}
                <div className="space-y-1">
                   <NavItem to={`/faculty/${facultyId}/dashboard`} icon={LayoutDashboard} label="Dashboard" activePath="/dashboard" />
-                  <NavItem to={`/faculty/${facultyId}/students`} icon={Users} label="Students" activePath="/students" badge="120+" />
+                  <NavItem to={`/faculty/${facultyId}/batches`} icon={Layers} label="Batches" activePath="/batches" />
+                  <NavItem to={`/faculty/${facultyId}/students`} icon={Users} label="Students" activePath="/students" />
                   {/* Reuse NavItem for other placeholder links if needed */}
                </div>
             </div>

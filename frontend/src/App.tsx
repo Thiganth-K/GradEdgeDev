@@ -4,6 +4,7 @@ import { postJson, getJson } from './lib/api'
 import FacultyManage from './pages/Faculty/Manage'
 import FacultyDashboard from './pages/Faculty/Dashboard'
 import FacultyStudents from './pages/Faculty/Students'
+import FacultyBatches from './pages/Faculty/Batches'
 
 
 import { useEffect, useState } from 'react'
@@ -133,6 +134,7 @@ function App() {
         
         {/* Faculty Routes */}
         <Route path="/faculty/:facultyId/dashboard" element={<ProtectedFacultyRoute><FacultyDashboard username={username} onLogout={handleLogout} /></ProtectedFacultyRoute>} />
+        <Route path="/faculty/:facultyId/batches" element={<ProtectedFacultyRoute><FacultyBatches /></ProtectedFacultyRoute>} />
         <Route path="/faculty/:facultyId/students" element={<ProtectedFacultyRoute><FacultyStudents /></ProtectedFacultyRoute>} />
         <Route path="/faculty/:facultyId/schedule" element={<ProtectedFacultyRoute><FacultyDashboard username={username} onLogout={handleLogout} /></ProtectedFacultyRoute>} /> 
         <Route path="/faculty/:facultyId/welcome" element={<Navigate to={`/faculty/${facultyId}/dashboard`} />} />

@@ -5,10 +5,11 @@ import csv
 import io
 import logging
 
-from src.controllers.batch_controller import create_batch, list_batches, get_batch, add_students_to_batch, get_students_in_batch
+from src.controllers.batch_controller import create_batch, list_batches, get_batch, add_students_to_batch
 from src.controllers.announcement_controller import create_announcement, list_announcements
 from src.controllers.session_controller import create_session, list_sessions
 from src.controllers.student_controller import batch_create_students, list_students_by_institution
+from src.controllers.faculty_controller import get_faculty_by_faculty_id
 
 # We'll use the existing router variable, but since we are replacing the file content, we define it here.
 router = APIRouter()
@@ -33,6 +34,47 @@ async def api_list_batches(request: Request, faculty_id: Optional[str] = None):
     batches = list_batches(request.app, faculty_id)
     return JSONResponse({'ok': True, 'batches': batches})
 
+
+@router.post('/api/faculty/batches/{batch_code}/assign')
+async def api_assign_students_to_batch(batch_code: str, request: Request):
+    """Assign the provided students (by enrollment_id) to a batch for a faculty."""
+    try:
+        payload = await request.json()
+    except Exception:
+        return JSONResponse({'ok': False, 'error': 'invalid json body'}, status_code=400)
+
+    student_ids: List[str] = payload.get('student_ids') or []
+    faculty_id: Optional[str] = payload.get('faculty_id')
+
+    if not student_ids:
+        return JSONResponse({'ok': False, 'error': 'student_ids required'}, status_code=400)
+    if not faculty_id:
+        return JSONResponse({'ok': False, 'error': 'faculty_id required'}, status_code=400)
+
+    app = request.app
+    faculty = get_faculty_by_faculty_id(app, faculty_id)
+    if not faculty:
+        return JSONResponse({'ok': False, 'error': 'faculty not found'}, status_code=404)
+
+    institutional_id = faculty.get('institutional_id')
+    if not institutional_id:
+        return JSONResponse({'ok': False, 'error': 'institutional_id missing for faculty'}, status_code=400)
+
+    batch = get_batch(app, batch_code)
+    if not batch:
+        return JSONResponse({'ok': False, 'error': 'batch not found'}, status_code=404)
+    if batch.get('faculty_id') and batch.get('faculty_id') != faculty_id:
+        return JSONResponse({'ok': False, 'error': 'batch owned by another faculty'}, status_code=403)
+
+    try:
+        updated = add_students_to_batch(app, batch_code, student_ids, institutional_id=institutional_id, faculty_id=faculty_id)
+        return JSONResponse({'ok': True, 'batch': updated})
+    except ValueError as ve:
+        return JSONResponse({'ok': False, 'error': str(ve)}, status_code=400)
+    except Exception as exc:
+        logger.error('assign to batch failed: %s', exc)
+        return JSONResponse({'ok': False, 'error': 'internal error'}, status_code=500)
+
 # --- Student Management ---
 
 @router.get('/api/faculty/{faculty_id}/students')
@@ -43,29 +85,30 @@ async def api_list_faculty_students(faculty_id: str, request: Request, batch_id:
     """
     app = request.app
     try:
-        if not hasattr(app, 'mongo_client') or app.mongo_client is None:
-             # Fallback to mock/local if needed, or error
-             return JSONResponse({'ok': False, 'data': []})
+        faculty = get_faculty_by_faculty_id(app, faculty_id)
+        if not faculty:
+            return JSONResponse({'ok': False, 'error': 'faculty not found'}, status_code=404)
 
-        db = app.mongo_client.gradedgedev
-        query = {}
-        
-        # If batch_id is valid, we might filter by that.
-        # But commonly, students are linked to faculty directly or via batches.
-        # Based on student_routes.py lines 127/172, students have a 'faculty_id' field.
-        # Let's use that as the primary filter.
-        
-        if faculty_id and faculty_id != 'undefined':
-             query['faculty_id'] = faculty_id
-        
-        if batch_id:
-             query['batch_id'] = batch_id # Assuming batch_id is stored on student
+        institutional_id = faculty.get('institutional_id')
+        if not institutional_id:
+            return JSONResponse({'ok': False, 'error': 'institutional_id missing for faculty'}, status_code=400)
 
-        students = list(db.students.find(query, {'_id': 0, 'password': 0}))
-        return JSONResponse({'ok': True, 'data': students})
+        students = list_students_by_institution(app, institutional_id)
+
+        filtered: List[Dict[str, Any]] = []
+        for student in students:
+            if student.get('faculty_id') and student.get('faculty_id') != faculty_id:
+                continue
+            if batch_id and student.get('batch_id') != batch_id:
+                continue
+            filtered.append(student)
+
+        return JSONResponse({'ok': True, 'data': filtered}, status_code=200)
+    except ValueError as ve:
+        return JSONResponse({'ok': False, 'error': str(ve)}, status_code=400)
     except Exception as e:
         logger.error(f"Error listing faculty students: {e}")
-        return JSONResponse({'ok': False, 'error': str(e)}, status_code=500)
+        return JSONResponse({'ok': False, 'error': 'internal error'}, status_code=500)
 
 
 @router.post('/api/faculty/students/preview-csv')
@@ -119,9 +162,16 @@ async def api_import_students(request: Request):
         students = payload.get('students', [])
         batch_id = payload.get('batch_id')
         faculty_id = payload.get('faculty_id')
-        
+
         if not students:
              return JSONResponse({'ok': False, 'message': 'No students to import'}, status_code=400)
+
+        faculty = get_faculty_by_faculty_id(request.app, faculty_id) if faculty_id else None
+        if not faculty:
+             return JSONResponse({'ok': False, 'message': 'Faculty not found'}, status_code=404)
+
+        institutional_id = faculty.get('institutional_id')
+        faculty_username = faculty.get('username')
 
         app = request.app
         if not hasattr(app, 'mongo_client') or app.mongo_client is None:
@@ -129,13 +179,6 @@ async def api_import_students(request: Request):
              
         db = app.mongo_client.gradedgedev
         coll = db.students
-        
-        # Prepare docs
-        # We need to handle duplicates:
-        # 1. If student exists by enrollment_id, update them (or skip? User requested "Validate duplicates").
-        #    - If validate duplicates means "don't import", we should check first.
-        #    - Let's assuming "upsert" logic or simple skip for now, but usually "Validate" implies checking before confirming.
-        #      The preview step handles visual validation. Here we try to insert.
         
         processed_count = 0
         errors = []
@@ -145,7 +188,6 @@ async def api_import_students(request: Request):
             if not enrollment_id:
                 continue
                 
-            # Default Student Doc
             doc = {
                 'username': enrollment_id,
                 'enrollment_id': enrollment_id,
@@ -153,34 +195,23 @@ async def api_import_students(request: Request):
                 'email': s.get('email'),
                 'department': s.get('department'),
                 'faculty_id': faculty_id,
-                'batch_id': batch_id, # Link to batch
+                'faculty_username': faculty_username,
+                'institutional_id': institutional_id,
+                'batch_id': batch_id,
                 'role': 'student',
                 'status': 'Active',
-                # Set default password same as enrollment_id (hashed)
-                # We'll need to import generate_password_hash
             }
-            
-            # Use upsert to avoid duplicates error, but we might overwrite existing data.
-            # Ideally verify valid enrollment_id format.
-            
-            # Simple upsert
+
             try:
-                # We don't hash password here to keep imports fast/simple for this snippet 
-                # (and need to import werkzeug). 
-                # Let's assume the earlier student controller logic handles hashing if we used it.
-                # For this custom endpoint, let's just insert.
-                
-                # Check exist
                 existing = coll.find_one({'enrollment_id': enrollment_id})
                 if existing:
-                    # Update batch only? Or full update?
                     coll.update_one({'enrollment_id': enrollment_id}, {'$set': {
                         'batch_id': batch_id,
-                        'faculty_id': faculty_id
+                        'faculty_id': faculty_id,
+                        'faculty_username': faculty_username,
+                        'institutional_id': institutional_id,
                     }})
                 else:
-                    # Insert new
-                    # Import hash locally to avoid top-level overhead if not needed
                     from werkzeug.security import generate_password_hash
                     doc['password'] = generate_password_hash(enrollment_id)
                     coll.insert_one(doc)

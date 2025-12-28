@@ -21,6 +21,7 @@ from src.controllers.student_controller import (
     update_student_for_institution,
     delete_student_for_institution,
 )
+from src.controllers.batch_controller import create_batch, list_batches
 
 router = APIRouter()
 
@@ -149,6 +150,38 @@ async def institutional_batch_students(institutional_id: str, request: Request) 
         return JSONResponse({'ok': False, 'error': str(ve)}, status_code=400)
     except Exception as exc:
         app.logger.exception('Failed to batch create students: %s', exc)
+        return JSONResponse({'ok': False, 'error': 'internal error'}, status_code=500)
+
+
+@router.post('/api/institutional/{institutional_id}/batches')
+async def institutional_create_batch(institutional_id: str, request: Request) -> JSONResponse:
+    """Allow an institution to create a batch that can later be viewed by faculty dashboards."""
+    app = request.app
+    try:
+        payload = await _get_json_body(request)
+        payload = payload or {}
+        payload['institutional_id'] = institutional_id
+        if not payload.get('batch_code'):
+            return JSONResponse({'ok': False, 'error': 'batch_code required'}, status_code=400)
+        if not payload.get('faculty_id'):
+            return JSONResponse({'ok': False, 'error': 'faculty_id required for faculty visibility'}, status_code=400)
+        doc = create_batch(app, payload)
+        return JSONResponse({'ok': True, 'data': doc}, status_code=201)
+    except ValueError as ve:
+        return JSONResponse({'ok': False, 'error': str(ve)}, status_code=400)
+    except Exception as exc:
+        app.logger.exception('Failed to create batch: %s', exc)
+        return JSONResponse({'ok': False, 'error': 'internal error'}, status_code=500)
+
+
+@router.get('/api/institutional/{institutional_id}/batches')
+async def institutional_list_batches(institutional_id: str, request: Request) -> JSONResponse:
+    app = request.app
+    try:
+        docs = list_batches(app, institutional_id=institutional_id)
+        return JSONResponse({'ok': True, 'data': docs}, status_code=200)
+    except Exception as exc:
+        app.logger.exception('Failed to list batches: %s', exc)
         return JSONResponse({'ok': False, 'error': 'internal error'}, status_code=500)
 
 
