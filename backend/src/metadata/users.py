@@ -21,8 +21,36 @@ def seed_users(app):
     try:
         client = getattr(app, 'mongo_client', None)
         if not client:
-            logging.info('No mongo client available; skipping user seeding')
+            logging.info('No mongo client available; seeding in-memory users')
+            try:
+                from src.controllers.signup_controller import _ensure_store, COLLECTION_MAP
+                store = _ensure_store(app)
+                for key, meta in DEFAULT_USERS.items():
+                    username = meta['username']
+                    role = meta['role']
+                    pwd = meta['password']
+                    hashed = generate_password_hash(pwd)
+                    
+                    if role in COLLECTION_MAP:
+                        # Create doc similar to what create_user does, but with our defaults
+                        doc = {
+                            'username': username,
+                            'password': hashed,
+                            'role': role,
+                            **{k: v for k, v in meta.items() if k not in ('username', 'role', 'password')}
+                        }
+                        if role == 'student':
+                            doc.setdefault('full_name', 'Student One')
+                        elif role == 'faculty':
+                            doc.setdefault('full_name', 'Faculty One')
+                        
+                        store[role][username] = doc
+                        
+                logging.info('Default users seeded (in-memory)')
+            except Exception as e:
+                logging.warning('Failed to seed in-memory users: %s', e)
             return
+
         db = client.get_database('gradedgedev')
         users_coll = db.get_collection('users')
         faculty_coll = db.get_collection('faculty')

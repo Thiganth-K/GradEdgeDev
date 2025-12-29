@@ -1,6 +1,6 @@
 import React from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { LayoutDashboard, Brain, Code, MessageSquare, BookOpen, Rocket, History, User, LogOut } from 'lucide-react'
+import { LayoutDashboard, Brain, Code, MessageSquare, BookOpen, Rocket, History, User, LogOut, HelpCircle } from 'lucide-react'
 
 interface StudentLayoutProps {
   children: React.ReactNode
@@ -20,6 +20,7 @@ const StudentLayout: React.FC<StudentLayoutProps> = ({ children, username, onLog
     { icon: BookOpen, label: 'Domain Knowledge', path: '/student/domain' },
     { icon: Rocket, label: 'Project Sim', path: '/student/project-sim' },
     { icon: History, label: 'Assessment History', path: '/student/history' },
+    { icon: HelpCircle, label: 'Help Center', path: '/help' },
   ]
 
   const isActive = (path: string) => location.pathname === path
@@ -90,7 +91,7 @@ const StudentLayout: React.FC<StudentLayoutProps> = ({ children, username, onLog
             onClick={onLogout}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-gray-500 hover:bg-red-50 hover:text-red-600 transition-colors group"
           >
-            <LogOut className="w-5 h-5 group-hover:text-red-600" />
+            <LogOut className="w-5 h-5 transition-colors duration-200 group-hover:text-red-600" />
             <span className="text-sm font-medium">Logout</span>
           </button>
         </div>
