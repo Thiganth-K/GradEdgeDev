@@ -23,6 +23,10 @@ interface DashboardProps {
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ username = 'Student', onLogout }) => {
+  // Sidebar controls
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false)
+
   // Animation Variants
   const containerVariants: Variants = {
     hidden: { opacity: 0 },
@@ -164,7 +168,14 @@ const Dashboard: React.FC<DashboardProps> = ({ username = 'Student', onLogout })
   ]
 
   return (
-    <StudentLayout username={username} onLogout={onLogout}>
+    <StudentLayout 
+      username={username} 
+      onLogout={onLogout}
+      isCollapsed={isSidebarCollapsed}
+      toggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+      isMobileOpen={isMobileSidebarOpen}
+      setIsMobileOpen={setIsMobileSidebarOpen}
+    >
       <motion.div
         className="p-6 bg-gray-50 min-h-screen"
         variants={containerVariants}
