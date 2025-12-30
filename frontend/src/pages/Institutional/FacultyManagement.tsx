@@ -12,11 +12,12 @@ type FacultyRow = {
 
 type Props = {
   username?: string
+  institutionId?: string
 }
 
-export default function FacultyManagement({ username }: Props) {
+export default function FacultyManagement({ username, institutionId: propInstitutionId }: Props) {
   const navigate = useNavigate()
-  const [institutionId] = useState(username || '')
+  const [institutionId] = useState(propInstitutionId || username || '')
   const [facultyUsername, setFacultyUsername] = useState('')
   const [facultyPassword, setFacultyPassword] = useState('')
   const [facultyFullName, setFacultyFullName] = useState('')
@@ -157,6 +158,9 @@ export default function FacultyManagement({ username }: Props) {
               <div>
                 <h1 className="text-3xl font-bold tracking-tight">Faculty Management</h1>
                 <p className="mt-1 text-sm text-white opacity-90">Create and manage faculty accounts</p>
+                {institutionId && (
+                  <p className="mt-1 text-xs text-white/80">Institution ID: {institutionId}</p>
+                )}
               </div>
             </div>
             

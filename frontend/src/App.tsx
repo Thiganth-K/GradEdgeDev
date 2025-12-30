@@ -26,6 +26,8 @@ function App() {
   
   // Persist facultyID to avoid async load delays on refresh
   const [facultyId, setFacultyId] = useState<string | null>(localStorage.getItem('faculty_id'))
+  // Persist institutionalId (institutional_id field) for institutional dashboards
+  const [institutionalId, setInstitutionalId] = useState<string | null>(localStorage.getItem('institutional_id'))
   
   const navigate = useNavigate()
   const [shouldAutoRedirect, setShouldAutoRedirect] = useState<boolean>(false)
@@ -77,15 +79,49 @@ function App() {
     void loadFacultyId()
   }, [loggedIn, role, username, facultyId, location.pathname])
 
+  // Sync institutionalId (institutional_id) with localStorage and fetch if missing
+  useEffect(() => {
+    async function loadInstitutionalId() {
+      if (!loggedIn || role !== 'institutional' || !username) return
+
+      if (institutionalId) return
+
+      try {
+        const res = await getJson<{ ok: boolean; data?: { institutional_id?: string } }>(`/api/institutional/${username}`)
+        if (res.ok && res.data.ok && res.data.data?.institutional_id) {
+          const instId = res.data.data.institutional_id
+          setInstitutionalId(instId)
+          localStorage.setItem('institutional_id', instId || '')
+        } else {
+          setInstitutionalId(null)
+        }
+      } catch {
+        setInstitutionalId(null)
+      }
+    }
+    void loadInstitutionalId()
+  }, [loggedIn, role, username, institutionalId])
+
   function handleLoginSuccess(name: string, r?: string) {
     const userRole = r || 'admin'
     setUsername(name)
     setRole(userRole)
-    // If faculty, clear ID temporarily until fetched (or assume null)
-    // Actually, distinct logins should clear old data
+    // Clear cached IDs when logging in with a new role; they'll be re-fetched as needed
     if (r === 'faculty') {
-        setFacultyId(null)
-        localStorage.removeItem('faculty_id')
+      setFacultyId(null)
+      localStorage.removeItem('faculty_id')
+      setInstitutionalId(null)
+      localStorage.removeItem('institutional_id')
+    } else if (r === 'institutional') {
+      setInstitutionalId(null)
+      localStorage.removeItem('institutional_id')
+      setFacultyId(null)
+      localStorage.removeItem('faculty_id')
+    } else {
+      setFacultyId(null)
+      localStorage.removeItem('faculty_id')
+      setInstitutionalId(null)
+      localStorage.removeItem('institutional_id')
     }
     
     setLoggedIn(true)
@@ -108,11 +144,13 @@ function App() {
     localStorage.removeItem('username')
     localStorage.removeItem('role')
     localStorage.removeItem('faculty_id') // Clear faculty ID
+    localStorage.removeItem('institutional_id') // Clear institutional ID
     
     setLoggedIn(false)
     setUsername('')
     setRole('')
     setFacultyId(null)
+    setInstitutionalId(null)
     navigate('/')
   }
 
@@ -147,10 +185,38 @@ function App() {
         <Route path="/student/dashboard" element={loggedIn && role === 'student' ? <StudentDashboard username={username} onLogout={handleLogout} /> : <LoginPage onLoginSuccess={handleLoginSuccess} />} />
         <Route path="/student/profile" element={loggedIn && role === 'student' ? <StudentProfile username={username} onLogout={handleLogout} /> : <LoginPage onLoginSuccess={handleLoginSuccess} />} />
         <Route path="/recruiter/welcome" element={loggedIn && role === 'recruiter' ? <RecruiterWelcome username={username} onLogout={handleLogout} /> : <LoginPage onLoginSuccess={handleLoginSuccess} />} />
-        <Route path="/institutional/welcome" element={loggedIn && role === 'institutional' ? <InstitutionalWelcome username={username} onLogout={handleLogout} /> : <LoginPage onLoginSuccess={handleLoginSuccess} />} />
-        <Route path="/institutional/faculty" element={loggedIn && role === 'institutional' ? <FacultyManagement username={username} /> : <LoginPage onLoginSuccess={handleLoginSuccess} />} />
-        <Route path="/institutional/batch" element={loggedIn && role === 'institutional' ? <BatchManagement username={username} /> : <LoginPage onLoginSuccess={handleLoginSuccess} />} />
-        <Route path="/institutional/students" element={loggedIn && role === 'institutional' ? <StudentManagement username={username} /> : <LoginPage onLoginSuccess={handleLoginSuccess} />} />
+        <Route
+          path="/institutional/welcome"
+          element={
+            loggedIn && role === 'institutional'
+              ? <InstitutionalWelcome username={username} institutionalId={institutionalId || undefined} onLogout={handleLogout} />
+              : <LoginPage onLoginSuccess={handleLoginSuccess} />
+          }
+        />
+        <Route
+          path="/institutional/faculty"
+          element={
+            loggedIn && role === 'institutional'
+              ? <FacultyManagement username={username} institutionId={institutionalId || undefined} />
+              : <LoginPage onLoginSuccess={handleLoginSuccess} />
+          }
+        />
+        <Route
+          path="/institutional/batch"
+          element={
+            loggedIn && role === 'institutional'
+              ? <BatchManagement username={username} institutionId={institutionalId || undefined} />
+              : <LoginPage onLoginSuccess={handleLoginSuccess} />
+          }
+        />
+        <Route
+          path="/institutional/students"
+          element={
+            loggedIn && role === 'institutional'
+              ? <StudentManagement username={username} institutionId={institutionalId || undefined} />
+              : <LoginPage onLoginSuccess={handleLoginSuccess} />
+          }
+        />
         
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>

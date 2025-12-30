@@ -22,11 +22,12 @@ type FacultyRow = {
 
 type Props = {
   username?: string
+  institutionId?: string
 }
 
-export default function StudentManagement({ username }: Props) {
+export default function StudentManagement({ username, institutionId: propInstitutionId }: Props) {
   const navigate = useNavigate()
-  const [institutionId] = useState(username || '')
+  const [institutionId] = useState(propInstitutionId || username || '')
   const [students, setStudents] = useState<StudentDoc[]>([])
   const [studentsError, setStudentsError] = useState<string | null>(null)
   const [studentsLoading, setStudentsLoading] = useState(false)
@@ -158,6 +159,9 @@ export default function StudentManagement({ username }: Props) {
               <div>
                 <h1 className="text-3xl font-bold tracking-tight">Student Management</h1>
                 <p className="mt-1 text-sm text-white opacity-90">View and manage student records</p>
+                {institutionId && (
+                  <p className="mt-1 text-xs text-white/80">Institution ID: {institutionId}</p>
+                )}
               </div>
             </div>
             

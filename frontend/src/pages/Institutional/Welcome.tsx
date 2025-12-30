@@ -2,10 +2,11 @@ import { useNavigate } from 'react-router-dom'
 
 type Props = {
   username?: string
+  institutionalId?: string
   onLogout?: () => void
 }
 
-export default function InstitutionalWelcome({ username, onLogout }: Props) {
+export default function InstitutionalWelcome({ username, institutionalId, onLogout }: Props) {
   const navigate = useNavigate()
 
   return (
@@ -20,6 +21,9 @@ export default function InstitutionalWelcome({ username, onLogout }: Props) {
             <div className="animate-slideUp">
               <h1 className="text-3xl font-bold tracking-tight">Institutional Dashboard</h1>
               <p className="mt-1 text-sm text-white opacity-90">Welcome, {username || 'Institution'}</p>
+              {institutionalId ? (
+                <p className="mt-1 text-xs text-white/80">Institution ID: {institutionalId}</p>
+              ) : null}
             </div>
             
             <div className="flex items-center space-x-4 animate-slideInRight delay-200">

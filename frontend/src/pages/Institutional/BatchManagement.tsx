@@ -39,11 +39,12 @@ type BatchRow = {
 
 type Props = {
   username?: string
+  institutionId?: string
 }
 
-export default function BatchManagement({ username }: Props) {
+export default function BatchManagement({ username, institutionId: propInstitutionId }: Props) {
   const navigate = useNavigate()
-  const [institutionId] = useState(username || '')
+  const [institutionId] = useState(propInstitutionId || username || '')
   const blankStudentRow: StudentRow = { name: '', regno: '', dept: '', email: '', mobile: '' }
   const [studentCsv, setStudentCsv] = useState('')
   const [studentRows, setStudentRows] = useState<StudentRow[]>([blankStudentRow])
@@ -241,6 +242,9 @@ export default function BatchManagement({ username }: Props) {
               <div>
                 <h1 className="text-3xl font-bold tracking-tight">Batch Management</h1>
                 <p className="mt-1 text-sm text-white opacity-90">Create multiple students at once</p>
+                {institutionId && (
+                  <p className="mt-1 text-xs text-white/80">Institution ID: {institutionId}</p>
+                )}
               </div>
             </div>
             
