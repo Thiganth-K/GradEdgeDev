@@ -26,39 +26,6 @@ type StudentSubmission = {
   submittedAt: string;
   status: 'Evaluated' | 'Pending' | 'Auto-Graded';
   avatarColor: string;
-}
-
-type PendingStudent = {
-  id: string;
-  name: string;
-  rollNo: string;
-  status: 'Not Started' | 'In Progress';
-  avatarColor: string;
-}
-
-
-
-// --- Dummy Data ---
-const DUMMY_SUBMITTED: StudentSubmission[] = [
-  { id: '1', name: 'Alice Williams', rollNo: 'CS2024001', score: 85, totalMarks: 100, submittedAt: '2024-12-28T10:30:00', status: 'Auto-Graded', avatarColor: 'bg-blue-500' },
-  { id: '2', name: 'Bob Smith', rollNo: 'CS2024002', score: 92, totalMarks: 100, submittedAt: '2024-12-28T11:15:00', status: 'Evaluated', avatarColor: 'bg-emerald-500' },
-  { id: '3', name: 'Charlie Brown', rollNo: 'CS2024003', score: 78, totalMarks: 100, submittedAt: '2024-12-28T09:45:00', status: 'Auto-Graded', avatarColor: 'bg-orange-500' },
-  { id: '4', name: 'Diana Prince', rollNo: 'CS2024004', score: 95, totalMarks: 100, submittedAt: '2024-12-28T12:00:00', status: 'Evaluated', avatarColor: 'bg-purple-500' },
-  { id: '5', name: 'Ethan Hunt', rollNo: 'CS2024005', score: 60, totalMarks: 100, submittedAt: '2024-12-28T10:00:00', status: 'Pending', avatarColor: 'bg-rose-500' },
-];
-
-const DUMMY_NOT_SUBMITTED: PendingStudent[] = [
-  { id: '6', name: 'Fiona Gallagher', rollNo: 'CS2024006', status: 'Not Started', avatarColor: 'bg-slate-500' },
-  { id: '7', name: 'George Martin', rollNo: 'CS2024007', status: 'In Progress', avatarColor: 'bg-indigo-500' },
-  { id: '8', name: 'Hannah Baker', rollNo: 'CS2024008', status: 'Not Started', avatarColor: 'bg-pink-500' },
-];
-
-export default function FacultyTests() {
-  // facultyId removed as it was unused
-  // Mock username/logout if not passed via props (since this page component might be used directly in router)
-  // In a real app, these might come from context or props. mirroring Dashboard pattern.
-  const username = localStorage.getItem('username') || 'Faculty'
-  const navigate = useNavigate()
 
   // Sidebar Controls
   const { setIsMobileOpen } = useSidebar();
@@ -83,6 +50,15 @@ export default function FacultyTests() {
   }, []);
 
 
+
+  const getPaginatedSubmissions = () => {
+    if (!selected) return []
+    const startIndex = (currentPage - 1) * submissionsPerPage
+    const endIndex = startIndex + submissionsPerPage
+    return selected.submissions.slice(startIndex, endIndex)
+  }
+
+  const totalPages = selected ? Math.ceil(selected.submissions.length / submissionsPerPage) : 0
 
   return (
     <>
