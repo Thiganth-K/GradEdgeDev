@@ -6,7 +6,13 @@ export type InstitutionalUser = {
   username: string
   institutional_id?: string
   institution_name?: string
+  institution_type?: string
+  address?: string
+  city?: string
+  state?: string
+  phone?: string
   email?: string
+  head_name?: string
 }
 
 export default function InstitutionalPage() {
@@ -20,7 +26,13 @@ export default function InstitutionalPage() {
     password: '',
     institutional_id: '',
     institution_name: '',
+    institution_type: 'School',
+    address: '',
+    city: '',
+    state: '',
+    phone: '',
     email: '',
+    head_name: '',
   })
   const [editing, setEditing] = useState<string | null>(null)
 
@@ -60,7 +72,13 @@ export default function InstitutionalPage() {
         const payload: any = {
           institutional_id: form.institutional_id,
           institution_name: form.institution_name,
+          institution_type: form.institution_type,
+          address: form.address,
+          city: form.city,
+          state: form.state,
+          phone: form.phone,
           email: form.email,
+          head_name: form.head_name,
         }
         if (form.password) payload.password = form.password
         const res = await putJson<InstitutionalUser, typeof payload>(
@@ -69,7 +87,7 @@ export default function InstitutionalPage() {
         )
         if (!res.ok) throw new Error(res.error)
         setEditing(null)
-        setForm({ username: '', password: '', institutional_id: '', institution_name: '', email: '' })
+        setForm({ username: '', password: '', institutional_id: '', institution_name: '', institution_type: 'School', address: '', city: '', state: '', phone: '', email: '', head_name: '' })
         await load()
       } else {
         const payload = {
@@ -77,11 +95,17 @@ export default function InstitutionalPage() {
           password: form.password,
           institutional_id: form.institutional_id,
           institution_name: form.institution_name,
+          institution_type: form.institution_type,
+          address: form.address,
+          city: form.city,
+          state: form.state,
+          phone: form.phone,
           email: form.email,
+          head_name: form.head_name,
         }
         const res = await postJson<InstitutionalUser, typeof payload>('/api/institutional', payload)
         if (!res.ok) throw new Error(res.error)
-        setForm({ username: '', password: '', institutional_id: '', institution_name: '', email: '' })
+        setForm({ username: '', password: '', institutional_id: '', institution_name: '', institution_type: 'School', address: '', city: '', state: '', phone: '', email: '', head_name: '' })
         await load()
       }
     } catch (err: any) {
@@ -96,7 +120,13 @@ export default function InstitutionalPage() {
       password: '',
       institutional_id: u.institutional_id || '',
       institution_name: u.institution_name || '',
+      institution_type: u.institution_type || 'School',
+      address: u.address || '',
+      city: u.city || '',
+      state: u.state || '',
+      phone: u.phone || '',
       email: u.email || '',
+      head_name: u.head_name || '',
     })
   }
 
@@ -178,16 +208,64 @@ export default function InstitutionalPage() {
               />
               <input
                 className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm"
-                placeholder="institution name"
+                placeholder="Institution name"
                 value={form.institution_name}
                 onChange={(e) => setForm({ ...form, institution_name: e.target.value })}
               />
+
+              <label className="text-xs text-gray-600">Institution type</label>
+              <select
+                value={form.institution_type}
+                onChange={(e) => setForm({ ...form, institution_type: e.target.value })}
+                className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm mb-2"
+              >
+                <option>School</option>
+                <option>College</option>
+                <option>University</option>
+              </select>
+
+              <input
+                className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm"
+                placeholder="Address"
+                value={form.address}
+                onChange={(e) => setForm({ ...form, address: e.target.value })}
+              />
+
+              <div className="grid grid-cols-2 gap-2">
+                <input
+                  className="rounded-md border border-gray-200 px-3 py-2 text-sm"
+                  placeholder="City"
+                  value={form.city}
+                  onChange={(e) => setForm({ ...form, city: e.target.value })}
+                />
+                <input
+                  className="rounded-md border border-gray-200 px-3 py-2 text-sm"
+                  placeholder="State"
+                  value={form.state}
+                  onChange={(e) => setForm({ ...form, state: e.target.value })}
+                />
+              </div>
+
+              <input
+                className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm"
+                placeholder="Phone number"
+                value={form.phone}
+                onChange={(e) => setForm({ ...form, phone: e.target.value })}
+              />
+
               <input
                 className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm"
                 placeholder="email (optional)"
                 type="email"
                 value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
+              />
+
+              <input
+                className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm"
+                placeholder="Head of institution name"
+                value={form.head_name}
+                onChange={(e) => setForm({ ...form, head_name: e.target.value })}
               />
 
               {error ? <div className="text-sm text-red-600">{error}</div> : null}
@@ -201,7 +279,7 @@ export default function InstitutionalPage() {
                     type="button"
                     onClick={() => {
                       setEditing(null)
-                      setForm({ username: '', password: '', institutional_id: '', institution_name: '', email: '' })
+                      setForm({ username: '', password: '', institutional_id: '', institution_name: '', institution_type: 'School', address: '', city: '', state: '', phone: '', email: '', head_name: '' })
                     }}
                     className="rounded border border-gray-200 px-3 py-1 text-sm"
                   >
@@ -222,11 +300,15 @@ export default function InstitutionalPage() {
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b-2 border-red-600 bg-white">
-                        <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-red-700">Username</th>
-                        <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-red-700">Institution ID</th>
-                        <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-red-700">Institution name</th>
-                        <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-red-700">Email</th>
-                        <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-red-700">Actions</th>
+                          <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-red-700">Username</th>
+                          <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-red-700">Institution ID</th>
+                          <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-red-700">Institution name</th>
+                          <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-red-700">Type</th>
+                          <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-red-700">City</th>
+                          <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-red-700">Phone</th>
+                          <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-red-700">Email</th>
+                          <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-red-700">Head</th>
+                          <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-red-700">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-red-50">
@@ -235,7 +317,11 @@ export default function InstitutionalPage() {
                           <td className="px-4 py-3 font-mono text-gray-700">{u.username}</td>
                           <td className="px-4 py-3">{u.institutional_id}</td>
                           <td className="px-4 py-3">{u.institution_name}</td>
+                          <td className="px-4 py-3">{u.institution_type}</td>
+                          <td className="px-4 py-3">{u.city}</td>
+                          <td className="px-4 py-3">{u.phone}</td>
                           <td className="px-4 py-3">{u.email}</td>
+                          <td className="px-4 py-3">{u.head_name}</td>
                           <td className="px-4 py-3">
                             <button
                               onClick={() => {
