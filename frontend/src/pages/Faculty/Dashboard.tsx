@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import FacultySidebar from '../../components/Faculty/Sidebar'
+import { useSidebar } from '../../components/Faculty/Layout'
+import { StatsCard } from '../../components/Faculty/StatsCard'
 import { useParams, useNavigate } from 'react-router-dom'
 import { getJson } from '../../lib/api'
 import { 
@@ -24,6 +25,7 @@ type Batch = {
   name: string;
   course: string;
   students_count?: number; 
+  students?: string[];
 }
 type Session = {
   id: string; 
@@ -37,7 +39,7 @@ type Props = {
   onLogout: () => void
 }
 
-const FacultyDashboard: React.FC<Props> = ({ username, onLogout }) => {
+const FacultyDashboard: React.FC<Props> = ({ username }) => {
   const { facultyId } = useParams()
   const navigate = useNavigate()
   
@@ -48,74 +50,63 @@ const FacultyDashboard: React.FC<Props> = ({ username, onLogout }) => {
     placementEligible: 0, 
     avgAttendance: 0 
   })
-   const [_loading, setLoading] = useState(true)
+   const [, setLoading] = useState(true)
 
-  // Sidebar controls
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const { setIsMobileOpen } = useSidebar()
 
   useEffect(() => {
+    const loadDashboardData = async () => {
+      if (!facultyId) return
+      setLoading(true)
+      try {
+           const [batchRes, sessionRes] = await Promise.all([
+              getJson<{ ok: boolean; data: Batch[] }>(`/api/faculty/${facultyId}/batches`),
+              getJson<{ ok: boolean; sessions: Session[] }>(`/api/faculty/sessions?faculty_id=${facultyId}`)
+           ])
+
+           const fetchedBatches = batchRes.ok && batchRes.data ? batchRes.data.data : []
+           const fetchedSessions = sessionRes.ok && sessionRes.data ? sessionRes.data.sessions || [] : []
+        
+        setBatches(fetchedBatches)
+        setSessions(fetchedSessions)
+
+        // Use the actual length of the students array if available
+        const totalStuds = fetchedBatches.reduce((acc, b) => acc + (b.students ? b.students.length : (b.students_count || 0)), 0)
+        
+        setStats({
+          totalStudents: totalStuds,
+          placementEligible: Math.floor(totalStuds * 0.75), 
+          avgAttendance: 88 
+        })
+
+      } catch (e) {
+        console.error("Dashboard load failed", e)
+      } finally {
+        setLoading(false)
+      }
+    }
+    
     loadDashboardData()
   }, [facultyId])
-
-  const loadDashboardData = async () => {
-    if (!facultyId) return
-    setLoading(true)
-    try {
-         const [batchRes, sessionRes] = await Promise.all([
-            getJson<{ ok: boolean; data: Batch[] }>(`/api/faculty/${facultyId}/batches`),
-            getJson<{ ok: boolean; sessions: Session[] }>(`/api/faculty/sessions?faculty_id=${facultyId}`)
-         ])
-
-         const fetchedBatches = batchRes.ok && batchRes.data ? batchRes.data.data : []
-         const fetchedSessions = sessionRes.ok && sessionRes.data ? sessionRes.data.sessions || [] : []
-      
-      setBatches(fetchedBatches)
-      setSessions(fetchedSessions)
-
-      const totalStuds = fetchedBatches.reduce((acc, b) => acc + (b.students_count || 42), 0)
-      
-      setStats({
-        totalStudents: totalStuds,
-        placementEligible: Math.floor(totalStuds * 0.75), 
-        avgAttendance: 88 
-      })
-
-    } catch (e) {
-      console.error("Dashboard load failed", e)
-    } finally {
-      setLoading(false)
-    }
-  }
 
   // --- Mock Chart Data ---
   const CHART_DATA = batches.length > 0 ? batches.slice(0, 5).map(b => ({
     name: b.batch_code,
-    students: b.students_count || Math.floor(Math.random() * 30) + 20,
+    students: b.students ? b.students.length : (b.students_count || 0),
   })) : [
-    { name: 'B1', students: 45 }, { name: 'B2', students: 38 }, { name: 'B3', students: 52 }, { name: 'B4', students: 30 }
+    { name: 'B1', students: 0 }, { name: 'B2', students: 0 }, { name: 'B3', students: 0 }, { name: 'B4', students: 0 }
   ];
   
   const CHART_COLORS = ['#EA0029', '#E6A532', '#0F172A', '#475569', '#94A3B8'];
 
   return (
-    <div className="flex h-screen bg-[#F4F7FE] font-sans selection:bg-rose-100 selection:text-rose-900 overflow-hidden">
-      <FacultySidebar 
-         facultyId={facultyId || ''} 
-         onLogout={onLogout} 
-         isCollapsed={isSidebarCollapsed}
-         toggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-         isMobileOpen={isMobileSidebarOpen}
-         setIsMobileOpen={setIsMobileSidebarOpen}
-      />
-      
-      <div className={`flex-1 flex flex-col h-full transition-all duration-300 relative overflow-hidden`}>
-        
-        {/* Top Navbar */}
-        <header className="flex-shrink-0 bg-[#F4F7FE]/80 backdrop-blur-md px-4 sm:px-8 py-4 flex items-center justify-between border-b border-white/50 z-20">
+    <>
+      {/* Top Navbar */}
+      <header className="flex-shrink-0 bg-[#F4F7FE]/80 backdrop-blur-md px-4 sm:px-8 py-4 flex items-center justify-between border-b border-white/50 z-20">
+
            {/* Mobile Menu & Search */}
            <div className="flex items-center gap-4 flex-1">
-              <button onClick={() => setIsMobileSidebarOpen(true)} className="lg:hidden p-2 -ml-2 text-slate-600 hover:bg-white rounded-xl transition-colors">
+               <button onClick={() => setIsMobileOpen(true)} className="lg:hidden p-2 -ml-2 text-slate-600 hover:bg-white rounded-xl transition-colors">
                  <Menu size={24} />
               </button>
               
@@ -158,9 +149,7 @@ const FacultyDashboard: React.FC<Props> = ({ username, onLogout }) => {
            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-10">
               <div>
                  <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">DASHBOARD</h1>
-                 <p className="text-slate-500 font-medium mt-2 max-w-lg leading-relaxed">
-                    manage your academic responsibilities with ease.
-                 </p>
+       
               </div>
               <div className="flex gap-3">
                  <button className="bg-white text-slate-700 px-5 py-3 rounded-2xl border border-slate-200 font-bold text-sm shadow-sm hover:bg-slate-50 transition-all">
@@ -275,19 +264,22 @@ const FacultyDashboard: React.FC<Props> = ({ username, onLogout }) => {
               {/* Batch/Project List (Using Right column style from image) */}
               <div className="lg:col-span-1 bg-white rounded-[32px] p-8 shadow-sm border border-slate-100/60 h-full">
                   <div className="flex items-center justify-between mb-6">
-                      <h3 className="text-xl font-bold text-slate-900">BATCHES</h3>
-                      <button className="p-2 hover:bg-slate-50 rounded-full transition-colors"><Plus size={20} className="text-slate-400" /></button>
+                      <h3 onClick={() => navigate(`/faculty/${facultyId}/batches`)} className="text-xl font-bold text-slate-900 cursor-pointer hover:text-[#EA0029] transition-colors">BATCHES</h3>
+                      <button onClick={() => navigate(`/faculty/${facultyId}/batches`)} className="p-2 hover:bg-slate-50 rounded-full transition-colors"><Plus size={20} className="text-slate-400" /></button>
                   </div>
 
                   <div className="space-y-6">
                      {batches.slice(0, 4).map((b, i) => (
-                         <div key={i} className="flex items-center gap-4 group cursor-pointer">
-                             <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-white font-bold text-sm shadow-md transition-transform group-hover:scale-105 ${i === 0 ? 'bg-blue-500 shadow-blue-200' : i === 1 ? 'bg-emerald-500 shadow-emerald-200' : i === 2 ? 'bg-orange-500 shadow-orange-200' : 'bg-purple-500 shadow-purple-200'}`}>
+                         <div key={i} onClick={() => navigate(`/faculty/${facultyId}/batches`)} className="flex items-center gap-4 group cursor-pointer hover:bg-slate-50 p-2 -mx-2 rounded-xl transition-colors">
+                             <div className="w-12 h-12 rounded-xl bg-slate-900 text-[#EA0029] flex items-center justify-center font-bold text-sm shadow-sm transition-transform group-hover:scale-105">
                                  {b.batch_code.substring(0, 2)}
                              </div>
                              <div className="flex-1">
                                  <h4 className="font-bold text-slate-800 text-sm">{b.name}</h4>
                                  <p className="text-xs text-slate-400 font-semibold mt-0.5">Due date: Dec 30, 2024</p>
+                             </div>
+                             <div className="text-xs font-bold text-slate-400">
+                                {b.students?.length || b.students_count || 0}
                              </div>
                          </div>
                      ))}
@@ -326,8 +318,7 @@ const FacultyDashboard: React.FC<Props> = ({ username, onLogout }) => {
            </div>
 
         </main>
-      </div>
-    </div>
+    </>
   )
 }
 
@@ -359,53 +350,6 @@ const SessionIcon = () => (
 );
 
 
-function StatsCard({ label, value, variant, icon: Icon, isRadial = false }: any) {
-   // Codename Aesthetic: 
-   // - Black Card: Deep Black (#000) or Very Dark Slate. Rounded-3xl.
-   // - White Card: Clean white, soft shadow.
-   // - Typography: Inter-like, tight tracking.
-   
-   const styles: any = {
-      // The "Best Deal" card style from Image 2
-      black: 'bg-[#111] text-white shadow-xl shadow-slate-300 ring-4 ring-slate-50',
-      
-      // The "Top Sales" card style from Image 2
-      white: 'bg-white text-slate-900 border border-slate-100 shadow-lg shadow-slate-100',
-      
-      // Default / Other variants
-      red: 'bg-[#EA0029] text-white shadow-xl shadow-rose-200 ring-4 ring-rose-50',
-      gray: 'bg-slate-50 text-slate-700'
-   };
-   
-   const currentStyle = styles[variant] || styles.white;
-   const isDark = variant === 'black' || variant === 'red';
-
-   return (
-      <div className={`p-6 rounded-[32px] relative overflow-hidden transition-all hover:scale-[1.02] duration-300 h-44 flex flex-col justify-between ${currentStyle}`}>
-         
-         <div className="flex justify-between items-start relative z-10">
-             <div className={`w-12 h-12 rounded-full flex items-center justify-center ${variant === 'red' ? 'bg-white/20 text-white' : variant === 'black' ? 'bg-white/10 text-white' : 'bg-slate-50 text-slate-900'}`}>
-                <Icon />
-             </div>
-             
-             {/* Radial Mockup for Black Card (optional visual from original design) */}
-             {isRadial && (
-                <div className="absolute -right-4 -top-4 w-28 h-28 flex items-center justify-center opacity-80 pointer-events-none">
-                     <svg className="w-full h-full transform -rotate-90">
-                           <circle cx="50%" cy="50%" r="40%" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-white/10" />
-                           <circle cx="50%" cy="50%" r="40%" stroke={variant === 'black' ? '#FFF' : '#EA0029'} strokeWidth="8" fill="transparent" strokeDasharray={2 * Math.PI * 40} strokeDashoffset={2 * Math.PI * 40 * (1 - 0.78)} strokeLinecap="round" />
-                     </svg>
-                </div>
-             )}
-         </div>
-
-         <div className="relative z-10">
-             {/* Large Number Style like Image 2 */}
-            <h4 className={`text-4xl font-extrabold tracking-tight mb-0.5 ${isDark ? 'text-white' : 'text-slate-900'}`}>{value}</h4>
-            <p className={`text-xs font-bold uppercase tracking-widest opacity-80 ${isDark ? 'text-white/70' : 'text-slate-400'}`}>{label}</p>
-         </div>
-      </div>
-   )
-}
+// StatCard moved to component
 
 export default FacultyDashboard

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useLocation } from 'react-router-dom'
 import { useNavigate } from 'react-router-dom'
 import { getJson, postJson } from '../../lib/api'
@@ -9,40 +9,28 @@ type TestDetail = { _id: string; title: string; type: string; questions: { q: st
 
 type Props = { username?: string; onLogout?: () => void }
 
-export default function StudentTests({ username = '', onLogout }: Props) {
+export default function StudentTests({ username = '' }: Props) {
   const navigate = useNavigate()
   const location = useLocation()
   const [tests, setTests] = useState<TestListItem[]>([])
   const [active, setActive] = useState<TestDetail | null>(null)
   const [answers, setAnswers] = useState<number[]>([])
 
-  async function load() {
+  const load = useCallback(async () => {
     if (!username) return
     const res = await getJson<{ ok: boolean; data: TestListItem[] }>(`/api/student/${encodeURIComponent(username)}/tests`)
     if (res.ok && res.data) setTests(res.data.data || [])
-  }
+  }, [username])
 
-  useEffect(() => { void load() }, [username])
-
-  useEffect(() => {
-    // If navigated from an announcement with a test id, auto-open
-    const state: any = location.state as any
-    if (state && state.openTestId && username) {
-      void openTest(state.openTestId)
-      // clear history state so repeated navigations don't reopen
-      window.history.replaceState({}, '')
-    }
-  }, [location.state, username])
-
-  async function openTest(id: string) {
+  const openTest = useCallback(async (id: string) => {
     const res = await getJson<{ ok: boolean; data: TestDetail }>(`/api/student/${encodeURIComponent(username)}/tests/${encodeURIComponent(id)}`)
     if (!res.ok) return alert(res.error || 'Failed to load test')
     const test = res.data.data
     setActive(test)
     setAnswers(Array(test.questions.length).fill(-1))
-  }
+  }, [username])
 
-  async function submit() {
+  const submit = useCallback(async () => {
     if (!active) return
     const res = await postJson<{ ok: boolean; data: { score: number; total: number } }, { answers: number[] }>(
       `/api/student/${encodeURIComponent(username)}/tests/${encodeURIComponent(active._id)}/submit`,
@@ -53,7 +41,21 @@ export default function StudentTests({ username = '', onLogout }: Props) {
     setActive(null)
     setAnswers([])
     await load()
-  }
+  }, [active, answers, username, load])
+
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { void load() }, [load])
+
+  useEffect(() => {
+    // If navigated from an announcement with a test id, auto-open
+    const state = location.state as { openTestId?: string } | null
+    if (state && state.openTestId && username) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      void openTest(state.openTestId)
+      // clear history state so repeated navigations don't reopen
+      window.history.replaceState({}, '')
+    }
+  }, [location.state, username, openTest])
 
   return (
     <div className="min-h-screen bg-white">

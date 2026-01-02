@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import FacultySidebar from '../../components/Faculty/Sidebar'
+import { useSidebar } from '../../components/Faculty/Layout'
 import { getJson, postJson } from '../../lib/api'
 import { Menu, Users, Layers, CheckSquare, Square, RefreshCw } from 'lucide-react'
+import { Skeleton } from '../../components/Skeleton'
+
 
 // Types that match backend payloads
 interface Batch {
@@ -13,6 +15,8 @@ interface Batch {
   section?: string
   faculty_id?: string
   students?: string[]
+  faculty_name?: string
+  students_count?: number
 }
 
 interface Student {
@@ -33,8 +37,7 @@ export default function FacultyBatches() {
   const [loading, setLoading] = useState(false)
   const [assigning, setAssigning] = useState(false)
 
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
-  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false)
+  const { setIsMobileOpen } = useSidebar()
 
   useEffect(() => {
     void loadData()
@@ -101,20 +104,11 @@ export default function FacultyBatches() {
   }
 
   return (
-    <div className="flex min-h-screen bg-[#F4F7FE] font-sans">
-      <FacultySidebar
-        facultyId={facultyId || ''}
-        onLogout={() => (window.location.href = '/')}
-        isCollapsed={isSidebarCollapsed}
-        toggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-        isMobileOpen={isMobileSidebarOpen}
-        setIsMobileOpen={setIsMobileSidebarOpen}
-      />
-
+      /* Content wrapper from Layout takes care of flex-1 etc */
       <div className="flex-1 flex flex-col min-h-screen transition-all duration-300 relative">
         <div className="lg:hidden flex items-center justify-between p-4 bg-white border-b border-slate-100 sticky top-0 z-20">
           <div className="flex items-center gap-3">
-            <button onClick={() => setIsMobileSidebarOpen(true)} className="p-2 -ml-2 text-slate-600 hover:bg-slate-50 rounded-lg">
+            <button onClick={() => setIsMobileOpen(true)} className="p-2 -ml-2 text-slate-600 hover:bg-slate-50 rounded-lg">
               <Menu size={24} />
             </button>
             <h1 className="text-lg font-bold text-slate-900">Batches</h1>
@@ -145,7 +139,17 @@ export default function FacultyBatches() {
                 <span>Your Batches</span>
               </div>
               {loading ? (
-                <p className="text-slate-400 text-sm">Loading batches...</p>
+                <div className="space-y-3">
+                  {[...Array(3)].map((_, i) => (
+                    <div key={i} className="w-full h-20 rounded-2xl border border-slate-100 bg-white p-4 shadow-sm animate-pulse flex items-center justify-between">
+                       <div className="space-y-2">
+                           <Skeleton className="h-4 w-32" />
+                           <Skeleton className="h-3 w-24" />
+                       </div>
+                       <Skeleton className="h-3 w-16" />
+                    </div>
+                  ))}
+                </div>
               ) : batches.length === 0 ? (
                 <p className="text-slate-400 text-sm">No batches yet.</p>
               ) : (
@@ -167,9 +171,14 @@ export default function FacultyBatches() {
                           <p className="text-xs text-slate-500">
                             {b.department || 'Dept'} • {b.year || 'Year'} {b.section || ''}
                           </p>
+                          {b.faculty_name && (
+                             <p className="text-xs text-slate-400 mt-0.5">
+                               Faculty: <span className="font-medium text-slate-600">{b.faculty_name}</span>
+                             </p>
+                          )}
                         </div>
                         <div className="text-xs text-slate-500 font-semibold">
-                          {(b.students?.length || 0)} students
+                          {(b.students?.length ?? b.students_count ?? 0)} students
                         </div>
                       </div>
                     </button>
@@ -198,7 +207,17 @@ export default function FacultyBatches() {
               )}
 
               {loading ? (
-                <p className="text-slate-400 text-sm">Loading students...</p>
+                 <div className="space-y-2">
+                    {[...Array(5)].map((_, i) => (
+                        <div key={i} className="flex items-center gap-3 border border-slate-100 rounded-2xl px-4 py-3 bg-white animate-pulse">
+                            <Skeleton className="w-4 h-4 rounded" />
+                            <div className="flex-1 space-y-2">
+                                <Skeleton className="h-4 w-32" />
+                                <Skeleton className="h-3 w-20" />
+                            </div>
+                        </div>
+                    ))}
+                 </div>
               ) : availableStudents.length === 0 ? (
                 <p className="text-slate-400 text-sm">No unassigned students available.</p>
               ) : (
@@ -231,6 +250,5 @@ export default function FacultyBatches() {
           </div>
         </div>
       </div>
-    </div>
   )
 }
