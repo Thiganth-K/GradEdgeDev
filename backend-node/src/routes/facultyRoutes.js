@@ -6,6 +6,8 @@ const { getFacultyByUsername } = require('../controllers/facultyController');
 const { listTestsForFaculty, getResults } = require('../controllers/mcqTestController');
 const { getDb } = require('../config/db');
 
+const { logEvent } = require('../controllers/logsController');
+
 const router = express.Router();
 
 // Health check
@@ -21,6 +23,7 @@ router.get('/api/faculty/:username', async (req, res) => {
 		if (!doc) {
 			return res.status(404).json({ ok: false, error: 'Faculty not found' });
 		}
+		try { await logEvent(doc.username, 'faculty', `Viewed own profile`); } catch (e) {}
 		return res.status(200).json({ ok: true, data: doc });
 	} catch (err) {
 		return res.status(500).json({ ok: false, error: err.message || 'Failed to fetch faculty' });
@@ -78,6 +81,8 @@ router.post('/api/faculty/:facultyId/batches/:batchCode/assign', async (req, res
 	try {
 		// Optionally validate facultyId owns or is associated with the batch in controller
 		const updated = await addStudentsToBatch(batchCode, studentIds || []);
+		const count = Array.isArray(studentIds) ? studentIds.length : 0;
+		try { await logEvent(facultyId, 'faculty', `Assigned ${count} student(s) to batch: ${batchCode}`); } catch (e) {}
 		return res.status(200).json({ ok: true, data: updated });
 	} catch (err) {
 		console.error('[FACULTY] assign to batch error', err && err.stack ? err.stack : err);

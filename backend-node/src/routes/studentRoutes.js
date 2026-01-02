@@ -10,6 +10,7 @@ const {
 
 const router = express.Router();
 const { listTestsForStudent, getTestForStudent, submitTest } = require('../controllers/mcqTestController');
+const { logEvent } = require('../controllers/logsController');
 
 // Prefix mirrors Python router ("/api/student")
 
@@ -22,6 +23,11 @@ router.get('/api/student/list/all', async (req, res) => {
 // POST /api/student/create-test-student
 router.post('/api/student/create-test-student', async (req, res) => {
 	const result = await createTestStudent();
+	try {
+		if (result && result.ok && result.body && result.body.data && result.body.data.username) {
+			await logEvent('system', 'admin', `Created test student: ${result.body.data.username}`);
+		}
+	} catch (e) {}
 	res.status(result.status).json(result.body);
 });
 
@@ -29,6 +35,7 @@ router.post('/api/student/create-test-student', async (req, res) => {
 router.get('/api/student/:username', async (req, res) => {
 	const { username } = req.params;
 	const result = await getStudentProfile(username);
+	try { if (result && result.ok && result.status===200) await logEvent(username, 'student', `Viewed own profile`); } catch (e) {}
 	res.status(result.status).json(result.body);
 });
 
@@ -36,6 +43,7 @@ router.get('/api/student/:username', async (req, res) => {
 router.put('/api/student/:username', async (req, res) => {
 	const { username } = req.params;
 	const result = await updateStudentProfile(username, req.body || {});
+	try { if (result && result.ok && result.status===200) await logEvent(username, 'student', `Updated own profile`); } catch (e) {}
 	res.status(result.status).json(result.body);
 });
 
@@ -83,6 +91,7 @@ router.post('/api/student/:username/tests/:testId/submit', async (req, res) => {
 	try {
 		const answers = Array.isArray(req.body && req.body.answers) ? req.body.answers : [];
 		const result = await submitTest(req.params.username, req.params.testId, answers);
+		try { await logEvent(req.params.username, 'student', `Submitted test: ${req.params.testId}`); } catch (e) {}
 		return res.status(200).json({ ok: true, data: result });
 	} catch (err) {
 		const status = err.message === 'test not found' ? 404 : 400;
@@ -153,7 +162,7 @@ router.get('/api/student/:username/announcements', async (req, res) => {
 		}
 
 		console.log('[STUDENT] announcements query for', student.institutional_id, 'found total', all.length, 'filtered', filtered.length)
-
+	try { await logEvent(username, 'student', `Viewed ${filtered.length} announcement(s)`); } catch (e) {}
 		const out = filtered.map(d => ({ id: d._id.toString(), title: d.title, description: d.description, date: d.createdAt, category: d.category || 'General', test_id: d.test_id }));
 		return res.status(200).json({ ok: true, data: out });
 	} catch (err) {

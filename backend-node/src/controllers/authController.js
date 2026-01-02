@@ -5,6 +5,7 @@
 // handling /api/auth/login.
 
 const { getDb } = require('../config/db');
+const { logEvent } = require('./logsController');
 const { verifyPassword } = require('../utils/password');
 
 async function login(payload) {
@@ -48,12 +49,18 @@ async function login(payload) {
 		matchesEnvUser: envUser ? username === envUser : false,
 	});
 
-	if (envUser && envPass && username === envUser && password === envPass) {
+		if (envUser && envPass && username === envUser && password === envPass) {
 		// Match Python behavior: redirect admin to /admin/welcome
 		// eslint-disable-next-line no-console
 		console.log('[AUTH] Admin login success via env credentials', {
 			username,
 		});
+			// record audit log
+			try {
+				await logEvent(username, 'admin', `Logged in as admin`);
+			} catch (e) {
+				// ignore logging failures
+			}
 		return {
 			ok: true,
 			status: 200,
@@ -80,12 +87,17 @@ async function login(payload) {
 					{ institutional_id: username },
 				],
 			});
-			if (inst && inst.password && (await verifyPassword(password, inst.password))) {
+						if (inst && inst.password && (await verifyPassword(password, inst.password))) {
 				// eslint-disable-next-line no-console
 				console.log('[AUTH] Institutional login success', {
 					username: inst.username,
 					institutional_id: inst.institutional_id,
 				});
+							try {
+								await logEvent(inst.username, 'institutional', `Logged in (${inst.institutional_id || 'N/A'})`);
+							} catch (e) {
+								// ignore
+							}
 				return {
 					ok: true,
 					status: 200,
@@ -105,12 +117,17 @@ async function login(payload) {
 		try {
 			const facColl = db.collection('faculty');
 			const fac = await facColl.findOne({ username });
-			if (fac && fac.password && (await verifyPassword(password, fac.password))) {
+						if (fac && fac.password && (await verifyPassword(password, fac.password))) {
 				// eslint-disable-next-line no-console
 				console.log('[AUTH] Faculty login success', {
 					username,
 					faculty_id: fac.faculty_id,
 				});
+							try {
+								await logEvent(username, 'faculty', `Logged in (${fac.faculty_id || 'N/A'})`);
+							} catch (e) {
+								// ignore
+							}
 				return {
 					ok: true,
 					status: 200,
@@ -130,11 +147,16 @@ async function login(payload) {
 		try {
 			const studColl = db.collection('students');
 			const stud = await studColl.findOne({ username });
-			if (stud && stud.password && (await verifyPassword(password, stud.password))) {
+						if (stud && stud.password && (await verifyPassword(password, stud.password))) {
 				// eslint-disable-next-line no-console
 				console.log('[AUTH] Student login success', {
 					username,
 				});
+							try {
+								await logEvent(username, 'student', `Logged in`);
+							} catch (e) {
+								// ignore
+							}
 				return {
 					ok: true,
 					status: 200,
@@ -177,6 +199,12 @@ function logout(payload) {
 		// logging/DB solution as needed.
 		// eslint-disable-next-line no-console
 		console.log(`User logout: username=${username}, role=${role}`);
+		try {
+			// fire-and-forget
+			logEvent(username, role, `Logged out`).catch(() => {});
+		} catch (e) {
+			// ignore
+		}
 	}
 
 	return {

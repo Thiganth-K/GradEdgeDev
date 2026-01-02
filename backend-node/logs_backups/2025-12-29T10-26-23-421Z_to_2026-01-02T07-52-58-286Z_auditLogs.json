@@ -1,0 +1,724 @@
+[
+  {
+    "username": "thiganth",
+    "role": "admin",
+    "action": "Viewed admin dashboard",
+    "ts": "2026-01-02T07:52:58.286Z"
+  },
+  {
+    "username": "thiganth",
+    "role": "admin",
+    "action": "Viewed admin dashboard",
+    "ts": "2026-01-02T07:52:58.280Z"
+  },
+  {
+    "username": "thiganth",
+    "role": "admin",
+    "action": "Logged in as admin",
+    "ts": "2026-01-02T07:52:58.109Z"
+  },
+  {
+    "username": "sona",
+    "role": "institutional",
+    "action": "Logged out",
+    "ts": "2026-01-02T07:52:55.037Z"
+  },
+  {
+    "username": "sona",
+    "role": "institutional",
+    "action": "Deleted student: 23it112",
+    "ts": "2026-01-02T07:52:50.067Z"
+  },
+  {
+    "username": "sona",
+    "role": "institutional",
+    "action": "Deleted batch: IT-A-2027",
+    "ts": "2026-01-02T07:52:45.992Z"
+  },
+  {
+    "username": "sona",
+    "role": "institutional",
+    "action": "Deleted faculty: fac2",
+    "ts": "2026-01-02T07:52:39.196Z"
+  },
+  {
+    "username": "sona",
+    "role": "institutional",
+    "action": "Logged in (sona)",
+    "ts": "2026-01-02T07:52:34.353Z"
+  },
+  {
+    "username": "thiganth",
+    "role": "admin",
+    "action": "Viewed admin dashboard",
+    "ts": "2026-01-02T07:52:27.862Z"
+  },
+  {
+    "username": "thiganth",
+    "role": "admin",
+    "action": "Viewed admin dashboard",
+    "ts": "2026-01-02T07:52:27.854Z"
+  },
+  {
+    "username": "thiganth",
+    "role": "admin",
+    "action": "view_self",
+    "ts": "2026-01-02T07:42:23.798Z"
+  },
+  {
+    "username": "thiganth",
+    "role": "admin",
+    "action": "view_self",
+    "ts": "2026-01-02T07:42:23.793Z"
+  },
+  {
+    "username": "thiganth",
+    "role": "admin",
+    "action": "login",
+    "ts": "2026-01-02T07:42:23.646Z"
+  },
+  {
+    "username": "sona",
+    "role": "institutional",
+    "action": "logout",
+    "ts": "2026-01-02T07:42:19.367Z"
+  },
+  {
+    "username": "23it112",
+    "role": "student",
+    "action": "update",
+    "ts": "2026-01-02T07:42:13.782Z",
+    "extra": {
+      "institutional_id": "sona"
+    }
+  },
+  {
+    "username": "bulk_students",
+    "role": "student",
+    "action": "create_batch",
+    "ts": "2026-01-02T07:41:57.252Z",
+    "extra": {
+      "institutional_id": "sona",
+      "count": 1
+    }
+  },
+  {
+    "username": "IT-A-2027",
+    "role": "batch",
+    "action": "create",
+    "ts": "2026-01-02T07:41:05.445Z",
+    "extra": {
+      "institutional_id": "sona"
+    }
+  },
+  {
+    "username": "fac2",
+    "role": "faculty",
+    "action": "create",
+    "ts": "2026-01-02T07:40:09.169Z",
+    "extra": {
+      "institutional_id": "sona"
+    }
+  },
+  {
+    "username": "sona",
+    "role": "institutional",
+    "action": "login",
+    "ts": "2026-01-02T07:39:47.991Z"
+  },
+  {
+    "username": "thiganth",
+    "role": "admin",
+    "action": "logout",
+    "ts": "2026-01-02T07:39:41.803Z"
+  },
+  {
+    "username": "thiganth",
+    "role": "admin",
+    "action": "view_self",
+    "ts": "2026-01-02T07:39:39.686Z"
+  },
+  {
+    "username": "thiganth",
+    "role": "admin",
+    "action": "view_self",
+    "ts": "2026-01-02T07:39:39.681Z"
+  },
+  {
+    "username": "thiganth",
+    "role": "admin",
+    "action": "view_self",
+    "ts": "2026-01-02T07:37:14.298Z"
+  },
+  {
+    "username": "thiganth",
+    "role": "admin",
+    "action": "view_self",
+    "ts": "2026-01-02T07:37:14.292Z"
+  },
+  {
+    "username": "thiganth",
+    "role": "admin",
+    "action": "login",
+    "ts": "2026-01-02T07:37:14.204Z"
+  },
+  {
+    "username": "annauniversity",
+    "role": "institutional",
+    "action": "create",
+    "ts": "2026-01-02T07:37:07.350Z"
+  },
+  {
+    "username": "thiganth",
+    "role": "admin",
+    "action": "view_self",
+    "ts": "2026-01-02T07:36:11.855Z"
+  },
+  {
+    "username": "thiganth",
+    "role": "admin",
+    "action": "view_self",
+    "ts": "2026-01-02T07:36:11.850Z"
+  },
+  {
+    "username": "thiganth",
+    "role": "admin",
+    "action": "view_self",
+    "ts": "2026-01-02T07:35:54.588Z"
+  },
+  {
+    "username": "thiganth",
+    "role": "admin",
+    "action": "view_self",
+    "ts": "2026-01-02T07:35:54.581Z"
+  },
+  {
+    "username": "thiganth",
+    "role": "admin",
+    "action": "login",
+    "ts": "2026-01-02T07:35:54.344Z"
+  },
+  {
+    "username": "thiganth",
+    "role": "admin",
+    "action": "login",
+    "ts": "2026-01-02T07:26:34.237Z"
+  },
+  {
+    "username": "fac1",
+    "role": "faculty",
+    "action": "logout",
+    "ts": "2026-01-02T07:26:30.589Z"
+  },
+  {
+    "username": "fac1",
+    "role": "faculty",
+    "action": "login",
+    "ts": "2026-01-02T07:22:02.318Z"
+  },
+  {
+    "username": "sona",
+    "role": "institutional",
+    "action": "logout",
+    "ts": "2026-01-02T07:21:50.810Z"
+  },
+  {
+    "username": "sona",
+    "role": "institutional",
+    "action": "delete_test",
+    "ts": "2026-01-02T07:20:11.689Z",
+    "extra": {
+      "test_id": "6957439b90929eb0abd4215e"
+    }
+  },
+  {
+    "username": "sona",
+    "role": "institutional",
+    "action": "create_test",
+    "ts": "2026-01-02T07:19:30.768Z",
+    "extra": {
+      "test_id": "69577182e274f6e4ce8c40d9",
+      "type": "aptitude"
+    }
+  },
+  {
+    "username": "sona",
+    "role": "institutional",
+    "action": "login",
+    "ts": "2026-01-02T07:19:17.478Z"
+  },
+  {
+    "username": "thiganth",
+    "role": "admin",
+    "action": "logout",
+    "ts": "2026-01-02T07:19:09.318Z"
+  },
+  {
+    "username": "thiganth",
+    "role": "admin",
+    "action": "login",
+    "ts": "2026-01-02T07:17:36.167Z"
+  },
+  {
+    "username": "fac1",
+    "role": "faculty",
+    "action": "logout",
+    "ts": "2026-01-02T07:17:34.193Z"
+  },
+  {
+    "username": "fac1",
+    "role": "faculty",
+    "action": "login",
+    "ts": "2026-01-02T07:17:17.238Z"
+  },
+  {
+    "username": "thiganth",
+    "role": "admin",
+    "action": "logout",
+    "ts": "2026-01-02T07:17:10.749Z"
+  },
+  {
+    "username": "thiganth",
+    "role": "admin",
+    "action": "login",
+    "ts": "2026-01-02T07:16:55.181Z"
+  },
+  {
+    "username": "fac1",
+    "role": "faculty",
+    "action": "logout",
+    "ts": "2026-01-02T07:16:53.520Z"
+  },
+  {
+    "username": "fac1",
+    "role": "faculty",
+    "action": "login",
+    "ts": "2026-01-02T07:16:49.937Z"
+  },
+  {
+    "username": "thiganth",
+    "role": "admin",
+    "action": "logout",
+    "ts": "2026-01-02T07:16:41.432Z"
+  },
+  {
+    "username": "thiganth",
+    "role": "admin",
+    "action": "login",
+    "ts": "2026-01-02T07:07:27.630Z"
+  },
+  {
+    "username": "thiganth",
+    "role": "admin",
+    "action": "logout",
+    "ts": "2026-01-02T07:07:25.683Z"
+  },
+  {
+    "username": "thiganth",
+    "role": "admin",
+    "action": "login",
+    "ts": "2026-01-02T07:07:23.942Z"
+  },
+  {
+    "username": "fac1",
+    "role": "faculty",
+    "action": "logout",
+    "ts": "2026-01-02T07:07:21.221Z"
+  },
+  {
+    "username": "fac1",
+    "role": "faculty",
+    "action": "login",
+    "ts": "2026-01-02T07:07:13.909Z"
+  },
+  {
+    "username": "thiganth",
+    "role": "admin",
+    "action": "logout",
+    "ts": "2026-01-02T07:07:06.542Z"
+  },
+  {
+    "username": "student1",
+    "role": "student",
+    "action": "logout",
+    "ts": "2025-12-29T18:07:08.690Z"
+  },
+  {
+    "username": "student1",
+    "role": "student",
+    "action": "login",
+    "ts": "2025-12-29T18:06:56.058Z"
+  },
+  {
+    "username": "student1",
+    "role": "student",
+    "action": "logout",
+    "ts": "2025-12-29T18:05:12.797Z"
+  },
+  {
+    "username": "student1",
+    "role": "student",
+    "action": "logout",
+    "ts": "2025-12-29T18:03:00.361Z"
+  },
+  {
+    "username": "student1",
+    "role": "student",
+    "action": "login",
+    "ts": "2025-12-29T18:02:41.870Z"
+  },
+  {
+    "username": "fac1",
+    "role": "faculty",
+    "action": "logout",
+    "ts": "2025-12-29T18:02:32.499Z"
+  },
+  {
+    "username": "fac1",
+    "role": "faculty",
+    "action": "login",
+    "ts": "2025-12-29T18:01:33.757Z"
+  },
+  {
+    "username": "student1",
+    "role": "student",
+    "action": "logout",
+    "ts": "2025-12-29T18:01:02.416Z"
+  },
+  {
+    "username": "student1",
+    "role": "student",
+    "action": "login",
+    "ts": "2025-12-29T18:00:46.449Z"
+  },
+  {
+    "username": "student1",
+    "role": "student",
+    "action": "logout",
+    "ts": "2025-12-29T18:00:44.566Z"
+  },
+  {
+    "username": "student1",
+    "role": "student",
+    "action": "login",
+    "ts": "2025-12-29T18:00:37.778Z"
+  },
+  {
+    "username": "student1",
+    "role": "student",
+    "action": "login",
+    "ts": "2025-12-29T17:56:44.049Z"
+  },
+  {
+    "username": "student1",
+    "role": "student",
+    "action": "logout",
+    "ts": "2025-12-29T17:51:12.702Z"
+  },
+  {
+    "username": "student1",
+    "role": "student",
+    "action": "login",
+    "ts": "2025-12-29T17:51:05.736Z"
+  },
+  {
+    "username": "fac1",
+    "role": "faculty",
+    "action": "logout",
+    "ts": "2025-12-29T17:51:01.344Z"
+  },
+  {
+    "username": "fac1",
+    "role": "faculty",
+    "action": "login",
+    "ts": "2025-12-29T17:50:37.393Z"
+  },
+  {
+    "username": "fac1",
+    "role": "faculty",
+    "action": "logout",
+    "ts": "2025-12-29T17:50:31.315Z"
+  },
+  {
+    "username": "fac1",
+    "role": "faculty",
+    "action": "login",
+    "ts": "2025-12-29T17:50:24.974Z"
+  },
+  {
+    "username": "student1",
+    "role": "student",
+    "action": "logout",
+    "ts": "2025-12-29T17:50:17.735Z"
+  },
+  {
+    "username": "student1",
+    "role": "student",
+    "action": "login",
+    "ts": "2025-12-29T17:50:11.012Z"
+  },
+  {
+    "username": "student1",
+    "role": "student",
+    "action": "login",
+    "ts": "2025-12-29T17:48:48.557Z"
+  },
+  {
+    "username": "student1",
+    "role": "student",
+    "action": "logout",
+    "ts": "2025-12-29T17:45:35.858Z"
+  },
+  {
+    "username": "student1",
+    "role": "student",
+    "action": "login",
+    "ts": "2025-12-29T17:45:06.457Z"
+  },
+  {
+    "username": "thiga",
+    "role": "student",
+    "action": "logout",
+    "ts": "2025-12-29T17:43:19.451Z"
+  },
+  {
+    "username": "student1",
+    "role": "student",
+    "action": "logout",
+    "ts": "2025-12-29T17:40:26.778Z"
+  },
+  {
+    "username": "student1",
+    "role": "student",
+    "action": "login",
+    "ts": "2025-12-29T16:30:49.385Z"
+  },
+  {
+    "username": "fac1",
+    "role": "faculty",
+    "action": "logout",
+    "ts": "2025-12-29T16:30:44.199Z"
+  },
+  {
+    "username": "fac1",
+    "role": "faculty",
+    "action": "login",
+    "ts": "2025-12-29T16:29:00.290Z"
+  },
+  {
+    "username": "student1",
+    "role": "student",
+    "action": "logout",
+    "ts": "2025-12-29T16:28:55.536Z"
+  },
+  {
+    "username": "student1",
+    "role": "student",
+    "action": "login",
+    "ts": "2025-12-29T16:10:04.710Z"
+  },
+  {
+    "username": "fac1",
+    "role": "faculty",
+    "action": "logout",
+    "ts": "2025-12-29T16:10:00.597Z"
+  },
+  {
+    "username": "fac1",
+    "role": "faculty",
+    "action": "login",
+    "ts": "2025-12-29T15:10:23.203Z"
+  },
+  {
+    "username": "student1",
+    "role": "student",
+    "action": "logout",
+    "ts": "2025-12-29T15:10:19.116Z"
+  },
+  {
+    "username": "student1",
+    "role": "student",
+    "action": "login",
+    "ts": "2025-12-29T15:07:31.899Z"
+  },
+  {
+    "username": "student1",
+    "role": "student",
+    "action": "login",
+    "ts": "2025-12-29T15:06:41.544Z"
+  },
+  {
+    "username": "student1",
+    "role": "student",
+    "action": "login",
+    "ts": "2025-12-29T15:05:57.897Z"
+  },
+  {
+    "username": "student1",
+    "role": "student",
+    "action": "login",
+    "ts": "2025-12-29T14:58:43.883Z"
+  },
+  {
+    "username": "fac1",
+    "role": "faculty",
+    "action": "logout",
+    "ts": "2025-12-29T14:58:39.116Z"
+  },
+  {
+    "username": "fac1",
+    "role": "faculty",
+    "action": "login",
+    "ts": "2025-12-29T14:54:05.723Z"
+  },
+  {
+    "username": "fac1",
+    "role": "faculty",
+    "action": "login",
+    "ts": "2025-12-29T14:16:51.622Z"
+  },
+  {
+    "username": "student1",
+    "role": "student",
+    "action": "logout",
+    "ts": "2025-12-29T14:16:45.759Z"
+  },
+  {
+    "username": "student1",
+    "role": "student",
+    "action": "login",
+    "ts": "2025-12-29T14:05:17.760Z"
+  },
+  {
+    "username": "recruiter1",
+    "role": "recruiter",
+    "action": "logout",
+    "ts": "2025-12-29T13:54:14.291Z"
+  },
+  {
+    "username": "recruiter1",
+    "role": "recruiter",
+    "action": "login",
+    "ts": "2025-12-29T13:54:08.958Z"
+  },
+  {
+    "username": "student1",
+    "role": "student",
+    "action": "logout",
+    "ts": "2025-12-29T13:53:58.060Z"
+  },
+  {
+    "username": "student1",
+    "role": "student",
+    "action": "login",
+    "ts": "2025-12-29T13:51:17.022Z"
+  },
+  {
+    "username": "fac1",
+    "role": "faculty",
+    "action": "logout",
+    "ts": "2025-12-29T13:51:09.229Z"
+  },
+  {
+    "username": "fac1",
+    "role": "faculty",
+    "action": "login",
+    "ts": "2025-12-29T13:50:01.954Z"
+  },
+  {
+    "username": "faculty1",
+    "role": "faculty",
+    "action": "logout",
+    "ts": "2025-12-29T13:49:04.070Z"
+  },
+  {
+    "username": "faculty1",
+    "role": "faculty",
+    "action": "login",
+    "ts": "2025-12-29T13:47:40.842Z"
+  },
+  {
+    "username": "student1",
+    "role": "student",
+    "action": "logout",
+    "ts": "2025-12-29T13:46:52.691Z"
+  },
+  {
+    "username": "student1",
+    "role": "student",
+    "action": "login",
+    "ts": "2025-12-29T13:45:50.978Z"
+  },
+  {
+    "username": "student1",
+    "role": "student",
+    "action": "logout",
+    "ts": "2025-12-29T13:40:55.404Z"
+  },
+  {
+    "username": "student1",
+    "role": "student",
+    "action": "login",
+    "ts": "2025-12-29T13:40:40.488Z"
+  },
+  {
+    "username": "student1",
+    "role": "student",
+    "action": "login",
+    "ts": "2025-12-29T13:38:51.480Z"
+  },
+  {
+    "username": "thiganth",
+    "role": "admin",
+    "action": "login",
+    "ts": "2025-12-29T10:44:05.971Z"
+  },
+  {
+    "username": "thiganth",
+    "role": "admin",
+    "action": "login",
+    "ts": "2025-12-29T10:43:11.256Z"
+  },
+  {
+    "username": "thiganth",
+    "role": "admin",
+    "action": "login",
+    "ts": "2025-12-29T10:31:09.523Z"
+  },
+  {
+    "username": "thiganth",
+    "role": "admin",
+    "action": "login",
+    "ts": "2025-12-29T10:30:26.341Z"
+  },
+  {
+    "username": "fac1",
+    "role": "faculty",
+    "action": "login",
+    "ts": "2025-12-29T10:30:03.431Z"
+  },
+  {
+    "username": "sona",
+    "role": "institutional",
+    "action": "logout",
+    "ts": "2025-12-29T10:30:00.780Z"
+  },
+  {
+    "username": "sona",
+    "role": "institutional",
+    "action": "login",
+    "ts": "2025-12-29T10:28:08.737Z"
+  },
+  {
+    "username": "thiganth",
+    "role": "admin",
+    "action": "logout",
+    "ts": "2025-12-29T10:28:04.963Z"
+  },
+  {
+    "username": "thiganth",
+    "role": "admin",
+    "action": "login",
+    "ts": "2025-12-29T10:26:23.421Z"
+  }
+]

@@ -29,11 +29,24 @@ async function createInstitutional(payload) {
 	const doc = {
 		username,
 		password: hashed,
-		institutional_id:
-			payload.institutional_id && String(payload.institutional_id).trim(),
+		// Keep the fields in the requested order for insertion
 		institution_name:
 			payload.institution_name && String(payload.institution_name).trim(),
+		institution_type:
+			payload.institution_type && String(payload.institution_type).trim(),
+		address:
+			payload.address && String(payload.address).trim(),
+		city:
+			payload.city && String(payload.city).trim(),
+		state:
+			payload.state && String(payload.state).trim(),
+		phone:
+			payload.phone && String(payload.phone).trim(),
 		email: payload.email && String(payload.email).trim(),
+		head_name:
+			payload.head_name && String(payload.head_name).trim(),
+		institutional_id:
+			payload.institutional_id && String(payload.institutional_id).trim(),
 	};
 
 	const res = await coll.insertOne(doc);
@@ -86,6 +99,25 @@ async function updateInstitutional(username, payload) {
 	if (payload.email !== undefined) {
 		update.email =
 			payload.email === null ? null : String(payload.email).trim();
+	}
+	if (payload.institution_type !== undefined) {
+		update.institution_type =
+			payload.institution_type === null ? null : String(payload.institution_type).trim();
+	}
+	if (payload.address !== undefined) {
+		update.address = payload.address === null ? null : String(payload.address).trim();
+	}
+	if (payload.city !== undefined) {
+		update.city = payload.city === null ? null : String(payload.city).trim();
+	}
+	if (payload.state !== undefined) {
+		update.state = payload.state === null ? null : String(payload.state).trim();
+	}
+	if (payload.phone !== undefined) {
+		update.phone = payload.phone === null ? null : String(payload.phone).trim();
+	}
+	if (payload.head_name !== undefined) {
+		update.head_name = payload.head_name === null ? null : String(payload.head_name).trim();
 	}
 	if (payload.password) {
 		update.password = await hashPassword(String(payload.password));
