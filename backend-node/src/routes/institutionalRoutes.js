@@ -32,6 +32,8 @@ const {
     assignParticipants,
 } = require('../controllers/mcqTestController');
 
+const { logEvent } = require('../controllers/logsController');
+
 const router = express.Router();
 
 // --- Admin-level institutional user management ---
@@ -61,6 +63,7 @@ router.post('/api/institutional', async (req, res) => {
 			institutional_id: created && created.institutional_id,
 			timestamp: new Date().toISOString(),
 		});
+		try { await logEvent('admin', 'admin', `Created institutional user: ${created.username} (${created.institutional_id || 'N/A'})`); } catch (e) {}
 		res.status(201).json({ ok: true, data: created });
 	} catch (err) {
 		res.status(400).json({ ok: false, error: err.message || 'Failed to create institutional user' });
@@ -99,6 +102,7 @@ router.put('/api/institutional/:username', async (req, res) => {
 			institutional_id: updated && updated.institutional_id,
 			timestamp: new Date().toISOString(),
 		});
+		try { await logEvent('admin', 'admin', `Updated institutional user: ${updated.username} (${updated.institutional_id || 'N/A'})`); } catch (e) {}
 		res.status(200).json({ ok: true, data: updated });
 	} catch (err) {
 		const msg = err.message || 'Failed to update institutional user';
@@ -123,6 +127,7 @@ router.delete('/api/institutional/:username', async (req, res) => {
 			username: req.params.username,
 			timestamp: new Date().toISOString(),
 		});
+		try { await logEvent('admin', 'admin', `Deleted institutional user: ${req.params.username}`); } catch (e) {}
 		return res.status(200).json({ ok: true });
 	} catch (err) {
 		return res.status(500).json({ ok: false, error: 'Failed to delete institutional user' });
@@ -153,6 +158,7 @@ router.post('/api/institutional/:institutionId/faculty', async (req, res) => {
 			req.params.institutionId,
 			req.body || {}
 		);
+		try { await logEvent(req.params.institutionId, 'institutional', `Created faculty: ${created.username} (${created.full_name || 'N/A'})`); } catch (e) {}
 		res.status(201).json({ ok: true, data: created });
 	} catch (err) {
 		res.status(400).json({ ok: false, error: err.message || 'Failed to create faculty' });
@@ -170,6 +176,7 @@ router.put('/api/institutional/:institutionId/faculty/:username', async (req, re
 			req.params.username,
 			req.body || {}
 		);
+		try { await logEvent(req.params.institutionId, 'institutional', `Updated faculty: ${updated.username} (${updated.full_name || 'N/A'})`); } catch (e) {}
 		res.status(200).json({ ok: true, data: updated });
 	} catch (err) {
 		const msg = err.message || 'Failed to update faculty';
@@ -190,6 +197,7 @@ router.delete('/api/institutional/:institutionId/faculty/:username', async (req,
 		if (!deleted) {
 			return res.status(404).json({ ok: false, error: 'Not found' });
 		}
+		try { await logEvent(req.params.institutionId, 'institutional', `Deleted faculty: ${req.params.username}`); } catch (e) {}
 		return res.status(200).json({ ok: true });
 	} catch (err) {
 		return res.status(400).json({ ok: false, error: err.message || 'Failed to delete faculty' });
@@ -214,6 +222,7 @@ router.put('/api/institutional/:institutionId/students/:enrollmentId', async (re
 			req.params.enrollmentId,
 			req.body || {}
 		);
+		try { await logEvent(req.params.institutionId, 'institutional', `Updated student: ${updated.username || updated.enrollment_id} (${updated.full_name || 'N/A'})`); } catch (e) {}
 		res.status(200).json({ ok: true, data: updated });
 	} catch (err) {
 		const msg = err.message || 'Failed to update student';
@@ -230,6 +239,7 @@ router.delete('/api/institutional/:institutionId/students/:enrollmentId', async 
 		if (!deleted) {
 			return res.status(404).json({ ok: false, error: 'Not found' });
 		}
+		try { await logEvent(req.params.institutionId, 'institutional', `Deleted student: ${req.params.enrollmentId}`); } catch (e) {}
 		return res.status(200).json({ ok: true });
 	} catch (err) {
 		return res.status(400).json({ ok: false, error: err.message || 'Failed to delete student' });
@@ -242,6 +252,8 @@ router.post('/api/institutional/:institutionId/students/batch', async (req, res)
 			req.params.institutionId,
 			req.body || {}
 		);
+		const count = Array.isArray(created) ? created.length : 0;
+		try { await logEvent(req.params.institutionId, 'institutional', `Created ${count} student(s) in bulk`); } catch (e) {}
 		res.status(201).json({ ok: true, data: created });
 	} catch (err) {
 		res.status(400).json({ ok: false, error: err.message || 'Failed to create students' });
@@ -258,6 +270,9 @@ router.post('/api/institutional/:institutionId/tests', async (req, res) => {
 	}
 	try {
 		const created = await createMcqTest(req.params.institutionId, req.body || {});
+		const testType = (req.body && req.body.type) || 'test';
+		const testTitle = (req.body && req.body.title) || testType;
+		try { await logEvent(req.params.institutionId, 'institutional', `Created ${testType} test: ${testTitle}`); } catch (e) {}
 		return res.status(201).json({ ok: true, data: created });
 	} catch (err) {
 		return res.status(400).json({ ok: false, error: err.message || 'Failed to create test' });
@@ -282,6 +297,12 @@ router.post('/api/institutional/:institutionId/tests/:testId/assign', async (req
 	}
 	try {
 		const assigned = await assignParticipants(req.params.institutionId, req.params.testId, req.body || {});
+		const body = req.body || {};
+		const facCount = Array.isArray(body.faculty_ids) ? body.faculty_ids.length : 0;
+		const batchCount = Array.isArray(body.batch_codes) ? body.batch_codes.length : 0;
+		const studCount = Array.isArray(body.student_ids) ? body.student_ids.length : 0;
+		const desc = [facCount && `${facCount} faculty`, batchCount && `${batchCount} batch(es)`, studCount && `${studCount} student(s)`].filter(Boolean).join(', ');
+		try { await logEvent(req.params.institutionId, 'institutional', `Assigned test to ${desc || 'participants'}`); } catch (e) {}
 		res.status(200).json({ ok: true, data: assigned });
 	} catch (err) {
 		const msg = err && err.message ? err.message : 'unknown error';
@@ -302,7 +323,10 @@ router.delete('/api/institutional/:institutionId/tests/:testId', async (req, res
 	try {
 		const { deleteMcqTest } = require('../controllers/mcqTestController');
 		const deleted = await deleteMcqTest(req.params.institutionId, req.params.testId);
-		if (deleted) return res.status(200).json({ ok: true });
+		if (deleted) {
+			try { await logEvent(req.params.institutionId, 'institutional', `Deleted test: ${req.params.testId}`); } catch (e) {}
+			return res.status(200).json({ ok: true });
+		}
 		return res.status(400).json({ ok: false, error: 'Unable to delete test' });
 	} catch (err) {
 		if (err.message === 'test not found') return res.status(404).json({ ok: false, error: 'Not found' });
@@ -335,6 +359,8 @@ router.post('/api/institutional/:institutionId/batches', async (req, res) => {
 	}
 	try {
 		const created = await createBatch(req.params.institutionId, req.body || {});
+		const batchName = created.name || created.batch_code;
+		try { await logEvent(req.params.institutionId, 'institutional', `Created batch: ${batchName} (${created.batch_code})`); } catch (e) {}
 		return res.status(201).json({ ok: true, data: created });
 	} catch (err) {
 		// eslint-disable-next-line no-console
@@ -351,6 +377,8 @@ router.put('/api/institutional/:institutionId/batches/:batchCode', async (req, r
 	}
 	try {
 		const updated = await updateBatch(req.params.institutionId, req.params.batchCode, req.body || {});
+		const batchName = updated.name || req.params.batchCode;
+		try { await logEvent(req.params.institutionId, 'institutional', `Updated batch: ${batchName} (${req.params.batchCode})`); } catch (e) {}
 		return res.status(200).json({ ok: true, data: updated });
 	} catch (err) {
 		// eslint-disable-next-line no-console
@@ -371,7 +399,10 @@ router.delete('/api/institutional/:institutionId/batches/:batchCode', async (req
 		// eslint-disable-next-line no-console
 		console.log('[ROUTE] DELETE batch', { params: req.params, time: new Date().toISOString() });
 		const deleted = await deleteBatch(req.params.institutionId, req.params.batchCode);
-		if (deleted) return res.status(200).json({ ok: true });
+		if (deleted) {
+			try { await logEvent(req.params.institutionId, 'institutional', `Deleted batch: ${req.params.batchCode}`); } catch (e) {}
+			return res.status(200).json({ ok: true });
+		}
 
 		// Determine reason for failure and return it to client
 		try {
@@ -415,7 +446,9 @@ router.post('/api/institutional/:institutionId/batches/:batchCode/assign', async
 		if (!batch) return res.status(404).json({ ok: false, error: 'Batch not found for this institution' });
 
 		const updated = await addStudentsToBatch(req.params.batchCode, studentIds || []);
-		res.status(200).json({ ok: true, data: updated });
+		const count = Array.isArray(studentIds) ? studentIds.length : 0;
+		try { await logEvent(req.params.institutionId, 'institutional', `Assigned ${count} student(s) to batch: ${req.params.batchCode}`); } catch (e) {}
+			res.status(200).json({ ok: true, data: updated });
 	} catch (err) {
 		res.status(400).json({ ok: false, error: err.message || 'Failed to assign students to batch' });
 	}

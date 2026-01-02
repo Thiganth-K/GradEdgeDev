@@ -90,7 +90,14 @@ function withHeaders(init: RequestInit | undefined, headers: Record<string, stri
 // Admin API
 export const adminApi = {
   me: () => getJson<{ username: string; greeting?: string }>(`/api/admin/me`),
-  logs: () => getJson<{ logs: Array<{ username: string; role: string; action: string; ts: string; extra?: unknown }> }>(`/api/admin/logs`),
+  logs: (opts?: { username?: string; role?: string; action?: string; startTs?: string; endTs?: string; limit?: number }) => {
+    const qs = opts
+      ? '?' + Object.entries(opts).filter(([, v]) => v !== undefined && v !== null).map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`).join('&')
+      : ''
+    return getJson<{ logs: Array<{ username: string; role: string; action: string; ts: string; extra?: unknown }> }>(`/api/admin/logs${qs}`)
+  },
+  clearAll: (opts?: { username?: string; role?: string; action?: string; startTs?: string; endTs?: string }) =>
+    postJson<any, any>(`/api/admin/logs/backup-delete`, opts || {}),
 }
 
 // Institutional API

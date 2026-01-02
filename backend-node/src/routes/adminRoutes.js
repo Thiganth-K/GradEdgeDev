@@ -1,6 +1,7 @@
 const express = require('express');
 const { getAdminInfo } = require('../controllers/adminController');
 const { listInstitutional } = require('../controllers/institutionalController');
+const { logEvent } = require('../controllers/logsController');
 
 const router = express.Router();
 
@@ -13,6 +14,8 @@ router.get('/api/admin/me', (req, res) => {
 			username: info.username,
 			timestamp: new Date().toISOString(),
 		});
+		// record that admin viewed their info
+		try { logEvent(info.username, 'admin', `Viewed admin dashboard`); } catch (e) {}
 		res.status(200).json(info);
 	} catch (err) {
 		// eslint-disable-next-line no-console
@@ -34,6 +37,8 @@ router.get('/api/admin/institutionals', async (req, res) => {
 			timestamp: new Date().toISOString(),
 		});
 		res.status(200).json({ ok: true, data: docs });
+		const count = Array.isArray(docs) ? docs.length : 0;
+		try { logEvent('admin', 'admin', `Viewed ${count} institutional user(s)`); } catch (e) {}
 	} catch (err) {
 		// eslint-disable-next-line no-console
 		console.error('Failed to list institutional accounts', err);
