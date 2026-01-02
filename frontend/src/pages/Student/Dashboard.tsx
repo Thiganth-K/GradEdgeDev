@@ -97,7 +97,8 @@ const Dashboard: React.FC<DashboardProps> = ({ username = 'Student', onLogout })
         const res = await (await import('../../lib/api')).studentApi.getAnnouncements(username)
         if (mounted && res.ok && res.data) {
           // res.data.data is expected to be array
-          setAnnouncements(Array.isArray(res.data.data) ? res.data.data : res.data)
+          const announcements = Array.isArray(res.data.data) ? res.data.data : (Array.isArray(res.data) ? res.data : [])
+          setAnnouncements(announcements)
         }
       } catch (e) {
         console.error('Failed to load announcements', e)
@@ -108,11 +109,11 @@ const Dashboard: React.FC<DashboardProps> = ({ username = 'Student', onLogout })
   }, [username])
 
   // Track read announcements and notice board paging/preview
-  const [readAnnouncements, setReadAnnouncements] = useState<Set<number>>(new Set())
+  const [readAnnouncements, setReadAnnouncements] = useState<Set<string>>(new Set())
   const [activeAnnouncementIndex, setActiveAnnouncementIndex] = useState(0) // start index for current page
   const [previewAnnouncement, setPreviewAnnouncement] = useState<Announcement | null>(null)
 
-  const toggleReadStatus = (id: number) => {
+  const toggleReadStatus = (id: string) => {
     setReadAnnouncements(prev => {
       const newSet = new Set(prev)
       if (newSet.has(id)) {
