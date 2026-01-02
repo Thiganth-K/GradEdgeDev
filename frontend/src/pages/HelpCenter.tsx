@@ -63,14 +63,14 @@ const HelpCenter: React.FC<HelpCenterProps> = ({ username, role, onLogout, facul
             icon: Lock,
             title: 'Login & Security',
             description: 'Troubleshoot login issues, reset passwords, and manage 2FA.',
-            color: 'bg-blue-100 text-blue-600',
+            color: 'bg-red-50 text-red-600',
             link: '#'
         },
         {
             icon: User,
             title: 'Profile Settings',
             description: 'Manage your personal details, contact info, and preferences.',
-            color: 'bg-red-100 text-red-600',
+            color: 'bg-slate-100 text-slate-600',
             link: '#'
         }
     ]
@@ -81,28 +81,28 @@ const HelpCenter: React.FC<HelpCenterProps> = ({ username, role, onLogout, facul
             icon: RocketIcon,
             title: 'Getting Started',
             description: 'New to GradEdge? Start here for a quick tour of student features.',
-            color: 'bg-green-100 text-green-600',
+            color: 'bg-red-100 text-red-700',
             link: '#'
         },
         {
             icon: Code,
             title: 'Assessments & Tests',
             description: 'Help with taking coding tests, aptitude quizzes, and mock exams.',
-            color: 'bg-purple-100 text-purple-600',
+            color: 'bg-slate-100 text-slate-700',
             link: '#'
         },
         {
             icon: BookOpen,
             title: 'Learning Paths',
             description: 'Guides on following domain courses and tracking your progress.',
-            color: 'bg-orange-100 text-orange-600',
+            color: 'bg-red-50 text-red-600',
             link: '#'
         },
         {
             icon: FileText,
             title: 'Resume Builder',
             description: 'Tips and troubleshooting for the automated resume builder tool.',
-            color: 'bg-teal-100 text-teal-600',
+            color: 'bg-slate-50 text-slate-600',
             link: '#'
         }
     ]
@@ -113,28 +113,28 @@ const HelpCenter: React.FC<HelpCenterProps> = ({ username, role, onLogout, facul
             icon: Users,
             title: 'Batch Management',
             description: 'How to create batches, add students, and manage groups.',
-            color: 'bg-emerald-100 text-emerald-600',
+            color: 'bg-red-100 text-red-700',
             link: '#'
         },
         {
             icon: Calendar,
             title: 'Session Planning',
             description: 'Scheduling classes, managing attendance, and calendar syncing.',
-            color: 'bg-indigo-100 text-indigo-600',
+            color: 'bg-slate-100 text-slate-700',
             link: '#'
         },
         {
             icon: FileBarChart,
             title: 'Analytics & Reports',
             description: 'Generating performance reports and analyzing student data.',
-            color: 'bg-rose-100 text-rose-600',
+            color: 'bg-red-50 text-red-600',
             link: '#'
         },
         {
             icon: TrendingUp,
             title: 'Student Progress',
             description: 'Tracking individual student growth and assessment history.',
-            color: 'bg-cyan-100 text-cyan-600',
+            color: 'bg-slate-50 text-slate-600',
             link: '#'
         }
     ]
@@ -243,13 +243,13 @@ const HelpCenter: React.FC<HelpCenterProps> = ({ username, role, onLogout, facul
                             </div>
                             <input
                                 type="text"
-                                className="block w-full pl-12 pr-4 py-5 rounded-2xl border border-slate-200 bg-slate-50 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-red-500/10 focus:border-red-500 transition-all shadow-sm hover:shadow-md"
+                                className="block w-full pl-12 pr-4 py-5 rounded-2xl border border-slate-200 bg-white text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-red-500/10 focus:border-red-500 transition-all shadow-sm hover:shadow-md hover:border-red-200"
                                 placeholder="Search for articles, guides, and more..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                             />
                             <div className="absolute inset-y-0 right-0 pr-4 flex items-center gap-2">
-                                <kbd className="hidden sm:inline-flex items-center gap-1 px-2 py-1 border border-slate-200 rounded-lg bg-white text-[10px] font-bold text-slate-400">⌘ K</kbd>
+                                <kbd className="hidden sm:inline-flex items-center gap-1 px-2 py-1 border border-red-100 rounded-lg bg-red-50 text-[10px] font-bold text-red-400">⌘ K</kbd>
                             </div>
                         </div>
                     </motion.div>
@@ -272,10 +272,10 @@ const HelpCenter: React.FC<HelpCenterProps> = ({ username, role, onLogout, facul
                                 variants={itemVariants}
                                 href={cat.link}
                                 key={idx}
-                                className="group p-8 bg-white rounded-3xl border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-red-500/5 hover:border-red-100 transition-all duration-300 relative overflow-hidden"
+                                className="group p-8 bg-white rounded-3xl border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-red-500/5 hover:border-red-200 transition-all duration-300 relative overflow-hidden"
                                 whileHover={{ y: -5 }}
                             >
-                                <div className={`w-14 h-14 rounded-2xl ${cat.color} flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300`}>
+                                <div className={`w-14 h-14 rounded-2xl ${cat.color} flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300 border border-slate-50 group-hover:border-red-100`}>
                                     <cat.icon className="w-7 h-7" />
                                 </div>
                                 <h3 className="text-xl font-bold text-slate-900 mb-3 group-hover:text-red-600 transition-colors">{cat.title}</h3>
@@ -300,10 +300,10 @@ const HelpCenter: React.FC<HelpCenterProps> = ({ username, role, onLogout, facul
                         ].map((contact, i) => (
                             <motion.div
                                 key={i}
-                                className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-5 hover:border-red-100 transition-colors"
+                                className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-5 hover:border-red-200 hover:bg-slate-50/50 transition-colors"
                                 whileHover={{ scale: 1.02 }}
                             >
-                                <div className="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center text-slate-600">
+                                <div className="w-12 h-12 bg-red-50 rounded-full flex items-center justify-center text-red-600 border border-red-100">
                                     <contact.icon size={20} />
                                 </div>
                                 <div>
@@ -325,11 +325,11 @@ const HelpCenter: React.FC<HelpCenterProps> = ({ username, role, onLogout, facul
                             {displayFaqs.map((faq, idx) => (
                                 <motion.div
                                     key={idx}
-                                    className="bg-white rounded-2xl border border-slate-200 p-6 hover:bg-slate-50 transition-colors cursor-pointer group"
+                                    className="bg-white rounded-2xl border border-slate-200 p-6 hover:bg-red-50/30 hover:border-red-200 transition-colors cursor-pointer group"
                                     whileHover={{ x: 4 }}
                                 >
                                     <h3 className="font-bold text-slate-900 mb-2 flex items-start gap-4">
-                                        <div className="min-w-[24px] h-6 rounded-full bg-red-50 text-red-600 flex items-center justify-center text-xs font-bold mt-0.5 group-hover:bg-red-600 group-hover:text-white transition-colors">Q</div>
+                                        <div className="min-w-[24px] h-6 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center text-xs font-bold mt-0.5 group-hover:bg-red-600 group-hover:text-white transition-colors">Q</div>
                                         {faq.q}
                                     </h3>
                                     <p className="text-slate-600 text-sm pl-10 leading-relaxed">{faq.a}</p>

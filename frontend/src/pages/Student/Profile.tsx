@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { User, Mail, Phone, Building2, GraduationCap, Calendar, Save, Edit2 } from 'lucide-react'
 import StudentLayout from '../../components/Student/StudentLayout'
 import { getJson, postJson, putJson } from '../../lib/api'
+import LoadingSpinner from '../../components/LoadingSpinner'
 
 interface ProfileProps {
   username: string
@@ -200,10 +201,7 @@ const Profile: React.FC<ProfileProps> = ({ username, onLogout }) => {
     return (
       <StudentLayout username={username} onLogout={onLogout}>
         <div className="p-6 bg-gray-50 min-h-screen flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Loading profile...</p>
-          </div>
+          <LoadingSpinner size="lg" label="Loading profile..." />
         </div>
       </StudentLayout>
     )

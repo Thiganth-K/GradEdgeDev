@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { LogOut, Check } from 'lucide-react'
+import { GraduationCap, ShieldCheck, Sparkles } from 'lucide-react'
 
 interface LogoutAnimationProps {
     username: string
@@ -8,15 +8,13 @@ interface LogoutAnimationProps {
 }
 
 const LogoutAnimation: React.FC<LogoutAnimationProps> = ({ username, onComplete }) => {
-    const [step, setStep] = useState(0)
+    const [step, setStep] = useState<'toss' | 'secure' | 'fade'>('toss')
 
     useEffect(() => {
-        // Step 1: Initial load
-        const t1 = setTimeout(() => setStep(1), 500)
-        // Step 2: Transition to check
-        const t2 = setTimeout(() => setStep(2), 2000)
-        // Step 3: Complete
-        const t3 = setTimeout(onComplete, 3500)
+        // Timeline
+        const t1 = setTimeout(() => setStep('secure'), 2200)
+        const t2 = setTimeout(() => setStep('fade'), 3500)
+        const t3 = setTimeout(onComplete, 4000)
 
         return () => {
             clearTimeout(t1)
@@ -25,108 +23,151 @@ const LogoutAnimation: React.FC<LogoutAnimationProps> = ({ username, onComplete 
         }
     }, [onComplete])
 
+    // Generate random particles for background
+    const particles = Array.from({ length: 12 }).map((_, i) => ({
+        id: i,
+        x: Math.random() * 100,
+        y: Math.random() * 100,
+        scale: Math.random() * 0.5 + 0.5,
+        delay: Math.random() * 2
+    }))
+
     return (
         <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/60 backdrop-blur-md"
+            className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/80 backdrop-blur-md overflow-hidden"
         >
-            <div className="relative">
-                {/* Background Glow */}
+            {/* Ambient Background Particles */}
+            {particles.map((p) => (
                 <motion.div
+                    key={p.id}
+                    initial={{ opacity: 0, scale: 0, x: `${p.x}vw`, y: `${p.y}vh` }}
                     animate={{
-                        scale: [1, 1.2, 1],
-                        opacity: [0.3, 0.6, 0.3],
+                        opacity: [0, 0.4, 0],
+                        y: [`${p.y}vh`, `${p.y - 20}vh`],
+                        rotate: [0, 90, 180]
                     }}
                     transition={{
-                        duration: 3,
+                        duration: 4,
                         repeat: Infinity,
-                        ease: "easeInOut"
+                        delay: p.delay,
+                        ease: "linear"
                     }}
-                    className="absolute inset-0 bg-red-600/20 blur-[60px] rounded-full"
+                    className="absolute w-2 h-2 bg-red-500/20 rounded-full blur-[1px]"
                 />
+            ))}
 
-                <motion.div
-                    initial={{ scale: 0.9, y: 20 }}
-                    animate={{ scale: 1, y: 0 }}
-                    className="bg-white/95 backdrop-blur-xl border border-white/20 p-12 rounded-[2.5rem] shadow-2xl text-center relative overflow-hidden min-w-[320px]"
-                >
-                    {/* Decorative Top Line */}
-                    <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-transparent via-red-500 to-transparent opacity-50"></div>
+            <div className="relative text-center w-full max-w-md mx-6">
 
-                    <div className="flex justify-center mb-8 relative">
-                        <AnimatePresence mode="wait">
-                            {step < 2 ? (
-                                <motion.div
-                                    key="logout"
-                                    initial={{ scale: 0, rotate: -45 }}
-                                    animate={{
-                                        scale: 1,
-                                        rotate: 0,
-                                        transition: { type: "spring", stiffness: 200 }
-                                    }}
-                                    exit={{ scale: 0, opacity: 0 }}
-                                    className="w-20 h-20 bg-red-50 rounded-2xl flex items-center justify-center text-red-600 shadow-inner"
-                                >
-                                    <LogOut size={40} className={step === 1 ? "animate-pulse" : ""} />
-                                    {/* Spinner Ring */}
-                                    <motion.div
-                                        animate={{ rotate: 360 }}
-                                        transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
-                                        className="absolute inset-0 border-4 border-red-500/20 border-t-red-600 rounded-2xl"
-                                    />
-                                </motion.div>
-                            ) : (
-                                <motion.div
-                                    key="success"
-                                    initial={{ scale: 0, rotate: 180 }}
-                                    animate={{ scale: 1, rotate: 0 }}
-                                    className="w-20 h-20 bg-green-50 rounded-2xl flex items-center justify-center text-green-600 shadow-xl shadow-green-200/50"
-                                >
-                                    <Check size={40} strokeWidth={3} />
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
-                    </div>
-
-                    <div className="space-y-2">
-                        <motion.h2
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className="text-2xl font-bold text-slate-900"
-                        >
-                            {step < 2 ? "Logging Out..." : "See you soon!"}
-                        </motion.h2>
-
-                        <motion.p
-                            className="text-slate-500 font-medium"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            key={step < 2 ? "desc1" : "desc2"}
-                        >
-                            {step < 2
-                                ? "Securely clearing your session data"
-                                : `Have a great day, ${username.split(' ')[0]}!`
-                            }
-                        </motion.p>
-                    </div>
-
-                    {step < 2 && (
-                        <motion.div
-                            className="h-1 bg-slate-100 mt-8 rounded-full overflow-hidden"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                        >
+                {/* Central Icon Stage */}
+                <div className="h-40 flex items-center justify-center relative mb-8">
+                    <AnimatePresence mode="wait">
+                        {step === 'toss' && (
                             <motion.div
-                                className="h-full bg-red-600"
-                                initial={{ width: "0%" }}
-                                animate={{ width: "100%" }}
-                                transition={{ duration: 2.5, ease: "easeInOut" }}
-                            />
-                        </motion.div>
-                    )}
+                                key="cap"
+                                className="relative"
+                                initial={{ scale: 0.8, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                exit={{ scale: 0.5, opacity: 0, transition: { duration: 0.3 } }}
+                            >
+                                {/* Glow behind cap */}
+                                <motion.div
+                                    animate={{ scale: [1, 1.2, 1], opacity: [0.2, 0.4, 0.2] }}
+                                    transition={{ duration: 2, repeat: Infinity }}
+                                    className="absolute inset-0 bg-red-600/30 blur-2xl rounded-full"
+                                />
+
+                                <motion.div
+                                    initial={{ y: 0, rotate: 0 }}
+                                    animate={{
+                                        y: [0, -40, 0],
+                                        rotate: [0, -15, 15, 0],
+                                        scale: [1, 1.1, 1]
+                                    }}
+                                    transition={{
+                                        duration: 2,
+                                        times: [0, 0.4, 1],
+                                        ease: "easeInOut"
+                                    }}
+                                    className="relative z-10"
+                                >
+                                    <div className="bg-gradient-to-br from-red-600 to-red-800 p-6 rounded-3xl shadow-2xl shadow-red-900/50">
+                                        <GraduationCap className="w-16 h-16 text-white" />
+                                    </div>
+                                </motion.div>
+
+                                {/* Sparkles appearing around */}
+                                <motion.div
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    className="absolute -top-4 -right-4"
+                                >
+                                    <Sparkles className="w-6 h-6 text-yellow-400 animate-bounce" />
+                                </motion.div>
+                            </motion.div>
+                        )}
+
+                        {step === 'secure' && (
+                            <motion.div
+                                key="shield"
+                                initial={{ scale: 0, rotate: -180 }}
+                                animate={{ scale: 1, rotate: 0 }}
+                                transition={{ type: "spring", damping: 12 }}
+                                className="bg-white p-6 rounded-full shadow-2xl shadow-green-500/20 relative z-10"
+                            >
+                                <ShieldCheck className="w-16 h-16 text-green-600" />
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </div>
+
+                {/* Typography */}
+                <motion.div
+                    layout
+                    className="space-y-3"
+                >
+                    <AnimatePresence mode="wait">
+                        <motion.h2
+                            key={step === 'toss' ? 'title1' : 'title2'}
+                            initial={{ y: 20, opacity: 0 }}
+                            animate={{ y: 0, opacity: 1 }}
+                            exit={{ y: -20, opacity: 0 }}
+                            className="text-3xl font-bold text-white tracking-tight"
+                        >
+                            {step === 'toss' ? 'Wrapping Up...' : 'Session Secured'}
+                        </motion.h2>
+                    </AnimatePresence>
+
+                    <motion.p
+                        className="text-slate-400 font-medium"
+                        animate={{ opacity: [0.6, 1, 0.6] }}
+                        transition={{ duration: 2, repeat: Infinity }}
+                    >
+                        {step === 'toss'
+                            ? `Saving progress for ${username}`
+                            : 'See you next time!'}
+                    </motion.p>
                 </motion.div>
+
+                {/* Progress Bar */}
+                <div className="mt-12 mx-auto max-w-[200px] h-1 bg-slate-800/50 rounded-full overflow-hidden relative">
+                    <motion.div
+                        className="absolute inset-y-0 left-0 bg-gradient-to-r from-red-500 to-red-400"
+                        initial={{ width: "0%" }}
+                        animate={{ width: "100%" }}
+                        transition={{ duration: 3.5, ease: "easeInOut" }}
+                    />
+                    {/* Shimmer effect on bar */}
+                    <motion.div
+                        className="absolute inset-y-0 width-full bg-white/20 blur-md"
+                        initial={{ x: "-100%" }}
+                        animate={{ x: "100%" }}
+                        transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+                        style={{ width: "50%" }}
+                    />
+                </div>
             </div>
         </motion.div>
     )

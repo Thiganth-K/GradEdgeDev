@@ -20,6 +20,11 @@ import StudentManagement from './pages/Institutional/StudentManagement'
 import InstitutionalTests from './pages/Institutional/Tests'
 import FacultyTests from './pages/Faculty/Tests'
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom'
+import { AnimatePresence } from 'framer-motion'
+import LogoutAnimation from './components/LogoutAnimation'
+import WorkInProgress from './components/WorkInProgress'
+import HelpCenter from './pages/HelpCenter'
+import NotFound from './pages/NotFound'
 
 function App() {
   const [loggedIn, setLoggedIn] = useState<boolean>(!!localStorage.getItem('logged_in'))
@@ -30,7 +35,7 @@ function App() {
   const [facultyId, setFacultyId] = useState<string | null>(localStorage.getItem('faculty_id'))
   // Persist institutionalId (institutional_id field) for institutional dashboards
   const [institutionalId, setInstitutionalId] = useState<string | null>(localStorage.getItem('institutional_id'))
-  
+
   const navigate = useNavigate()
   const [shouldAutoRedirect, setShouldAutoRedirect] = useState<boolean>(false)
   const location = useLocation()
@@ -158,7 +163,7 @@ function App() {
     localStorage.removeItem('role')
     localStorage.removeItem('faculty_id') // Clear faculty ID
     localStorage.removeItem('institutional_id') // Clear institutional ID
-    
+
     setLoggedIn(false)
     setUsername('')
     setRole('')
@@ -187,13 +192,13 @@ function App() {
         <Route path="/admin/welcome" element={loggedIn && role === 'admin' ? <AdminWelcomePage username={username} onLogout={handleLogout} /> : <LoginPage onLoginSuccess={handleLoginSuccess} />} />
         <Route path="/admin/logs" element={loggedIn && role === 'admin' ? <AdminLogsPage /> : <LoginPage onLoginSuccess={handleLoginSuccess} />} />
         {/* Admin faculty management removed: admins no longer have access to create/manage faculty */}
-        
+
         {/* Faculty Routes */}
         <Route path="/faculty/:facultyId/dashboard" element={<ProtectedFacultyRoute><FacultyDashboard username={username} onLogout={handleLogout} /></ProtectedFacultyRoute>} />
         <Route path="/faculty/:facultyId/batches" element={<ProtectedFacultyRoute><FacultyBatches /></ProtectedFacultyRoute>} />
         <Route path="/faculty/:facultyId/students" element={<ProtectedFacultyRoute><FacultyStudents /></ProtectedFacultyRoute>} />
         <Route path="/faculty/:facultyId/tests" element={<ProtectedFacultyRoute><FacultyTests /></ProtectedFacultyRoute>} />
-        <Route path="/faculty/:facultyId/schedule" element={<ProtectedFacultyRoute><FacultyDashboard username={username} onLogout={handleLogout} /></ProtectedFacultyRoute>} /> 
+        <Route path="/faculty/:facultyId/schedule" element={<ProtectedFacultyRoute><FacultyDashboard username={username} onLogout={handleLogout} /></ProtectedFacultyRoute>} />
         <Route path="/faculty/:facultyId/welcome" element={<Navigate to={`/faculty/${facultyId}/dashboard`} />} />
 
         {/* Fallback for Faculty URL without ID (try to recover) */}
@@ -204,7 +209,23 @@ function App() {
         <Route path="/student/dashboard" element={loggedIn && role === 'student' ? <StudentDashboard username={username} onLogout={handleLogout} /> : <LoginPage onLoginSuccess={handleLoginSuccess} />} />
         <Route path="/student/profile" element={loggedIn && role === 'student' ? <StudentProfile username={username} onLogout={handleLogout} /> : <LoginPage onLoginSuccess={handleLoginSuccess} />} />
         <Route path="/student/tests" element={loggedIn && role === 'student' ? <StudentTests username={username} onLogout={handleLogout} /> : <LoginPage onLoginSuccess={handleLoginSuccess} />} />
+
+        {/* Work In Progress Routes */}
+        <Route path="/student/aptitude" element={loggedIn && role === 'student' ? <WorkInProgress title="Aptitude & Logic" username={username} onLogout={handleLogout} /> : <LoginPage onLoginSuccess={handleLoginSuccess} />} />
+        <Route path="/student/coding" element={loggedIn && role === 'student' ? <WorkInProgress title="Coding & Tech" username={username} onLogout={handleLogout} /> : <LoginPage onLoginSuccess={handleLoginSuccess} />} />
+        <Route path="/student/soft-skills" element={loggedIn && role === 'student' ? <WorkInProgress title="Soft Skills" username={username} onLogout={handleLogout} /> : <LoginPage onLoginSuccess={handleLoginSuccess} />} />
+        <Route path="/student/domain" element={loggedIn && role === 'student' ? <WorkInProgress title="Domain Knowledge" username={username} onLogout={handleLogout} /> : <LoginPage onLoginSuccess={handleLoginSuccess} />} />
+        <Route path="/student/project-sim" element={loggedIn && role === 'student' ? <WorkInProgress title="Project Simulation" username={username} onLogout={handleLogout} /> : <LoginPage onLoginSuccess={handleLoginSuccess} />} />
+        <Route path="/student/history" element={loggedIn && role === 'student' ? <WorkInProgress title="Assessment History" username={username} onLogout={handleLogout} /> : <LoginPage onLoginSuccess={handleLoginSuccess} />} />
         <Route path="/recruiter/welcome" element={loggedIn && role === 'recruiter' ? <RecruiterWelcome username={username} onLogout={handleLogout} /> : <LoginPage onLoginSuccess={handleLoginSuccess} />} />
+
+        {/* Help Center - Accessible to all roles, but displays role-specific content */}
+        <Route path="/help" element={
+          loggedIn
+            ? <HelpCenter username={username} role={role} onLogout={handleLogout} facultyId={facultyId || undefined} />
+            : <HelpCenter />
+        } />
+
         <Route
           path="/institutional/welcome"
           element={
@@ -237,6 +258,10 @@ function App() {
               : <LoginPage onLoginSuccess={handleLoginSuccess} />
           }
         />
+
+        {/* Catch-all 404 Route */}
+        <Route path="*" element={<NotFound />} />
+
         <Route
           path="/institutional/tests"
           element={
@@ -245,7 +270,7 @@ function App() {
               : <LoginPage onLoginSuccess={handleLoginSuccess} />
           }
         />
-        
+
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </div>
