@@ -21,6 +21,7 @@ const SessionScheduler: React.FC = () => {
   const [sessions, setSessions] = useState<Session[]>([])
   const [batches, setBatches] = useState<Batch[]>([])
   const [showCreate, setShowCreate] = useState(false)
+  const { facultyId } = useParams()
   
   const [newSession, setNewSession] = useState<Session>({
     title: '',

@@ -47,7 +47,7 @@ app.use('/api', (req, res) => {
 	res.status(404).json({ ok: false, error: 'Not found' });
 });
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5005;
 
 // Connect to MongoDB first, then start server
 const uri = process.env.MONGO_URI;

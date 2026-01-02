@@ -1,5 +1,6 @@
-import { useEffect, useState, useRef } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useEffect, useState, useCallback } from 'react'
+import { useLocation } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { getJson, postJson } from '../../lib/api'
 import { 
   BookOpen, 
@@ -48,83 +49,21 @@ export default function StudentTests({ username = '' }: Props) {
   const [showResult, setShowResult] = useState(false)
   const [result, setResult] = useState<TestResult | null>(null)
 
-  async function load() {
+  const load = useCallback(async () => {
     if (!username) return
-    setLoading(true)
-    try {
-      const res = await getJson<{ ok: boolean; data: TestListItem[] }>(`/api/student/${encodeURIComponent(username)}/tests`)
-      if (res.ok && res.data) setTests(res.data.data || [])
-    } finally {
-      setLoading(false)
-    }
-  }
+    const res = await getJson<{ ok: boolean; data: TestListItem[] }>(`/api/student/${encodeURIComponent(username)}/tests`)
+    if (res.ok && res.data) setTests(res.data.data || [])
+  }, [username])
 
-  useEffect(() => { void load() }, [username])
-
-  useEffect(() => {
-    const state: any = location.state as any
-    if (state && state.openTestId && username) {
-      void openTest(state.openTestId)
-      window.history.replaceState({}, '')
-    }
-  }, [location.state, username])
-
-  async function openTest(id: string) {
+  const openTest = useCallback(async (id: string) => {
     const res = await getJson<{ ok: boolean; data: TestDetail }>(`/api/student/${encodeURIComponent(username)}/tests/${encodeURIComponent(id)}`)
     if (!res.ok) return alert(res.error || 'Failed to load test')
     const test = res.data.data
     setActive(test)
     setAnswers(Array(test.questions.length).fill(-1))
-    setVisitedQuestions(new Set([0]))
-    setFlaggedQuestions(new Set())
-    setCurrentQuestion(0)
-    setFilterMode('all')
-  }
+  }, [username])
 
-  const toggleFlag = (index: number) => {
-    setFlaggedQuestions(prev => {
-      const newSet = new Set(prev)
-      if (newSet.has(index)) {
-        newSet.delete(index)
-      } else {
-        newSet.add(index)
-      }
-      return newSet
-    })
-  }
-
-  const scrollToQuestion = (index: number) => {
-    setCurrentQuestion(index)
-    setVisitedQuestions(prev => new Set(prev).add(index))
-    questionRefs.current[index]?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-  }
-
-  const goToNextQuestion = () => {
-    if (!active || currentQuestion >= active.questions.length - 1) return
-    scrollToQuestion(currentQuestion + 1)
-  }
-
-  const goToPrevQuestion = () => {
-    if (currentQuestion <= 0) return
-    scrollToQuestion(currentQuestion - 1)
-  }
-
-  const clearAllAnswers = () => {
-    if (confirm('Clear all answers? This cannot be undone.')) {
-      setAnswers(Array(active?.questions.length || 0).fill(-1))
-    }
-  }
-
-  const getFilteredQuestions = () => {
-    if (!active) return []
-    return active.questions.map((_, i) => i).filter(i => {
-      if (filterMode === 'flagged') return flaggedQuestions.has(i)
-      if (filterMode === 'unanswered') return answers[i] === -1
-      return true
-    })
-  }
-
-  async function submit() {
+  const submit = useCallback(async () => {
     if (!active) return
     const unanswered = answers.filter(a => a === -1).length
     const flagged = flaggedQuestions.size
@@ -156,7 +95,21 @@ export default function StudentTests({ username = '' }: Props) {
     setVisitedQuestions(new Set())
     setFlaggedQuestions(new Set())
     await load()
-  }
+  }, [active, answers, username, load])
+
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { void load() }, [load])
+
+  useEffect(() => {
+    // If navigated from an announcement with a test id, auto-open
+    const state = location.state as { openTestId?: string } | null
+    if (state && state.openTestId && username) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      void openTest(state.openTestId)
+      // clear history state so repeated navigations don't reopen
+      window.history.replaceState({}, '')
+    }
+  }, [location.state, username, openTest])
 
   const getResultConfig = (percentage: number) => {
     if (percentage === 100) {
