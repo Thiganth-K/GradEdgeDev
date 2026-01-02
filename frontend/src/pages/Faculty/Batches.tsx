@@ -45,11 +45,11 @@ export default function FacultyBatches() {
     setLoading(true)
     try {
       const [batchRes, studRes] = await Promise.all([
-        getJson<{ batches: Batch[] }>(`/api/faculty/batches?faculty_id=${facultyId}`),
-        getJson<{ data: Student[] }>(`/api/faculty/${facultyId}/students`),
+        getJson<{ ok: boolean; data: Batch[] }>(`/api/faculty/${facultyId}/batches`),
+        getJson<{ ok: boolean; data: Student[] }>(`/api/faculty/${facultyId}/students`),
       ])
-      if (batchRes.ok && batchRes.data?.batches) setBatches(batchRes.data.batches)
-      if (studRes.ok && studRes.data?.data) setStudents(studRes.data.data)
+      if (batchRes.ok && batchRes.data) setBatches(batchRes.data.data || [])
+      if (studRes.ok && studRes.data) setStudents(studRes.data.data || [])
     } catch (err) {
       console.error(err)
     }
@@ -82,7 +82,8 @@ export default function FacultyBatches() {
     }
     setAssigning(true)
     try {
-      const res = await postJson(`/api/faculty/batches/${selectedBatch}/assign`, {
+      const url = `/api/faculty/${encodeURIComponent(facultyId)}/batches/${encodeURIComponent(selectedBatch)}/assign`;
+      const res = await postJson(url, {
         faculty_id: facultyId,
         student_ids: Array.from(selectedStudents),
       })

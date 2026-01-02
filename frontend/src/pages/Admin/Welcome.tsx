@@ -51,10 +51,6 @@ export default function AdminWelcomePage({ username: propUsername, fallbackUsern
   const subtitle = data?.greeting ?? 'Welcome to the admin dashboard.'
   const username = data?.username ?? propUsername ?? fallbackUsername
 
-  function handleManage() {
-    navigate('/faculty/manage')
-  }
-
   function handleManageInstitutional() {
     navigate('/admin/institutional')
   }
@@ -72,7 +68,6 @@ export default function AdminWelcomePage({ username: propUsername, fallbackUsern
         loading={loading}
         error={error}
         onLogout={onLogout}
-        onManage={handleManage}
         onManageInstitutional={handleManageInstitutional}
         onViewLogs={handleViewLogs}
       />

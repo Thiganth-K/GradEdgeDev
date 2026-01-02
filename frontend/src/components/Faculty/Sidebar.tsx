@@ -92,21 +92,22 @@ export default function FacultySidebar({
           )}
         </div>
 
-        {/* Navigation */}
-        <div className="flex-1 overflow-y-auto py-6 px-4 space-y-8 custom-scrollbar">
-
-          {/* Main Menu */}
-          <div>
-            {!isCollapsed && (
-              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 px-2">Menu</h3>
-            )}
-            <div className="space-y-1">
-              <NavItem to={`/faculty/${facultyId}/dashboard`} icon={LayoutDashboard} label="Dashboard" activePath="/dashboard" />
-              <NavItem to={`/faculty/${facultyId}/batches`} icon={Layers} label="Batches" activePath="/batches" />
-              <NavItem to={`/faculty/${facultyId}/students`} icon={Users} label="Students" activePath="/students" />
-              {/* Reuse NavItem for other placeholder links if needed */}
+         {/* Navigation */}
+         <div className="flex-1 overflow-y-auto py-6 px-4 space-y-8 custom-scrollbar">
+            
+            {/* Main Menu */}
+            <div>
+               {!isCollapsed && (
+                 <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 px-2">Menu</h3>
+               )}
+               <div className="space-y-1">
+                  <NavItem to={`/faculty/${facultyId}/dashboard`} icon={LayoutDashboard} label="Dashboard" activePath="/dashboard" />
+                  <NavItem to={`/faculty/${facultyId}/batches`} icon={Layers} label="Batches" activePath="/batches" />
+                  <NavItem to={`/faculty/${facultyId}/students`} icon={Users} label="Students" activePath="/students" />
+                  <NavItem to={`/faculty/${facultyId}/tests`} icon={Layers} label="Tests" activePath="/tests" />
+                  {/* Reuse NavItem for other placeholder links if needed */}
+               </div>
             </div>
-          </div>
 
           {/* General Settings */}
           <div>

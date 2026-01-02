@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useParams } from 'react-router-dom'
 import { Megaphone, Plus, X } from 'lucide-react'
 import { getJson, postJson } from '../../../lib/api'
 
@@ -37,19 +38,25 @@ const AnnouncementManager: React.FC = () => {
 
   const fetchAnnouncements = async () => {
     setLoading(true)
-    const res = await getJson<{ announcements: Announcement[] }>('/api/faculty/announcements')
+        const { facultyId } = useParams()
+        const q = facultyId ? `?faculty_id=${facultyId}` : ''
+        const res = await getJson<{ announcements: Announcement[] }>(`/api/faculty/announcements${q}`)
     if (res.ok) setAnnouncements(res.data.announcements)
     setLoading(false)
   }
 
   const fetchBatches = async () => {
-    const res = await getJson<{ batches: Batch[] }>('/api/faculty/batches')
+        const { facultyId } = useParams()
+        const q = facultyId ? `?faculty_id=${facultyId}` : ''
+        const res = await getJson<{ batches: Batch[] }>(`/api/faculty/batches${q}`)
     if (res.ok) setBatches(res.data.batches)
   }
 
   const handleCreate = async () => {
     if (!newAnnouncement.title || !newAnnouncement.content) return
-    const res = await postJson('/api/faculty/announcements', newAnnouncement)
+        const { facultyId } = useParams()
+        const payload = { ...newAnnouncement, faculty_id: facultyId || newAnnouncement.faculty_id }
+        const res = await postJson('/api/faculty/announcements', payload)
     if (res.ok) {
         setShowCreate(false)
         fetchAnnouncements()
