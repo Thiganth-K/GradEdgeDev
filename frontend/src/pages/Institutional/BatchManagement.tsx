@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getJson, postJson } from '../../lib/api'
+import { getJson, postJson, putJson, deleteJson } from '../../lib/api'
 
 type FacultyRow = {
   username: string
@@ -39,22 +39,21 @@ type BatchRow = {
 
 type Props = {
   username?: string
+  institutionId?: string
 }
 
-export default function BatchManagement({ username }: Props) {
+export default function BatchManagement({ username, institutionId: propInstitutionId }: Props) {
   const navigate = useNavigate()
-  const [institutionId] = useState(username || '')
-  const blankStudentRow: StudentRow = { name: '', regno: '', dept: '', email: '', mobile: '' }
-  const [studentCsv, setStudentCsv] = useState('')
-  const [studentRows, setStudentRows] = useState<StudentRow[]>([blankStudentRow])
-  const [selectedFacultyId, setSelectedFacultyId] = useState('')
-  const [selectedFacultyUsername, setSelectedFacultyUsername] = useState('')
-  const [studentSubmitError, setStudentSubmitError] = useState<string | null>(null)
-  const [studentSubmitSuccess, setStudentSubmitSuccess] = useState<string | null>(null)
-  const [studentSubmitting, setStudentSubmitting] = useState(false)
+  const [institutionId] = useState(propInstitutionId || username || '')
+  
   const [facultyList, setFacultyList] = useState<FacultyRow[]>([])
   const [batches, setBatches] = useState<BatchRow[]>([])
   const [batchesLoading, setBatchesLoading] = useState(false)
+  const [editBatchCode, setEditBatchCode] = useState('')
+  const [editForm, setEditForm] = useState<BatchRow | null>(null)
+  const [editSaving, setEditSaving] = useState(false)
+  const [editError, setEditError] = useState<string | null>(null)
+  const [deleteLoading, setDeleteLoading] = useState<string | null>(null)
   const [batchForm, setBatchForm] = useState<BatchRow>({ batch_code: '', name: '', department: '', year: '', section: '', faculty_id: '' })
   const [batchSubmitting, setBatchSubmitting] = useState(false)
   const [batchSubmitError, setBatchSubmitError] = useState<string | null>(null)
@@ -89,11 +88,7 @@ export default function BatchManagement({ username }: Props) {
     setBatchesLoading(false)
   }
 
-  function setFacultyAssignment(facultyId: string) {
-    setSelectedFacultyId(facultyId)
-    const found = facultyList.find((f) => f.faculty_id === facultyId)
-    setSelectedFacultyUsername(found?.username || '')
-  }
+  // faculty assignment helper moved to StudentManagement
 
   function updateBatchField(field: keyof BatchRow, value: string) {
     setBatchForm((prev) => ({ ...prev, [field]: value }))
@@ -128,6 +123,7 @@ export default function BatchManagement({ username }: Props) {
     const res = await postJson<{ ok: boolean; data?: BatchRow; error?: string }, typeof payload>(
       `/api/institutional/${institutionId}/batches`,
       payload,
+      { headers: { 'x-requested-by': 'institutional' } },
     )
     setBatchSubmitting(false)
 
@@ -141,84 +137,7 @@ export default function BatchManagement({ username }: Props) {
     void loadBatches()
   }
 
-  function updateStudentRow(index: number, field: keyof StudentRow, value: string) {
-    setStudentRows((prev) => {
-      const next = [...prev]
-      next[index] = { ...next[index], [field]: value }
-      return next
-    })
-  }
-
-  function addStudentRow() {
-    setStudentRows((prev) => [...prev, { ...blankStudentRow }])
-  }
-
-  function removeStudentRow(index: number) {
-    setStudentRows((prev) => (prev.length === 1 ? prev : prev.filter((_, i) => i !== index)))
-  }
-
-  async function onSubmitStudents() {
-    if (!institutionId) {
-      setStudentSubmitError('Institution ID is required')
-      return
-    }
-
-    const payload: Record<string, unknown> = {}
-    const trimmedCsv = studentCsv.trim()
-
-    if (trimmedCsv) {
-      payload.csv = trimmedCsv
-    } else {
-      const compactRows = studentRows
-        .map((r) => ({
-          name: r.name.trim(),
-          regno: r.regno.trim(),
-          dept: r.dept.trim(),
-          email: r.email.trim(),
-          mobile: r.mobile.trim(),
-        }))
-        .filter((r) => r.name || r.regno || r.dept || r.email || r.mobile)
-
-      if (compactRows.length === 0) {
-        setStudentSubmitError('Add at least one student row or paste CSV')
-        return
-      }
-
-      const missing = compactRows.find((r) => !r.name || !r.regno)
-      if (missing) {
-        setStudentSubmitError('Each row needs name and regno')
-        return
-      }
-
-      payload.rows = compactRows
-    }
-
-    if (selectedFacultyId) {
-      payload.faculty_id = selectedFacultyId
-      if (selectedFacultyUsername) {
-        payload.faculty_username = selectedFacultyUsername
-      }
-    }
-
-    setStudentSubmitting(true)
-    setStudentSubmitError(null)
-    setStudentSubmitSuccess(null)
-    const res = await postJson<{ ok: boolean; data?: StudentDoc[]; error?: string }, Record<string, unknown>>(
-      `/api/institutional/${institutionId}/students/batch`,
-      payload,
-    )
-    setStudentSubmitting(false)
-
-    if (!res.ok || !res.data.ok) {
-      setStudentSubmitError(res.ok ? res.data.error || 'Unable to create students' : res.error || 'Network error')
-      return
-    }
-
-    const createdCount = res.data.data?.length ?? 0
-    setStudentSubmitSuccess(createdCount ? `Created ${createdCount} students` : 'Students created')
-    setStudentCsv('')
-    setStudentRows([blankStudentRow])
-  }
+  
 
   return (
     <div className="min-h-screen bg-white">
@@ -240,7 +159,10 @@ export default function BatchManagement({ username }: Props) {
               </button>
               <div>
                 <h1 className="text-3xl font-bold tracking-tight">Batch Management</h1>
-                <p className="mt-1 text-sm text-white opacity-90">Create multiple students at once</p>
+                <p className="mt-1 text-sm text-white opacity-90">Create and manage batches for your institution</p>
+                {institutionId && (
+                  <p className="mt-1 text-xs text-white/80">Institution ID: {institutionId}</p>
+                )}
               </div>
             </div>
             
@@ -366,6 +288,7 @@ export default function BatchManagement({ username }: Props) {
                     <th className="py-2 px-3">Year</th>
                     <th className="py-2 px-3">Section</th>
                     <th className="py-2 px-3">Faculty</th>
+                    <th className="py-2 px-3">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
@@ -377,171 +300,158 @@ export default function BatchManagement({ username }: Props) {
                       <td className="py-2 px-3 text-gray-800">{b.year || '-'}</td>
                       <td className="py-2 px-3 text-gray-800">{b.section || '-'}</td>
                       <td className="py-2 px-3 text-gray-800">{b.faculty_id || '-'}</td>
+                      <td className="py-2 px-3 text-gray-800">
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => {
+                              setEditBatchCode(b.batch_code)
+                              setEditForm({ ...b })
+                              setEditError(null)
+                            }}
+                            className="text-sm text-white bg-blue-600 px-2 py-1 rounded hover:bg-blue-700"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={async () => {
+                              if (!institutionId) return alert('Institution ID missing')
+                              if (!confirm(`Delete batch ${b.batch_code}? This cannot be undone.`)) return
+                              try {
+                                setDeleteLoading(b.batch_code)
+                                const res = await deleteJson<{
+                                  ok: boolean
+                                  error?: string
+                                  reason?: 'not_found' | 'belongs_to_other' | 'unknown' | 'diag_error'
+                                }>(
+                                  `/api/institutional/${institutionId}/batches/${encodeURIComponent(b.batch_code)}`,
+                                  { headers: { 'x-requested-by': 'institutional' } },
+                                )
+                                setDeleteLoading(null)
+
+                                if (!res.ok) {
+                                  // Network or HTTP error
+                                  alert(res.error || `Delete failed (${res.status || 'error'})`)
+                                  return
+                                }
+
+                                if (!res.data.ok) {
+                                  // Handle diagnostic reason from server
+                                  const reason = res.data.reason
+                                  if (reason === 'not_found') {
+                                    alert('Delete failed: batch not found')
+                                  } else if (reason === 'belongs_to_other') {
+                                    alert('Delete failed: batch belongs to a different institution')
+                                  } else if (reason === 'diag_error') {
+                                    alert('Delete failed: server diagnostics error')
+                                  } else {
+                                    alert(res.data.error || 'Delete failed')
+                                  }
+                                  return
+                                }
+                                void loadBatches()
+                              } catch (err) {
+                                setDeleteLoading(null)
+                                alert('Delete failed')
+                              }
+                            }}
+                            className="text-sm text-white bg-red-600 px-2 py-1 rounded hover:bg-red-700"
+                          >
+                            {deleteLoading === b.batch_code ? 'Deleting…' : 'Delete'}
+                          </button>
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
           )}
+          
+          {/* Edit Batch Modal */}
+          {editForm && (
+            <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+              <div className="bg-white rounded-lg p-6 w-full max-w-lg">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xl font-bold">Edit Batch {editBatchCode}</h3>
+                  <button onClick={() => setEditForm(null)} className="text-gray-500 hover:text-gray-700">✕</button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Name</label>
+                    <input className="w-full border-2 border-gray-300 rounded-lg px-4 py-2" value={editForm.name || ''} onChange={(e) => setEditForm(prev => prev ? ({ ...prev, name: e.target.value }) : prev)} />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Department</label>
+                    <input className="w-full border-2 border-gray-300 rounded-lg px-4 py-2" value={editForm.department || ''} onChange={(e) => setEditForm(prev => prev ? ({ ...prev, department: e.target.value }) : prev)} />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Year</label>
+                    <input className="w-full border-2 border-gray-300 rounded-lg px-4 py-2" value={editForm.year || ''} onChange={(e) => setEditForm(prev => prev ? ({ ...prev, year: e.target.value }) : prev)} />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Section</label>
+                    <input className="w-full border-2 border-gray-300 rounded-lg px-4 py-2" value={editForm.section || ''} onChange={(e) => setEditForm(prev => prev ? ({ ...prev, section: e.target.value }) : prev)} />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Assign to faculty</label>
+                    <select className="w-full border-2 border-gray-300 rounded-lg px-4 py-2" value={editForm.faculty_id || ''} onChange={(e) => setEditForm(prev => prev ? ({ ...prev, faculty_id: e.target.value }) : prev)}>
+                      <option value="">Select faculty</option>
+                      {facultyList.map(f => (
+                        <option key={f.username} value={f.faculty_id || ''}>{(f.faculty_id || f.username) + (f.full_name ? ` — ${f.full_name}` : '')}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {editError && <div className="mt-4 text-sm text-red-600">{editError}</div>}
+
+                <div className="mt-6 flex justify-end gap-3">
+                  <button onClick={() => setEditForm(null)} className="px-4 py-2 border rounded">Cancel</button>
+                  <button
+                    onClick={async () => {
+                      if (!institutionId || !editBatchCode || !editForm) return
+                      setEditSaving(true)
+                      setEditError(null)
+                      try {
+                        const payload = {
+                          name: editForm.name || undefined,
+                          department: editForm.department || undefined,
+                          year: editForm.year || undefined,
+                          section: editForm.section || undefined,
+                          faculty_id: editForm.faculty_id || undefined,
+                        }
+                        const res = await putJson<{ ok: boolean; data?: BatchRow; error?: string }, typeof payload>(
+                          `/api/institutional/${institutionId}/batches/${encodeURIComponent(
+                            editBatchCode,
+                          )}`,
+                          payload,
+                          { headers: { 'x-requested-by': 'institutional' } },
+                        )
+                        setEditSaving(false)
+                        if (!res.ok || !res.data.ok) {
+                          setEditError(res.ok ? res.data.error || 'Update failed' : res.error || 'Network error')
+                          return
+                        }
+                        setEditForm(null)
+                        void loadBatches()
+                      } catch (err) {
+                        setEditSaving(false)
+                        setEditError('Update failed')
+                      }
+                    }}
+                    disabled={editSaving}
+                    className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+                  >
+                    {editSaving ? 'Saving…' : 'Save Changes'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
-        <div className="rounded-lg border-2 border-red-600 bg-white p-6 shadow-xl animate-scaleIn">
-          <h2 className="text-xl font-bold text-black mb-4">Batch Create Students</h2>
-          <p className="text-sm text-gray-600 mb-6">
-            Paste CSV or fill rows (name, regno, department, email, mobile). Optionally assign all to a faculty.
-          </p>
-
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Assign to faculty (optional)</label>
-                <select
-                  className="w-full border-2 border-gray-300 rounded-lg px-4 py-2 focus:border-red-600 focus:outline-none"
-                  value={selectedFacultyId}
-                  onChange={(e) => setFacultyAssignment(e.target.value)}
-                >
-                  <option value="">No faculty assignment</option>
-                  {facultyList.map((f) => (
-                    <option key={f.username} value={f.faculty_id || ''}>
-                      {(f.faculty_id || f.username) + (f.full_name ? ` — ${f.full_name}` : '')}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="flex flex-col justify-end text-xs text-gray-600 bg-red-50 rounded-lg p-3 border border-red-200">
-                <div className="font-semibold">CSV format:</div>
-                <div>name,regno,dept,email,mobile</div>
-                <div className="mt-1 text-red-600">CSV takes priority if provided</div>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Paste CSV lines</label>
-              <textarea
-                className="w-full border-2 border-gray-300 rounded-lg px-4 py-3 h-32 focus:border-red-600 focus:outline-none font-mono text-sm"
-                value={studentCsv}
-                onChange={(e) => setStudentCsv(e.target.value)}
-                placeholder="Jane Doe,REG123,Computer Science,jane@example.com,9876543210&#10;John Smith,REG124,Mathematics,john@example.com,9876543211"
-              />
-            </div>
-
-            <div className="border-t-2 border-red-200 pt-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-bold text-base text-black">Or enter rows manually</h3>
-                <button
-                  type="button"
-                  onClick={addStudentRow}
-                  className="rounded-lg bg-red-600 px-4 py-2 text-sm font-bold text-white transition-all duration-300 hover:bg-red-700 hover:scale-105"
-                >
-                  + Add Row
-                </button>
-              </div>
-
-              <div className="overflow-x-auto border-2 border-red-200 rounded-lg">
-                <table className="min-w-full text-sm">
-                  <thead className="bg-red-50 border-b-2 border-red-200">
-                    <tr className="text-left">
-                      <th className="py-3 px-3 text-xs font-bold uppercase tracking-wider text-red-700">Name</th>
-                      <th className="py-3 px-3 text-xs font-bold uppercase tracking-wider text-red-700">Reg No</th>
-                      <th className="py-3 px-3 text-xs font-bold uppercase tracking-wider text-red-700">Department</th>
-                      <th className="py-3 px-3 text-xs font-bold uppercase tracking-wider text-red-700">Email</th>
-                      <th className="py-3 px-3 text-xs font-bold uppercase tracking-wider text-red-700">Mobile</th>
-                      <th className="py-3 px-3 text-xs font-bold uppercase tracking-wider text-red-700">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-red-100">
-                    {studentRows.map((row, idx) => (
-                      <tr key={idx} className="hover:bg-red-50/50">
-                        <td className="py-2 px-3">
-                          <input
-                            className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:border-red-600 focus:outline-none"
-                            value={row.name}
-                            onChange={(e) => updateStudentRow(idx, 'name', e.target.value)}
-                            placeholder="Jane Doe"
-                          />
-                        </td>
-                        <td className="py-2 px-3">
-                          <input
-                            className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:border-red-600 focus:outline-none"
-                            value={row.regno}
-                            onChange={(e) => updateStudentRow(idx, 'regno', e.target.value)}
-                            placeholder="REG123"
-                          />
-                        </td>
-                        <td className="py-2 px-3">
-                          <input
-                            className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:border-red-600 focus:outline-none"
-                            value={row.dept}
-                            onChange={(e) => updateStudentRow(idx, 'dept', e.target.value)}
-                            placeholder="CS"
-                          />
-                        </td>
-                        <td className="py-2 px-3">
-                          <input
-                            className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:border-red-600 focus:outline-none"
-                            value={row.email}
-                            onChange={(e) => updateStudentRow(idx, 'email', e.target.value)}
-                            placeholder="jane@example.com"
-                          />
-                        </td>
-                        <td className="py-2 px-3">
-                          <input
-                            className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:border-red-600 focus:outline-none"
-                            value={row.mobile}
-                            onChange={(e) => updateStudentRow(idx, 'mobile', e.target.value)}
-                            placeholder="9876543210"
-                          />
-                        </td>
-                        <td className="py-2 px-3">
-                          <button
-                            type="button"
-                            onClick={() => removeStudentRow(idx)}
-                            className="rounded-lg border-2 border-red-600 bg-red-600 px-3 py-1 text-xs font-bold text-white transition-all duration-300 hover:bg-red-700"
-                          >
-                            Remove
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            {studentSubmitError && (
-              <div className="rounded-lg border-2 border-red-600 bg-red-50 text-red-700 px-4 py-3 text-sm font-semibold">
-                {studentSubmitError}
-              </div>
-            )}
-            {studentSubmitSuccess && (
-              <div className="rounded-lg border-2 border-green-600 bg-green-50 text-green-700 px-4 py-3 text-sm font-semibold">
-                {studentSubmitSuccess}
-              </div>
-            )}
-
-            <div className="flex gap-3 pt-4">
-              <button
-                onClick={onSubmitStudents}
-                disabled={studentSubmitting}
-                className="rounded-lg bg-red-600 px-6 py-2 text-sm font-bold text-white shadow-md transition-all duration-300 hover:bg-red-700 hover:scale-105 disabled:opacity-60"
-              >
-                {studentSubmitting ? 'Creating…' : 'Create Students'}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setStudentCsv('')
-                  setStudentRows([blankStudentRow])
-                  setStudentSubmitError(null)
-                  setStudentSubmitSuccess(null)
-                }}
-                className="rounded-lg border-2 border-red-600 bg-white px-6 py-2 text-sm font-bold text-red-600 transition-all duration-300 hover:bg-red-600 hover:text-white"
-              >
-                Clear
-              </button>
-            </div>
-          </div>
-        </div>
+        {/* Student bulk-create moved to StudentManagement page */}
       </div>
     </div>
   )

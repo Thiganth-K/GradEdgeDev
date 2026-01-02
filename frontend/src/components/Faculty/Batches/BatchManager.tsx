@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useParams } from 'react-router-dom'
 import { Plus, Users, Upload, FileSpreadsheet, X } from 'lucide-react'
 import { getJson, postJson } from '../../../lib/api'
 
@@ -27,7 +28,9 @@ const BatchManager: React.FC = () => {
   // Fetch Batches
   const fetchBatches = async () => {
     setLoading(true)
-    const res = await getJson<{ batches: Batch[] }>('/api/faculty/batches')
+        const { facultyId } = useParams()
+        const query = facultyId ? `?faculty_id=${facultyId}` : ''
+        const res = await getJson<{ batches: Batch[] }>(`/api/faculty/batches${query}`)
     if (res.ok) {
       setBatches(res.data.batches)
     }

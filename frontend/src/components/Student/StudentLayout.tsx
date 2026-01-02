@@ -31,6 +31,7 @@ const StudentLayout: React.FC<StudentLayoutProps> = ({
     { icon: MessageSquare, label: 'Soft Skills', path: '/student/soft-skills' },
     { icon: BookOpen, label: 'Domain Knowledge', path: '/student/domain' },
     { icon: Rocket, label: 'Project Sim', path: '/student/project-sim' },
+    { icon: BookOpen, label: 'Take MCQ Test', path: '/student/tests' },
     { icon: History, label: 'Assessment History', path: '/student/history' },
   ]
 

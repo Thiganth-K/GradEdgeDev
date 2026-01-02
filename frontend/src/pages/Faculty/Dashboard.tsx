@@ -62,13 +62,13 @@ const FacultyDashboard: React.FC<Props> = ({ username, onLogout }) => {
     if (!facultyId) return
     setLoading(true)
     try {
-      const [batchRes, sessionRes] = await Promise.all([
-        getJson<{ ok: boolean; batches: Batch[] }>(`/api/faculty/batches?faculty_id=${facultyId}`),
-        getJson<{ ok: boolean; sessions: Session[] }>(`/api/faculty/sessions?faculty_id=${facultyId}`)
-      ])
+         const [batchRes, sessionRes] = await Promise.all([
+            getJson<{ ok: boolean; data: Batch[] }>(`/api/faculty/${facultyId}/batches`),
+            getJson<{ ok: boolean; sessions: Session[] }>(`/api/faculty/sessions?faculty_id=${facultyId}`)
+         ])
 
-      const fetchedBatches = batchRes.ok ? batchRes.data.batches : []
-      const fetchedSessions = sessionRes.ok ? sessionRes.data.sessions : []
+         const fetchedBatches = batchRes.ok && batchRes.data ? batchRes.data.data : []
+         const fetchedSessions = sessionRes.ok && sessionRes.data ? sessionRes.data.sessions || [] : []
       
       setBatches(fetchedBatches)
       setSessions(fetchedSessions)
