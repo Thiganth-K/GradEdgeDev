@@ -22,6 +22,8 @@ export default function InstitutionalTests({ username, institutionId: propInstit
   const [batchList, setBatchList] = useState<Array<{ batch_code: string; name?: string }>>([])
   const [type, setType] = useState<'aptitude' | 'technical' | 'psychometric'>('aptitude')
   const [title, setTitle] = useState('')
+  const [useCustom, setUseCustom] = useState(false)
+  const [questions, setQuestions] = useState<Array<{ q: string; options: string[]; correctIndex: number }>>([])
   const [selectedFacultyId, setSelectedFacultyId] = useState('')
   const [selectedBatchCodes, setSelectedBatchCodes] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
@@ -57,11 +59,27 @@ export default function InstitutionalTests({ username, institutionId: propInstit
 
   async function create() {
     if (!institutionId) return alert('Institution ID required')
-    const res = await institutionalApi.createTest(institutionId, { type, title })
+    const body: any = { type, title }
+    if (useCustom && questions.length > 0) body.questions = questions
+    const res = await institutionalApi.createTest(institutionId, body)
     if (!res.ok) return alert(res.error || 'Failed to create test')
     setTitle('')
+    setUseCustom(false)
+    setQuestions([])
     await load()
     await loadHelpers()
+  }
+
+  function addQuestion() {
+    setQuestions(prev => [...prev, { q: '', options: ['', ''], correctIndex: 0 }])
+  }
+
+  function updateQuestion(i: number, patch: Partial<{ q: string; options: string[]; correctIndex: number }>) {
+    setQuestions(prev => prev.map((p, idx) => (idx === i ? { ...p, ...patch } : p)))
+  }
+
+  function removeQuestion(i: number) {
+    setQuestions(prev => prev.filter((_, idx) => idx !== i))
   }
 
   async function assign(testId: string) {
@@ -97,7 +115,54 @@ export default function InstitutionalTests({ username, institutionId: propInstit
             <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Optional Title" className="p-3 border rounded-xl" />
             <button onClick={create} className="bg-red-600 text-white rounded-xl px-4 py-3">Create</button>
           </div>
-          <p className="text-sm text-slate-600">Each new test auto-generates 5 questions for the selected type.</p>
+          <div className="flex items-center gap-3 mb-3">
+            <label className="flex items-center gap-2 text-sm">
+              <input type="checkbox" checked={useCustom} onChange={e => setUseCustom(e.target.checked)} />
+              Use custom questions
+            </label>
+            <p className="text-sm text-slate-600">Leave disabled to auto-generate 5 questions.</p>
+          </div>
+
+          {useCustom && (
+            <div className="space-y-3 mb-4">
+              <div className="flex gap-2">
+                <button onClick={addQuestion} className="px-3 py-2 bg-slate-100 rounded">Add question</button>
+                <div className="text-sm text-slate-500 self-center">{questions.length} questions</div>
+              </div>
+              {questions.map((q, i) => (
+                <div key={i} className="p-3 border rounded space-y-2">
+                  <div className="flex justify-between">
+                    <div className="text-sm font-medium">Question {i + 1}</div>
+                    <button onClick={() => removeQuestion(i)} className="text-xs text-red-600">Remove</button>
+                  </div>
+                  <input value={q.q} onChange={e => updateQuestion(i, { q: e.target.value })} placeholder="Question text" className="w-full p-2 border rounded" />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {Array.from({ length: Math.max(2, q.options.length) }).map((_, oi) => (
+                      <input
+                        key={oi}
+                        value={q.options[oi] ?? ''}
+                        onChange={e => {
+                          const opts = q.options.slice()
+                          opts[oi] = e.target.value
+                          updateQuestion(i, { options: opts })
+                        }}
+                        placeholder={`Option ${oi + 1}`}
+                        className="p-2 border rounded"
+                      />
+                    ))}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm">Correct option index:</label>
+                    <select value={q.correctIndex} onChange={e => updateQuestion(i, { correctIndex: Number(e.target.value) })} className="p-2 border rounded">
+                      {q.options.map((_, oi) => (
+                        <option key={oi} value={oi}>{oi}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="bg-white border border-slate-200 rounded-2xl p-6">

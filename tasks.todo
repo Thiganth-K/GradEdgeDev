@@ -42,4 +42,8 @@ available tasks
 ☐ faculty dashboard to have the student count of each batch correctly 
 ☐ when the faculty clicks on a batch to view the batch details the faculty name is not shown correctly
 ☐ need to have a proper 404 page for the wrong routes
-
+☐ design the test management page in the institution dashboard
+☐ need to have a proper loading spinner across the app where ever necessary
+☐ the institution admin can create own question like the microsoft forms mcq style 
+☐ ui of the faculty dashboard to view the test management page 
+☐ ui of the student dashboard to view the test page and take test in a professional manner 

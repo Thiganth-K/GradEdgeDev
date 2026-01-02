@@ -104,7 +104,7 @@ export const institutionalApi = {
   // MCQ Tests
   createTest: (
     institutionalId: string,
-    body: { type: 'aptitude' | 'technical' | 'psychometric'; title?: string },
+    body: { type: 'aptitude' | 'technical' | 'psychometric'; title?: string; questions?: Array<{ q: string; options: string[]; correctIndex: number }> },
   ) => postJson<any, typeof body>(`/api/institutional/${enc(institutionalId)}/tests`, body, withHeaders(undefined, { 'x-requested-by': 'institutional' })),
 
   listTests: (institutionalId: string) => getJson<{ tests: any[] }>(`/api/institutional/${enc(institutionalId)}/tests`),

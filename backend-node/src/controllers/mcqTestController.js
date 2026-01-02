@@ -44,7 +44,25 @@ async function createMcqTest(institutionalId, payload) {
 
   const db = getDb();
   const coll = db.collection(COLLECTION);
-  const questions = generateQuestions(type);
+
+  // Allow institutional clients to pass custom questions in payload.questions
+  let questions;
+  if (payload && Array.isArray(payload.questions) && payload.questions.length > 0) {
+    // validate shape: [{ q: string, options: string[], correctIndex: number }]
+    const cleaned = [];
+    for (const item of payload.questions) {
+      if (!item || typeof item.q !== 'string') throw new Error('each question must have text `q`');
+      if (!Array.isArray(item.options) || item.options.length < 2) throw new Error('each question must have at least 2 options');
+      const opts = item.options.map(o => String(o));
+      const ci = Number.isFinite(item.correctIndex) ? Number(item.correctIndex) : -1;
+      if (ci < 0 || ci >= opts.length) throw new Error('correctIndex out of range for a question');
+      cleaned.push({ q: String(item.q).trim(), options: opts, correctIndex: ci });
+    }
+    questions = cleaned;
+  } else {
+    const gen = generateQuestions(type);
+    questions = gen;
+  }
   const doc = {
     institutional_id: institutionalId,
     type,
