@@ -238,6 +238,15 @@ export default function InstitutionalPage() {
                           <td className="px-4 py-3">{u.email}</td>
                           <td className="px-4 py-3">
                             <button
+                              onClick={() => {
+                                const instId = u.institutional_id || u.username
+                                navigate(`/institutional/${encodeURIComponent(instId)}/tests`)
+                              }}
+                              className="mr-2 rounded bg-blue-50 px-2 py-1 text-sm text-blue-700"
+                            >
+                              Manage Tests
+                            </button>
+                            <button
                               onClick={() => onEdit(u)}
                               className="mr-2 rounded bg-slate-100 px-2 py-1 text-sm"
                             >

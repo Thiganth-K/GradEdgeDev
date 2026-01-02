@@ -104,6 +104,7 @@ export default function FacultySidebar({
                   <NavItem to={`/faculty/${facultyId}/dashboard`} icon={LayoutDashboard} label="Dashboard" activePath="/dashboard" />
                   <NavItem to={`/faculty/${facultyId}/batches`} icon={Layers} label="Batches" activePath="/batches" />
                   <NavItem to={`/faculty/${facultyId}/students`} icon={Users} label="Students" activePath="/students" />
+                  <NavItem to={`/faculty/${facultyId}/tests`} icon={Layers} label="Tests" activePath="/tests" />
                   {/* Reuse NavItem for other placeholder links if needed */}
                </div>
             </div>

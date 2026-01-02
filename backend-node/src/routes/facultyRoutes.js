@@ -3,6 +3,8 @@ const express = require('express');
 const { listStudentsForFaculty } = require('../controllers/studentController');
 const { listBatchesForFaculty, addStudentsToBatch } = require('../controllers/batchController');
 const { getFacultyByUsername } = require('../controllers/facultyController');
+const { listTestsForFaculty, getResults } = require('../controllers/mcqTestController');
+const { getDb } = require('../config/db');
 
 const router = express.Router();
 
@@ -38,6 +40,23 @@ router.get('/api/faculty/:facultyId/batches', async (req, res) => {
 	}
 });
 
+// Support legacy frontend path: GET /api/faculty/sessions?faculty_id=xxx
+router.get('/api/faculty/sessions', async (req, res) => {
+	try {
+		const facultyId = req.query.faculty_id || req.query.facultyId || null;
+		const db = getDb();
+		const coll = db.collection('sessions');
+		const q = {};
+		if (facultyId) q.faculty_id = String(facultyId);
+		const docs = await coll.find(q).toArray();
+		const out = docs.map(d => ({ ...d, _id: d._id.toString() }));
+		return res.status(200).json({ ok: true, sessions: out });
+	} catch (err) {
+		console.error('[FACULTY] sessions list error', err && err.stack ? err.stack : err);
+		return res.status(500).json({ ok: false, error: err.message || 'Failed to list sessions' });
+	}
+});
+
 // List students belonging to a faculty member
 // GET /api/faculty/:facultyId/students
 router.get('/api/faculty/:facultyId/students', async (req, res) => {
@@ -63,6 +82,32 @@ router.post('/api/faculty/:facultyId/batches/:batchCode/assign', async (req, res
 	} catch (err) {
 		console.error('[FACULTY] assign to batch error', err && err.stack ? err.stack : err);
 		return res.status(500).json({ ok: false, error: err.message || 'Failed to assign students to batch' });
+	}
+});
+
+// List tests assigned to a faculty
+// GET /api/faculty/:facultyId/tests
+router.get('/api/faculty/:facultyId/tests', async (req, res) => {
+	const { facultyId } = req.params;
+	try {
+		const tests = await listTestsForFaculty(facultyId);
+		return res.status(200).json({ ok: true, data: tests });
+	} catch (err) {
+		console.error('[FACULTY] list tests error', err && err.stack ? err.stack : err);
+		return res.status(500).json({ ok: false, error: err.message || 'Failed to list tests' });
+	}
+});
+
+// Get test results (submissions) for a test
+// GET /api/faculty/:facultyId/tests/:testId/results
+router.get('/api/faculty/:facultyId/tests/:testId/results', async (req, res) => {
+	try {
+		const results = await getResults(req.params.testId);
+		return res.status(200).json({ ok: true, data: results });
+	} catch (err) {
+		console.error('[FACULTY] get results error', err && err.stack ? err.stack : err);
+		const status = err.message === 'test not found' ? 404 : 500;
+		return res.status(status).json({ ok: false, error: err.message || 'Failed to get results' });
 	}
 });
 

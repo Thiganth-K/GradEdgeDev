@@ -26,6 +26,11 @@ const {
 	deleteBatch,
 	addStudentsToBatch,
 } = require('../controllers/batchController');
+const {
+    createMcqTest,
+    listTestsByInstitution,
+    assignParticipants,
+} = require('../controllers/mcqTestController');
 
 const router = express.Router();
 
@@ -240,6 +245,71 @@ router.post('/api/institutional/:institutionId/students/batch', async (req, res)
 		res.status(201).json({ ok: true, data: created });
 	} catch (err) {
 		res.status(400).json({ ok: false, error: err.message || 'Failed to create students' });
+	}
+});
+
+// --- Institutional-level MCQ tests management ---
+
+// Create a new MCQ test for an institution (auto-generates 5 questions)
+router.post('/api/institutional/:institutionId/tests', async (req, res) => {
+	const caller = req.headers['x-requested-by'] || '';
+	if (String(caller).toLowerCase() !== 'institutional') {
+		return res.status(403).json({ ok: false, error: 'Forbidden: only institutional clients may create tests' });
+	}
+	try {
+		const created = await createMcqTest(req.params.institutionId, req.body || {});
+		return res.status(201).json({ ok: true, data: created });
+	} catch (err) {
+		return res.status(400).json({ ok: false, error: err.message || 'Failed to create test' });
+	}
+});
+
+// List tests for an institution
+router.get('/api/institutional/:institutionId/tests', async (req, res) => {
+	try {
+		const tests = await listTestsByInstitution(req.params.institutionId);
+		return res.status(200).json({ ok: true, data: tests });
+	} catch (err) {
+		return res.status(500).json({ ok: false, error: err.message || 'Failed to list tests' });
+	}
+});
+
+// Assign faculty and students to a test
+router.post('/api/institutional/:institutionId/tests/:testId/assign', async (req, res) => {
+	const caller = req.headers['x-requested-by'] || '';
+	if (String(caller).toLowerCase() !== 'institutional') {
+		return res.status(403).json({ ok: false, error: 'Forbidden: only institutional clients may assign tests' });
+	}
+	try {
+		const assigned = await assignParticipants(req.params.institutionId, req.params.testId, req.body || {});
+		res.status(200).json({ ok: true, data: assigned });
+	} catch (err) {
+		const msg = err && err.message ? err.message : 'unknown error';
+		let status = 400;
+		if (msg === 'test not found') status = 404;
+		else if (msg === 'test belongs to another institution') status = 403;
+		else if (msg === 'invalid test id') status = 400;
+		res.status(status).json({ ok: false, error: msg });
+	}
+});
+
+// Delete a test (institutional clients only)
+router.delete('/api/institutional/:institutionId/tests/:testId', async (req, res) => {
+	const caller = req.headers['x-requested-by'] || '';
+	if (String(caller).toLowerCase() !== 'institutional') {
+		return res.status(403).json({ ok: false, error: 'Forbidden: only institutional clients may delete tests' });
+	}
+	try {
+		const { deleteMcqTest } = require('../controllers/mcqTestController');
+		const deleted = await deleteMcqTest(req.params.institutionId, req.params.testId);
+		if (deleted) return res.status(200).json({ ok: true });
+		return res.status(400).json({ ok: false, error: 'Unable to delete test' });
+	} catch (err) {
+		if (err.message === 'test not found') return res.status(404).json({ ok: false, error: 'Not found' });
+		if (err.message === 'test belongs to another institution') return res.status(403).json({ ok: false, error: 'Test belongs to another institution' });
+		// eslint-disable-next-line no-console
+		console.error('[ROUTE] Failed to delete test', err && err.stack ? err.stack : err);
+		return res.status(400).json({ ok: false, error: err.message || 'Failed to delete test' });
 	}
 });
 

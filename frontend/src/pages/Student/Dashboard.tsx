@@ -1,4 +1,5 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts'
 import Box from '@mui/material/Box'
 import Stack from '@mui/material/Stack'
@@ -10,7 +11,7 @@ import { motion, type Variants } from 'framer-motion'
 import StudentLayout from '../../components/Student/StudentLayout'
 
 interface Announcement {
-  id: number
+  id: string
   title: string
   description: string
   date: string
@@ -79,38 +80,28 @@ const Dashboard: React.FC<DashboardProps> = ({ username = 'Student', onLogout })
   ]
 
   const unreadCount = notifications.filter(n => !n.read).length
+  const navigate = useNavigate()
 
-  // Announcements
-  const announcements: Announcement[] = [
-    {
-      id: 1,
-      title: 'Campus Placement Drive - Tech Giants',
-      description: 'Major tech companies visiting campus next week. Prepare your resumes and technical skills.',
-      date: 'Dec 28, 2025',
-      category: 'Placement'
-    },
-    {
-      id: 2,
-      title: 'Mock Interview Session',
-      description: 'Register for the mock interview sessions scheduled for this weekend.',
-      date: 'Dec 27, 2025',
-      category: 'Training'
-    },
-    {
-      id: 3,
-      title: 'Coding Contest - Winter Challenge',
-      description: 'Participate in the annual winter coding challenge. Prizes for top performers!',
-      date: 'Dec 30, 2025',
-      category: 'Contest'
-    },
-    {
-      id: 4,
-      title: 'Resume Building Workshop',
-      description: 'Learn to create an impactful resume. Limited seats available.',
-      date: 'Jan 02, 2026',
-      category: 'Workshop'
-    },
-  ]
+  // Announcements (fetched)
+  const [announcements, setAnnouncements] = useState<Announcement[]>([])
+
+  useEffect(() => {
+    let mounted = true
+    async function load() {
+      if (!username) return
+      try {
+        const res = await (await import('../../lib/api')).studentApi.getAnnouncements(username)
+        if (mounted && res.ok && res.data) {
+          // res.data.data is expected to be array
+          setAnnouncements(Array.isArray(res.data.data) ? res.data.data : res.data)
+        }
+      } catch (e) {
+        console.error('Failed to load announcements', e)
+      }
+    }
+    void load()
+    return () => { mounted = false }
+  }, [username])
 
   // Track read announcements and notice board paging/preview
   const [readAnnouncements, setReadAnnouncements] = useState<Set<number>>(new Set())
@@ -506,6 +497,11 @@ const Dashboard: React.FC<DashboardProps> = ({ username = 'Student', onLogout })
                               onClick={() => {
                                 toggleReadStatus(announcement.id)
                                 setPreviewAnnouncement(announcement)
+                                // If this announcement references a test, navigate student to tests and open it
+                                if ((announcement as any).test_id) {
+                                  const tid = (announcement as any).test_id
+                                  navigate(`/student/tests`, { state: { openTestId: tid } })
+                                }
                               }}
                               className={`rounded-lg p-4 border cursor-pointer transition-all duration-200 ${isRead
                                 ? 'bg-red-50 border-red-200 opacity-60 hover:opacity-70'

@@ -11,11 +11,14 @@ import RecruiterWelcome from './pages/Recruiter/Welcome'
 import LoginPage from './pages/Login'
 import StudentDashboard from './pages/Student/Dashboard'
 import StudentProfile from './pages/Student/Profile'
+import StudentTests from './pages/Student/Tests'
 import InstitutionalWelcome from './pages/Institutional/Welcome'
 import InstitutionalPage from './pages/Admin/Institutional'
 import FacultyManagement from './pages/Institutional/FacultyManagement'
 import BatchManagement from './pages/Institutional/BatchManagement'
 import StudentManagement from './pages/Institutional/StudentManagement'
+import InstitutionalTests from './pages/Institutional/Tests'
+import FacultyTests from './pages/Faculty/Tests'
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom'
 
 function App() {
@@ -172,6 +175,7 @@ function App() {
         <Route path="/faculty/:facultyId/dashboard" element={<ProtectedFacultyRoute><FacultyDashboard username={username} onLogout={handleLogout} /></ProtectedFacultyRoute>} />
         <Route path="/faculty/:facultyId/batches" element={<ProtectedFacultyRoute><FacultyBatches /></ProtectedFacultyRoute>} />
         <Route path="/faculty/:facultyId/students" element={<ProtectedFacultyRoute><FacultyStudents /></ProtectedFacultyRoute>} />
+        <Route path="/faculty/:facultyId/tests" element={<ProtectedFacultyRoute><FacultyTests /></ProtectedFacultyRoute>} />
         <Route path="/faculty/:facultyId/schedule" element={<ProtectedFacultyRoute><FacultyDashboard username={username} onLogout={handleLogout} /></ProtectedFacultyRoute>} /> 
         <Route path="/faculty/:facultyId/welcome" element={<Navigate to={`/faculty/${facultyId}/dashboard`} />} />
         
@@ -182,6 +186,7 @@ function App() {
         <Route path="/admin/institutional" element={loggedIn && role === 'admin' ? <InstitutionalPage /> : <LoginPage onLoginSuccess={handleLoginSuccess} />} />
         <Route path="/student/dashboard" element={loggedIn && role === 'student' ? <StudentDashboard username={username} onLogout={handleLogout} /> : <LoginPage onLoginSuccess={handleLoginSuccess} />} />
         <Route path="/student/profile" element={loggedIn && role === 'student' ? <StudentProfile username={username} onLogout={handleLogout} /> : <LoginPage onLoginSuccess={handleLoginSuccess} />} />
+        <Route path="/student/tests" element={loggedIn && role === 'student' ? <StudentTests username={username} onLogout={handleLogout} /> : <LoginPage onLoginSuccess={handleLoginSuccess} />} />
         <Route path="/recruiter/welcome" element={loggedIn && role === 'recruiter' ? <RecruiterWelcome username={username} onLogout={handleLogout} /> : <LoginPage onLoginSuccess={handleLoginSuccess} />} />
         <Route
           path="/institutional/welcome"
@@ -212,6 +217,14 @@ function App() {
           element={
             loggedIn && role === 'institutional'
               ? <StudentManagement username={username} institutionId={institutionalId || undefined} />
+              : <LoginPage onLoginSuccess={handleLoginSuccess} />
+          }
+        />
+        <Route
+          path="/institutional/tests"
+          element={
+            loggedIn && role === 'institutional'
+              ? <InstitutionalTests username={username} institutionId={institutionalId || undefined} />
               : <LoginPage onLoginSuccess={handleLoginSuccess} />
           }
         />

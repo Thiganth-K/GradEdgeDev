@@ -36,4 +36,10 @@ available tasks
 ☐ faculty sidebar hide feature to be in the student dashboard side bar too
 
 ------------------------------------------------------------------------------------------------------------------------
-☐ aduit logs in the admin 
+☐ aduit logs in the admin page to have a feature to filter based on date range and role type
+☐ while creating institution need to have extra details about the institution like address , contact no etc.
+☐ move the student creation feature to the institution student management page.
+☐ faculty dashboard to have the student count of each batch correctly 
+☐ when the faculty clicks on a batch to view the batch details the faculty name is not shown correctly
+☐ need to have a proper 404 page for the wrong routes
+
