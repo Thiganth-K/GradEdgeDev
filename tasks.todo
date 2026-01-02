@@ -2,14 +2,14 @@
 ✔ admin dashboard with welcome component to have the neat btns for the available fns @done (12/27/2025, 5:35:08 AM)
 ✔ institution management ui update @done (12/27/2025, 5:35:10 AM)
 ✔ faculty management ui update @done (12/27/2025, 5:35:13 AM)
-☐ look for any interactive pentagon graph
-☐ alignment of the student dashboard 
+✔ look for any interactive pentagon graph @done (12/28/2025, 8:59:49 PM)
+✔ alignment of the student dashboard @done (12/28/2025, 8:59:51 PM)
 
 
 ->Najila
-☐ Login page ui improvenments work only in the login.tsx
-☐ Add the welcome message on the top of the dashboard near the announcements and the   upcoming sessions
-☐ select a typography for the headings and the btns across the app
+✔ Login page ui improvenments work only in the login.tsx @done (12/28/2025, 8:59:53 PM)
+✔ Add the welcome message on the top of the dashboard near the announcements and the   upcoming sessions @done (12/28/2025, 8:59:53 PM)
+✔ select a typography for the headings and the btns across the app @done (12/28/2025, 8:59:54 PM)
 
 ->Aathi
 ✔ separate pages for the admin function routes (view logs) and update the view logs ui too @done (12/27/2025, 5:24:42 AM)
@@ -17,5 +17,33 @@
 ✔ need separate routes for the institution management btns landing page @done (12/27/2025, 5:24:53 AM)
 ✔ while log in as student lands directly to the dashboard page @done (12/27/2025, 5:24:54 AM)
 ✔ in the student dashboard add a feature to update username and the password by verifying the enrolled predefined mailid @done (12/27/2025, 5:24:55 AM)
-☐ update the student full name also in the student profile 
+✔ update the student full name also in the student profile @done (12/28/2025, 8:59:58 PM)
 
+
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+available tasks 
+☐ remove the faculty management feature from the admin dashboard 
+☐ update the admin audit logs to have a feature to filer based on the role and need to track all the actions that include the actions done by clicking the btns
+☐ admin to have a feature to have see a clean view of available institution id and their student and the faculty details 
+☐ logout hover animations have some bugs need to fix them
+☐ block the password reset for the roles for the institution id 
+☐ when i click the batch in the faculty dashboard to view the batch details 
+☐ design the settings page in the faculty dashboard to have a feature to update the profile details and change password
+☐ design the help center page to have lourem contact details 
+☐ remove the add students and import csv btns and the related code in the faculty dashboard
+☐ need live update of the students details in the faculty dashboard
+☐ faculty sidebar hide feature to be in the student dashboard side bar too
+
+------------------------------------------------------------------------------------------------------------------------
+☐ aduit logs in the admin page to have a feature to filter based on date range and role type
+☐ while creating institution need to have extra details about the institution like address , contact no etc.
+☐ move the student creation feature to the institution student management page.
+☐ faculty dashboard to have the student count of each batch correctly 
+☐ when the faculty clicks on a batch to view the batch details the faculty name is not shown correctly
+☐ need to have a proper 404 page for the wrong routes
+☐ design the test management page in the institution dashboard
+☐ need to have a proper loading spinner across the app where ever necessary
+☐ the institution admin can create own question like the microsoft forms mcq style 
+☐ ui of the faculty dashboard to view the test management page 
+☐ ui of the student dashboard to view the test page and take test in a professional manner 
