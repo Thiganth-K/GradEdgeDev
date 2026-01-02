@@ -1,6 +1,6 @@
 import React from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { LayoutDashboard, Brain, Code, MessageSquare, BookOpen, Rocket, History, User, LogOut, ChevronLeft, ChevronRight } from 'lucide-react'
+import { LayoutDashboard, Brain, Code, MessageSquare, BookOpen, Rocket, History, User, LogOut, HelpCircle } from 'lucide-react'
 
 interface StudentLayoutProps {
   children: React.ReactNode
@@ -33,6 +33,7 @@ const StudentLayout: React.FC<StudentLayoutProps> = ({
     { icon: Rocket, label: 'Project Sim', path: '/student/project-sim' },
     { icon: BookOpen, label: 'Take MCQ Test', path: '/student/tests' },
     { icon: History, label: 'Assessment History', path: '/student/history' },
+    { icon: HelpCircle, label: 'Help Center', path: '/help' },
   ]
 
   const isActive = (path: string) => location.pathname === path
@@ -115,7 +116,21 @@ const StudentLayout: React.FC<StudentLayoutProps> = ({
             onClick={toggleCollapse}
             className="p-2 rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
           >
-            {isCollapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
+            <div className="w-8 h-8 rounded-full bg-red-50 text-red-600 flex items-center justify-center font-bold text-xs border border-red-100 group-hover:bg-red-100 transition-colors">
+              {username.charAt(0).toUpperCase()}
+            </div>
+            <div className="ml-3 flex-1 text-left">
+              <p className="text-sm font-medium text-gray-700 group-hover:text-red-700">{username}</p>
+              <p className="text-[10px] text-gray-400 group-hover:text-red-400">View Profile</p>
+            </div>
+            <User className="w-4 h-4 text-gray-400 group-hover:text-red-600" />
+          </button>
+          <button
+            onClick={onLogout}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-gray-500 hover:bg-red-50 hover:text-red-600 transition-colors group"
+          >
+            <LogOut className="w-5 h-5 transition-colors duration-200 group-hover:text-red-600" />
+            <span className="text-sm font-medium">Logout</span>
           </button>
         </div>
 

@@ -1,5 +1,6 @@
 ﻿import { useEffect, useState, type FormEvent } from 'react'
 import { postJson } from '../lib/api'
+import LoadingSpinner from '../components/LoadingSpinner'
 
 type Props = {
   onLoginSuccess: (username: string, role: string) => void
@@ -503,11 +504,16 @@ export default function LoginPage({ onLoginSuccess }: Props) {
 
               <div className="pt-2">
                 <button
-                  className="w-full rounded-lg border border-red-500 bg-white text-red-500 py-3 text-xs font-bold uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all shadow-sm active:scale-[0.98]"
+                  className="w-full rounded-lg border border-red-500 bg-white text-red-500 py-3 text-xs font-bold uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all shadow-sm active:scale-[0.98] flex items-center justify-center gap-2"
                   type="submit"
                   disabled={loading}
                 >
-                  {loading ? 'Working...' : (isResetMode ? (resetAwaitingOtp ? 'Reset & Login' : 'Send Code') : (isSignup ? (awaitingOtp ? 'Verify & Sign up' : 'Sign up') : 'Sign In'))}
+                  {loading ? (
+                    <>
+                      <LoadingSpinner size="sm" className="border-red-500" />
+                      <span>Working...</span>
+                    </>
+                  ) : (isResetMode ? (resetAwaitingOtp ? 'Reset & Login' : 'Send Code') : (isSignup ? (awaitingOtp ? 'Verify & Sign up' : 'Sign up') : 'Sign In'))}
                 </button>
               </div>
 

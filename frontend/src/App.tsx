@@ -21,20 +21,28 @@ import StudentManagement from './pages/Institutional/StudentManagement'
 import InstitutionalTests from './pages/Institutional/Tests'
 import FacultyTests from './pages/Faculty/Tests'
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom'
+import { AnimatePresence } from 'framer-motion'
+import LogoutAnimation from './components/LogoutAnimation'
+import WorkInProgress from './components/WorkInProgress'
+import HelpCenter from './pages/HelpCenter'
+import NotFound from './pages/NotFound'
 
 function App() {
   const [loggedIn, setLoggedIn] = useState<boolean>(!!localStorage.getItem('logged_in'))
   const [username, setUsername] = useState<string>(localStorage.getItem('username') || '')
   const [role, setRole] = useState<string>(localStorage.getItem('role') || '')
-  
+
   // Persist facultyID to avoid async load delays on refresh
   const [facultyId, setFacultyId] = useState<string | null>(localStorage.getItem('faculty_id'))
   // Persist institutionalId (institutional_id field) for institutional dashboards
   const [institutionalId, setInstitutionalId] = useState<string | null>(localStorage.getItem('institutional_id'))
-  
+
   const navigate = useNavigate()
   const [shouldAutoRedirect, setShouldAutoRedirect] = useState<boolean>(false)
   const location = useLocation()
+
+  // New State for Animation
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
 
   useEffect(() => {
     // Redirect logic: Run only if triggered by new login OR if user is at root
@@ -44,12 +52,12 @@ function App() {
     if (role === 'faculty' && !facultyId) return
 
     if (shouldAutoRedirect) {
-        if (role === 'faculty') navigate(`/faculty/${facultyId}/dashboard`)
-        else if (role === 'student') navigate('/student/dashboard')
-        else if (role === 'recruiter') navigate('/recruiter/welcome')
-        else if (role === 'institutional') navigate('/institutional/welcome')
-        else navigate('/admin/welcome')
-        setShouldAutoRedirect(false)
+      if (role === 'faculty') navigate(`/faculty/${facultyId}/dashboard`)
+      else if (role === 'student') navigate('/student/dashboard')
+      else if (role === 'recruiter') navigate('/recruiter/welcome')
+      else if (role === 'institutional') navigate('/institutional/welcome')
+      else navigate('/admin/welcome')
+      setShouldAutoRedirect(false)
     }
   }, [shouldAutoRedirect, loggedIn, role, facultyId, navigate])
 
@@ -57,10 +65,10 @@ function App() {
   useEffect(() => {
     async function loadFacultyId() {
       if (!loggedIn || role !== 'faculty' || !username) return
-      
+
       // If we already have it in state (from localStorage), verify it matches or just use it.
       // But if it's missing, fetch it.
-      if (facultyId) return 
+      if (facultyId) return
 
       try {
         const res = await getJson<{ ok: boolean; data?: { faculty_id?: string } }>(`/api/faculty/${username}`)
@@ -69,9 +77,9 @@ function App() {
           setFacultyId(fid)
           localStorage.setItem('faculty_id', fid || '')
           // Trigger redirect if we were waiting for this
-           if (location.pathname === '/' || location.pathname === '/login') {
-               setShouldAutoRedirect(true) // Force re-eval
-           }
+          if (location.pathname === '/' || location.pathname === '/login') {
+            setShouldAutoRedirect(true) // Force re-eval
+          }
         } else {
           setFacultyId(null)
         }
@@ -126,29 +134,37 @@ function App() {
       setInstitutionalId(null)
       localStorage.removeItem('institutional_id')
     }
-    
+
     setLoggedIn(true)
-    
+
     localStorage.setItem('logged_in', 'true')
     localStorage.setItem('username', name)
     localStorage.setItem('role', userRole)
-    
+
     setShouldAutoRedirect(true)
   }
 
+  // Trigger Animation
   function handleLogout() {
-    ;(async () => {
-      try {
-        await postJson('/api/auth/logout', { username, role })
-      } catch (e) {}
-    })()
+    setIsLoggingOut(true)
+  }
+
+  // Actual Logout after Animation
+  function performLogout() {
+    setIsLoggingOut(false)
+
+      ; (async () => {
+        try {
+          await postJson('/api/auth/logout', { username, role })
+        } catch (e) { }
+      })()
 
     localStorage.removeItem('logged_in')
     localStorage.removeItem('username')
     localStorage.removeItem('role')
     localStorage.removeItem('faculty_id') // Clear faculty ID
     localStorage.removeItem('institutional_id') // Clear institutional ID
-    
+
     setLoggedIn(false)
     setUsername('')
     setRole('')
@@ -160,35 +176,33 @@ function App() {
   // Common wrapper for protected faculty routes to avoid code duplication
   // Also now provides the FacultyLayout context to all faculty pages
   const ProtectedFacultyRoute = ({ children }: { children: ReactElement }) => {
-      // Use the facultyId from state (which is synced with localStorage)
-      const currentFacultyId = facultyId || ''
-      return loggedIn && role === 'faculty' ? (
-        <FacultyLayout facultyId={currentFacultyId} onLogout={handleLogout}>
-          {children}
-        </FacultyLayout>
-      ) : (
-        <LoginPage onLoginSuccess={handleLoginSuccess} />
-      )
+    return loggedIn && role === 'faculty' ? children : <LoginPage onLoginSuccess={handleLoginSuccess} />
   }
 
   return (
     <div className="min-h-screen bg-white text-slate-900">
+      <AnimatePresence>
+        {isLoggingOut && (
+          <LogoutAnimation username={username} onComplete={performLogout} />
+        )}
+      </AnimatePresence>
+
       <Routes>
         <Route path="/" element={<LoginPage onLoginSuccess={handleLoginSuccess} />} />
-        
+
         {/* Admin Routes */}
         <Route path="/admin/welcome" element={loggedIn && role === 'admin' ? <AdminWelcomePage username={username} onLogout={handleLogout} /> : <LoginPage onLoginSuccess={handleLoginSuccess} />} />
         <Route path="/admin/logs" element={loggedIn && role === 'admin' ? <AdminLogsPage /> : <LoginPage onLoginSuccess={handleLoginSuccess} />} />
         {/* Admin faculty management removed: admins no longer have access to create/manage faculty */}
-        
+
         {/* Faculty Routes */}
         <Route path="/faculty/:facultyId/dashboard" element={<ProtectedFacultyRoute><FacultyDashboard username={username} onLogout={handleLogout} /></ProtectedFacultyRoute>} />
         <Route path="/faculty/:facultyId/batches" element={<ProtectedFacultyRoute><FacultyBatches /></ProtectedFacultyRoute>} />
         <Route path="/faculty/:facultyId/students" element={<ProtectedFacultyRoute><FacultyStudents /></ProtectedFacultyRoute>} />
         <Route path="/faculty/:facultyId/tests" element={<ProtectedFacultyRoute><FacultyTests /></ProtectedFacultyRoute>} />
-        <Route path="/faculty/:facultyId/schedule" element={<ProtectedFacultyRoute><FacultyDashboard username={username} onLogout={handleLogout} /></ProtectedFacultyRoute>} /> 
+        <Route path="/faculty/:facultyId/schedule" element={<ProtectedFacultyRoute><FacultyDashboard username={username} onLogout={handleLogout} /></ProtectedFacultyRoute>} />
         <Route path="/faculty/:facultyId/welcome" element={<Navigate to={`/faculty/${facultyId}/dashboard`} />} />
-        
+
         {/* Fallback for Faculty URL without ID (try to recover) */}
         <Route path="/faculty/welcome" element={loggedIn && role === 'faculty' && facultyId ? <Navigate to={`/faculty/${facultyId}/dashboard`} /> : <LoginPage onLoginSuccess={handleLoginSuccess} />} />
 
@@ -197,7 +211,23 @@ function App() {
         <Route path="/student/dashboard" element={loggedIn && role === 'student' ? <StudentDashboard username={username} onLogout={handleLogout} /> : <LoginPage onLoginSuccess={handleLoginSuccess} />} />
         <Route path="/student/profile" element={loggedIn && role === 'student' ? <StudentProfile username={username} onLogout={handleLogout} /> : <LoginPage onLoginSuccess={handleLoginSuccess} />} />
         <Route path="/student/tests" element={loggedIn && role === 'student' ? <StudentTests username={username} onLogout={handleLogout} /> : <LoginPage onLoginSuccess={handleLoginSuccess} />} />
+
+        {/* Work In Progress Routes */}
+        <Route path="/student/aptitude" element={loggedIn && role === 'student' ? <WorkInProgress title="Aptitude & Logic" username={username} onLogout={handleLogout} /> : <LoginPage onLoginSuccess={handleLoginSuccess} />} />
+        <Route path="/student/coding" element={loggedIn && role === 'student' ? <WorkInProgress title="Coding & Tech" username={username} onLogout={handleLogout} /> : <LoginPage onLoginSuccess={handleLoginSuccess} />} />
+        <Route path="/student/soft-skills" element={loggedIn && role === 'student' ? <WorkInProgress title="Soft Skills" username={username} onLogout={handleLogout} /> : <LoginPage onLoginSuccess={handleLoginSuccess} />} />
+        <Route path="/student/domain" element={loggedIn && role === 'student' ? <WorkInProgress title="Domain Knowledge" username={username} onLogout={handleLogout} /> : <LoginPage onLoginSuccess={handleLoginSuccess} />} />
+        <Route path="/student/project-sim" element={loggedIn && role === 'student' ? <WorkInProgress title="Project Simulation" username={username} onLogout={handleLogout} /> : <LoginPage onLoginSuccess={handleLoginSuccess} />} />
+        <Route path="/student/history" element={loggedIn && role === 'student' ? <WorkInProgress title="Assessment History" username={username} onLogout={handleLogout} /> : <LoginPage onLoginSuccess={handleLoginSuccess} />} />
         <Route path="/recruiter/welcome" element={loggedIn && role === 'recruiter' ? <RecruiterWelcome username={username} onLogout={handleLogout} /> : <LoginPage onLoginSuccess={handleLoginSuccess} />} />
+
+        {/* Help Center - Accessible to all roles, but displays role-specific content */}
+        <Route path="/help" element={
+          loggedIn
+            ? <HelpCenter username={username} role={role} onLogout={handleLogout} facultyId={facultyId || undefined} />
+            : <HelpCenter />
+        } />
+
         <Route
           path="/institutional/welcome"
           element={
@@ -230,6 +260,10 @@ function App() {
               : <LoginPage onLoginSuccess={handleLoginSuccess} />
           }
         />
+
+        {/* Catch-all 404 Route */}
+        <Route path="*" element={<NotFound />} />
+
         <Route
           path="/institutional/tests"
           element={
@@ -238,7 +272,7 @@ function App() {
               : <LoginPage onLoginSuccess={handleLoginSuccess} />
           }
         />
-        
+
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </div>

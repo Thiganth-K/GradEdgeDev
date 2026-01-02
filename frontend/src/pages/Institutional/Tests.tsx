@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { institutionalApi } from '../../lib/api'
+import LoadingSpinner from '../../components/LoadingSpinner'
 
 type TestDoc = {
   _id: string
@@ -97,7 +98,7 @@ export default function InstitutionalTests({ username, institutionId: propInstit
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
       {/* Top Progress Bar */}
       <div className="h-1.5 w-full bg-gradient-to-r from-red-500 via-red-600 to-red-700 animate-pulse" />
-      
+
       {/* Header Section */}
       <div className="border-b-4 border-red-600 bg-gradient-to-r from-red-600 to-red-700 px-6 py-8 shadow-lg">
         <div className="mx-auto max-w-7xl">
@@ -133,9 +134,9 @@ export default function InstitutionalTests({ username, institutionId: propInstit
             <div className="grid sm:grid-cols-3 gap-4 mb-5">
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-2">Test Type</label>
-                <select 
-                  value={type} 
-                  onChange={e => setType(e.target.value as any)} 
+                <select
+                  value={type}
+                  onChange={e => setType(e.target.value as any)}
                   className="w-full p-3 border-2 border-slate-300 rounded-xl focus:border-red-500 focus:ring-2 focus:ring-red-200 transition-all"
                 >
                   <option value="aptitude">Aptitude MCQ Test</option>
@@ -145,16 +146,16 @@ export default function InstitutionalTests({ username, institutionId: propInstit
               </div>
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-2">Test Title (Optional)</label>
-                <input 
-                  value={title} 
-                  onChange={e => setTitle(e.target.value)} 
-                  placeholder="e.g., Data Structures Quiz" 
-                  className="w-full p-3 border-2 border-slate-300 rounded-xl focus:border-red-500 focus:ring-2 focus:ring-red-200 transition-all" 
+                <input
+                  value={title}
+                  onChange={e => setTitle(e.target.value)}
+                  placeholder="e.g., Data Structures Quiz"
+                  className="w-full p-3 border-2 border-slate-300 rounded-xl focus:border-red-500 focus:ring-2 focus:ring-red-200 transition-all"
                 />
               </div>
               <div className="flex items-end">
-                <button 
-                  onClick={create} 
+                <button
+                  onClick={create}
                   className="w-full bg-gradient-to-r from-red-600 to-red-700 text-white font-bold rounded-xl px-6 py-3 shadow-lg hover:shadow-xl hover:from-red-700 hover:to-red-800 transition-all duration-300 transform hover:scale-105"
                 >
                   Create Test
@@ -164,10 +165,10 @@ export default function InstitutionalTests({ username, institutionId: propInstit
 
             <div className="bg-slate-50 rounded-xl p-4 mb-5">
               <label className="flex items-center gap-3 cursor-pointer">
-                <input 
-                  type="checkbox" 
-                  checked={useCustom} 
-                  onChange={e => setUseCustom(e.target.checked)} 
+                <input
+                  type="checkbox"
+                  checked={useCustom}
+                  onChange={e => setUseCustom(e.target.checked)}
                   className="w-5 h-5 text-red-600 rounded focus:ring-red-500"
                 />
                 <div>
@@ -180,8 +181,8 @@ export default function InstitutionalTests({ username, institutionId: propInstit
             {useCustom && (
               <div className="space-y-4 border-t-2 border-slate-200 pt-5">
                 <div className="flex items-center justify-between">
-                  <button 
-                    onClick={addQuestion} 
+                  <button
+                    onClick={addQuestion}
                     className="flex items-center space-x-2 px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-900 transition-all"
                   >
                     <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -203,18 +204,18 @@ export default function InstitutionalTests({ username, institutionId: propInstit
                         </span>
                         <span className="font-semibold text-slate-800">Question {i + 1}</span>
                       </div>
-                      <button 
-                        onClick={() => removeQuestion(i)} 
+                      <button
+                        onClick={() => removeQuestion(i)}
                         className="px-3 py-1 text-sm text-white bg-red-600 rounded-lg hover:bg-red-700 transition-all"
                       >
                         Remove
                       </button>
                     </div>
-                    <input 
-                      value={q.q} 
-                      onChange={e => updateQuestion(i, { q: e.target.value })} 
-                      placeholder="Enter your question here..." 
-                      className="w-full p-3 border-2 border-slate-300 rounded-lg mb-3 focus:border-red-500 focus:ring-2 focus:ring-red-200" 
+                    <input
+                      value={q.q}
+                      onChange={e => updateQuestion(i, { q: e.target.value })}
+                      placeholder="Enter your question here..."
+                      className="w-full p-3 border-2 border-slate-300 rounded-lg mb-3 focus:border-red-500 focus:ring-2 focus:ring-red-200"
                     />
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
                       {Array.from({ length: Math.max(2, q.options.length) }).map((_, oi) => (
@@ -246,9 +247,9 @@ export default function InstitutionalTests({ username, institutionId: propInstit
                     </div>
                     <div className="flex items-center gap-3">
                       <label className="text-sm font-semibold text-slate-700">Correct Answer:</label>
-                      <select 
-                        value={q.correctIndex} 
-                        onChange={e => updateQuestion(i, { correctIndex: Number(e.target.value) })} 
+                      <select
+                        value={q.correctIndex}
+                        onChange={e => updateQuestion(i, { correctIndex: Number(e.target.value) })}
                         className="p-2 border-2 border-slate-300 rounded-lg focus:border-red-500"
                       >
                         {q.options.map((_, oi) => (
@@ -275,8 +276,8 @@ export default function InstitutionalTests({ username, institutionId: propInstit
                 </div>
                 <h2 className="text-xl font-bold text-slate-800">Existing Tests</h2>
               </div>
-              <button 
-                onClick={load} 
+              <button
+                onClick={load}
                 className="flex items-center space-x-2 px-4 py-2 bg-white border-2 border-slate-300 rounded-lg hover:bg-slate-50 hover:border-slate-400 transition-all"
               >
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -290,8 +291,7 @@ export default function InstitutionalTests({ username, institutionId: propInstit
           <div className="p-6">
             {loading ? (
               <div className="flex flex-col items-center justify-center py-12">
-                <div className="h-12 w-12 animate-spin rounded-full border-4 border-red-600 border-t-transparent" />
-                <p className="mt-4 text-slate-600 font-medium">Loading tests...</p>
+                <LoadingSpinner size="lg" label="Loading tests..." />
               </div>
             ) : tests.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16">
@@ -342,13 +342,12 @@ export default function InstitutionalTests({ username, institutionId: propInstit
                                   <div className="font-semibold mb-1">{q.q}</div>
                                   <div className="flex flex-wrap gap-2 mt-2">
                                     {q.options?.map((opt: string, oi: number) => (
-                                      <span 
-                                        key={oi} 
-                                        className={`px-3 py-1 rounded-lg text-xs ${
-                                          oi === q.correctIndex 
-                                            ? 'bg-green-100 text-green-700 font-semibold border-2 border-green-300' 
+                                      <span
+                                        key={oi}
+                                        className={`px-3 py-1 rounded-lg text-xs ${oi === q.correctIndex
+                                            ? 'bg-green-100 text-green-700 font-semibold border-2 border-green-300'
                                             : 'bg-slate-100 text-slate-600 border border-slate-300'
-                                        }`}
+                                          }`}
                                       >
                                         {oi + 1}. {opt}
                                       </span>
@@ -372,9 +371,9 @@ export default function InstitutionalTests({ username, institutionId: propInstit
                           <div className="space-y-4">
                             <div>
                               <label className="block text-xs font-bold text-slate-700 mb-2">Assign to Faculty</label>
-                              <select 
-                                value={selectedFacultyId} 
-                                onChange={e => setSelectedFacultyId(e.target.value)} 
+                              <select
+                                value={selectedFacultyId}
+                                onChange={e => setSelectedFacultyId(e.target.value)}
                                 className="w-full p-3 border-2 border-slate-300 rounded-lg focus:border-red-500 focus:ring-2 focus:ring-red-200 text-sm"
                               >
                                 <option value="">-- Select Faculty --</option>
@@ -388,13 +387,13 @@ export default function InstitutionalTests({ username, institutionId: propInstit
 
                             <div>
                               <label className="block text-xs font-bold text-slate-700 mb-2">Assign to Batches</label>
-                              <select 
-                                multiple 
-                                value={selectedBatchCodes} 
+                              <select
+                                multiple
+                                value={selectedBatchCodes}
                                 onChange={e => {
                                   const opts = Array.from(e.target.selectedOptions).map(o => o.value)
                                   setSelectedBatchCodes(opts)
-                                }} 
+                                }}
                                 className="w-full p-3 border-2 border-slate-300 rounded-lg focus:border-red-500 focus:ring-2 focus:ring-red-200 text-sm h-32"
                               >
                                 {batchList.map(b => (
@@ -406,8 +405,8 @@ export default function InstitutionalTests({ username, institutionId: propInstit
                               <p className="text-xs text-slate-500 mt-1">Hold Ctrl/Cmd to select multiple</p>
                             </div>
 
-                            <button 
-                              onClick={() => assign(t._id)} 
+                            <button
+                              onClick={() => assign(t._id)}
                               className="w-full bg-gradient-to-r from-slate-800 to-slate-900 text-white font-bold rounded-lg px-4 py-3 hover:from-slate-900 hover:to-black transition-all shadow-md hover:shadow-lg"
                             >
                               Assign Test
@@ -444,8 +443,8 @@ export default function InstitutionalTests({ username, institutionId: propInstit
 
         {/* Back Button */}
         <div className="flex justify-center">
-          <button 
-            onClick={() => navigate(-1)} 
+          <button
+            onClick={() => navigate(-1)}
             className="flex items-center space-x-2 px-6 py-3 bg-white border-2 border-slate-300 text-slate-700 font-semibold rounded-xl hover:bg-slate-50 hover:border-slate-400 transition-all shadow-sm"
           >
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
