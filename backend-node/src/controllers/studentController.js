@@ -6,6 +6,8 @@ const { getDb } = require('../config/db');
 const { hashPassword } = require('../utils/password');
 
 async function listAllStudents() {
+	// eslint-disable-next-line no-console
+	console.log('[STUDENT] listAllStudents called', { time: new Date().toISOString() });
 	try {
 		const db = getDb();
 		const students = db.collection('students');
@@ -34,6 +36,8 @@ async function listAllStudents() {
 }
 
 async function createTestStudent() {
+	// eslint-disable-next-line no-console
+	console.log('[STUDENT] createTestStudent called', { time: new Date().toISOString() });
 	try {
 		const db = getDb();
 		const students = db.collection('students');
@@ -87,6 +91,8 @@ async function createTestStudent() {
 }
 
 async function getStudentProfile(username) {
+	// eslint-disable-next-line no-console
+	console.log('[STUDENT] getStudentProfile called', { username, time: new Date().toISOString() });
 	try {
 		const db = getDb();
 		const students = db.collection('students');
@@ -119,6 +125,8 @@ async function getStudentProfile(username) {
 }
 
 async function updateStudentProfile(username, update) {
+	// eslint-disable-next-line no-console
+	console.log('[STUDENT] updateStudentProfile called', { username, fields: Object.keys(update || {}), time: new Date().toISOString() });
 	try {
 		const db = getDb();
 		const students = db.collection('students');
@@ -181,6 +189,8 @@ async function updateStudentProfile(username, update) {
 // === Institution-scoped helpers used by Institutional & Faculty flows ===
 
 async function listStudentsByInstitution(institutionalId) {
+	// eslint-disable-next-line no-console
+	console.log('[STUDENT] listStudentsByInstitution called', { institutionalId, time: new Date().toISOString() });
 	if (!institutionalId) {
 		throw new Error('institutional_id required');
 	}
@@ -193,6 +203,8 @@ async function listStudentsByInstitution(institutionalId) {
 }
 
 async function batchCreateStudents(institutionalId, payload) {
+	// eslint-disable-next-line no-console
+	console.log('[STUDENT] batchCreateStudents called', { institutionalId, hasCsv: Boolean(payload && payload.csv), rows: Array.isArray(payload && payload.rows) ? payload.rows.length : undefined, time: new Date().toISOString() });
 	if (!institutionalId) {
 		throw new Error('institutional_id required');
 	}
@@ -295,6 +307,8 @@ async function batchCreateStudents(institutionalId, payload) {
 }
 
 async function updateStudentForInstitution(institutionalId, enrollmentId, payload) {
+	// eslint-disable-next-line no-console
+	console.log('[STUDENT] updateStudentForInstitution called', { institutionalId, enrollmentId, fields: Object.keys(payload || {}).filter(k=>k!=='password'), hasPassword: Boolean(payload && payload.password), time: new Date().toISOString() });
 	if (!institutionalId) {
 		throw new Error('institutional_id required');
 	}
@@ -362,6 +376,42 @@ async function updateStudentForInstitution(institutionalId, enrollmentId, payloa
 		{ returnDocument: 'after' }
 	);
 	if (!doc.value) {
+		// Diagnostic logging to help understand why update didn't match
+		// eslint-disable-next-line no-console
+		console.log('[STUDENT] updateStudentForInstitution no match — running diagnostics', { institutionalId, enrollmentId });
+
+		// First try: if enrollment_id was updated, attempt to find the updated document
+		try {
+			const targetEnrollment = updates.enrollment_id || enrollmentId;
+			const maybeUpdated = await coll.findOne({ institutional_id: institutionalId, enrollment_id: targetEnrollment });
+			if (maybeUpdated) {
+				// eslint-disable-next-line no-console
+				console.log('[STUDENT] updateStudentForInstitution: found updated document via secondary lookup', { enrollment_id: targetEnrollment });
+				const out = { ...maybeUpdated };
+				delete out.password;
+				return out;
+			}
+		} catch (lookupErr) {
+			// eslint-disable-next-line no-console
+			console.error('[STUDENT] secondary lookup error', lookupErr && lookupErr.stack ? lookupErr.stack : lookupErr);
+		}
+
+		try {
+			const byEnrollment = await coll.findOne({ enrollment_id: enrollmentId });
+			if (!byEnrollment) {
+				// eslint-disable-next-line no-console
+				console.log('[STUDENT] diagnostic: no student found with that enrollment_id', { enrollment_id: enrollmentId });
+			} else if (String(byEnrollment.institutional_id) !== String(institutionalId)) {
+				// eslint-disable-next-line no-console
+				console.log('[STUDENT] diagnostic: student exists but belongs to a different institution', { enrollment_id: enrollmentId, existing_institutional_id: byEnrollment.institutional_id, requested_institutional_id: institutionalId });
+			} else {
+				// eslint-disable-next-line no-console
+				console.log('[STUDENT] diagnostic: student found but update failed to match for unknown reason', { byEnrollment });
+			}
+		} catch (diagErr) {
+			// eslint-disable-next-line no-console
+			console.error('[STUDENT] update diagnostics error', diagErr && diagErr.stack ? diagErr.stack : diagErr);
+		}
 		throw new Error('student not found');
 	}
 	const updated = doc.value;
@@ -370,6 +420,8 @@ async function updateStudentForInstitution(institutionalId, enrollmentId, payloa
 }
 
 async function deleteStudentForInstitution(institutionalId, enrollmentId) {
+	// eslint-disable-next-line no-console
+	console.log('[STUDENT] deleteStudentForInstitution called', { institutionalId, enrollmentId, time: new Date().toISOString() });
 	if (!institutionalId) {
 		throw new Error('institutional_id required');
 	}
@@ -383,6 +435,8 @@ async function deleteStudentForInstitution(institutionalId, enrollmentId) {
 }
 
 async function listStudentsForFaculty(facultyId) {
+	// eslint-disable-next-line no-console
+	console.log('[STUDENT] listStudentsForFaculty called', { facultyId, time: new Date().toISOString() });
 	if (!facultyId) {
 		throw new Error('faculty_id required');
 	}
@@ -398,6 +452,8 @@ async function listStudentsForFaculty(facultyId) {
 // to match the Python implementation.
 
 async function sendOtpForCredentials(username, email) {
+	// eslint-disable-next-line no-console
+	console.log('[STUDENT] sendOtpForCredentials called', { username, email, time: new Date().toISOString() });
 	return {
 		ok: true,
 		status: 200,
@@ -409,6 +465,8 @@ async function sendOtpForCredentials(username, email) {
 }
 
 async function verifyOtp(username, otp) {
+	// eslint-disable-next-line no-console
+	console.log('[STUDENT] verifyOtp called', { username, hasOtp: Boolean(otp), time: new Date().toISOString() });
 	return {
 		ok: false,
 		status: 400,

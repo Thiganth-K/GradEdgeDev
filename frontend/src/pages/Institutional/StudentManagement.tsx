@@ -112,7 +112,7 @@ export default function StudentManagement({ username, institutionId: propInstitu
     setEditStudentSaving(true)
     setEditStudentError(null)
     const res = await putJson<{ ok: boolean; data?: StudentDoc; error?: string }, Record<string, unknown>>(
-      `/api/institutional/${institutionId}/students/${editStudentId}`,
+      `/api/institutional/${institutionId}/students/${encodeURIComponent(editStudentId)}`,
       payload,
     )
     setEditStudentSaving(false)
@@ -129,7 +129,7 @@ export default function StudentManagement({ username, institutionId: propInstitu
   async function onDeleteStudent(enrollmentId: string) {
     if (!institutionId || !enrollmentId) return
     const res = await deleteJson<{ ok: boolean; error?: string }>(
-      `/api/institutional/${institutionId}/students/${enrollmentId}`,
+      `/api/institutional/${institutionId}/students/${encodeURIComponent(enrollmentId)}`,
     )
     if (!res.ok || !res.data.ok) {
       setStudentsError(res.ok ? res.data.error || 'Unable to delete student' : res.error || 'Network error')

@@ -1,7 +1,6 @@
 import AdminWelcomePage from './pages/Admin/Welcome'
 import AdminLogsPage from './pages/Admin/Logs'
 import { postJson, getJson } from './lib/api'
-import FacultyManage from './pages/Faculty/Manage'
 import FacultyDashboard from './pages/Faculty/Dashboard'
 import FacultyStudents from './pages/Faculty/Students'
 import FacultyBatches from './pages/Faculty/Batches'
@@ -167,8 +166,7 @@ function App() {
         {/* Admin Routes */}
         <Route path="/admin/welcome" element={loggedIn && role === 'admin' ? <AdminWelcomePage username={username} onLogout={handleLogout} /> : <LoginPage onLoginSuccess={handleLoginSuccess} />} />
         <Route path="/admin/logs" element={loggedIn && role === 'admin' ? <AdminLogsPage /> : <LoginPage onLoginSuccess={handleLoginSuccess} />} />
-        <Route path="/admin/faculty" element={loggedIn && role === 'admin' ? <FacultyManage /> : <LoginPage onLoginSuccess={handleLoginSuccess} />} />
-        <Route path="/faculty/manage" element={loggedIn && role === 'admin' ? <FacultyManage /> : <LoginPage onLoginSuccess={handleLoginSuccess} />} />
+        {/* Admin faculty management removed: admins no longer have access to create/manage faculty */}
         
         {/* Faculty Routes */}
         <Route path="/faculty/:facultyId/dashboard" element={<ProtectedFacultyRoute><FacultyDashboard username={username} onLogout={handleLogout} /></ProtectedFacultyRoute>} />

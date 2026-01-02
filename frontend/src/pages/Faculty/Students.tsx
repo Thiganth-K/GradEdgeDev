@@ -50,19 +50,16 @@ export default function FacultyStudents() {
         if (!facultyId) return;
         setLoading(true);
         try {
-            const [studRes, batchRes] = await Promise.all([
-                getJson<any>(`/api/faculty/${facultyId}/students`),
-                getJson<any>(`/api/faculty/batches?faculty_id=${facultyId}`)
-            ]);
-            if (studRes.ok && studRes.data) {
-                // API shape: { ok: True, data: [...] }
-                const payload = (studRes.data as { data?: Student[] }).data || [];
-                setStudents(payload);
-            }
-            if (batchRes.ok && batchRes.data) {
-                const payload = (batchRes.data as { batches?: Batch[] }).batches || [];
-                setBatches(payload);
-            }
+                const [studRes, batchRes] = await Promise.all([
+                    getJson<{ ok: boolean; data: Student[] }>(`/api/faculty/${facultyId}/students`),
+                    getJson<{ ok: boolean; data: Batch[] }>(`/api/faculty/${facultyId}/batches`),
+                ]);
+                if (studRes.ok && studRes.data) {
+                    setStudents(studRes.data.data || []);
+                }
+                if (batchRes.ok && batchRes.data) {
+                    setBatches(batchRes.data.data || []);
+                }
         } catch (e) { console.error(e); }
         setLoading(false);
     };

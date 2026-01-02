@@ -7,6 +7,8 @@ const { hashPassword } = require('../utils/password');
 const COLLECTION = 'institutionals';
 
 async function createInstitutional(payload) {
+	// eslint-disable-next-line no-console
+	console.log('[INSTITUTIONAL] createInstitutional called', { username: payload && payload.username, hasPassword: Boolean(payload && payload.password), time: new Date().toISOString() });
 	const username = payload.username && String(payload.username).trim();
 	const password = payload.password && String(payload.password);
 
@@ -41,6 +43,8 @@ async function createInstitutional(payload) {
 }
 
 async function listInstitutional() {
+	// eslint-disable-next-line no-console
+	console.log('[INSTITUTIONAL] listInstitutional called', { time: new Date().toISOString() });
 	const db = getDb();
 	const coll = db.collection(COLLECTION);
 	// Exclude password from results
@@ -51,6 +55,8 @@ async function listInstitutional() {
 }
 
 async function getInstitutional(username) {
+	// eslint-disable-next-line no-console
+	console.log('[INSTITUTIONAL] getInstitutional called', { username, time: new Date().toISOString() });
 	const db = getDb();
 	const coll = db.collection(COLLECTION);
 	const doc = await coll.findOne(
@@ -61,6 +67,8 @@ async function getInstitutional(username) {
 }
 
 async function updateInstitutional(username, payload) {
+	// eslint-disable-next-line no-console
+	console.log('[INSTITUTIONAL] updateInstitutional called', { username, fields: Object.keys(payload || {}).filter(k=>k!=='password'), hasPassword: Boolean(payload && payload.password), time: new Date().toISOString() });
 	const update = {};
 
 	if (payload.institutional_id !== undefined) {
@@ -103,6 +111,8 @@ async function updateInstitutional(username, payload) {
 }
 
 async function deleteInstitutional(username) {
+	// eslint-disable-next-line no-console
+	console.log('[INSTITUTIONAL] deleteInstitutional called', { username, time: new Date().toISOString() });
 	const db = getDb();
 	const coll = db.collection(COLLECTION);
 	const res = await coll.deleteOne({ username });

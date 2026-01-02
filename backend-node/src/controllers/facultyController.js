@@ -7,6 +7,8 @@ const { hashPassword } = require('../utils/password');
 const COLLECTION = 'faculty';
 
 async function listFacultyByInstitution(institutionalId) {
+	// eslint-disable-next-line no-console
+	console.log('[FACULTY] listFacultyByInstitution called', { institutionalId, time: new Date().toISOString() });
 	if (!institutionalId) {
 		throw new Error('institutional_id required');
 	}
@@ -19,6 +21,8 @@ async function listFacultyByInstitution(institutionalId) {
 }
 
 async function createFacultyForInstitution(institutionalId, payload) {
+	// eslint-disable-next-line no-console
+	console.log('[FACULTY] createFacultyForInstitution called', { institutionalId, username: payload && payload.username, hasPassword: Boolean(payload && payload.password), time: new Date().toISOString() });
 	if (!institutionalId) {
 		throw new Error('institutional_id required');
 	}
@@ -77,6 +81,8 @@ async function createFacultyForInstitution(institutionalId, payload) {
 }
 
 async function updateFacultyForInstitution(institutionalId, username, payload) {
+	// eslint-disable-next-line no-console
+	console.log('[FACULTY] updateFacultyForInstitution called', { institutionalId, username, fields: Object.keys(payload || {}).filter(k=>k!=='password'), hasPassword: Boolean(payload && payload.password), time: new Date().toISOString() });
 	if (!institutionalId) {
 		throw new Error('institutional_id required');
 	}
@@ -119,6 +125,8 @@ async function updateFacultyForInstitution(institutionalId, username, payload) {
 }
 
 async function deleteFacultyForInstitution(institutionalId, username) {
+	// eslint-disable-next-line no-console
+	console.log('[FACULTY] deleteFacultyForInstitution called', { institutionalId, username, time: new Date().toISOString() });
 	if (!institutionalId) {
 		throw new Error('institutional_id required');
 	}
@@ -132,6 +140,8 @@ async function deleteFacultyForInstitution(institutionalId, username) {
 }
 
 async function getFacultyByUsername(username) {
+	// eslint-disable-next-line no-console
+	console.log('[FACULTY] getFacultyByUsername called', { username, time: new Date().toISOString() });
 	if (!username) return null;
 	const db = getDb();
 	const coll = db.collection(COLLECTION);
@@ -143,6 +153,8 @@ async function getFacultyByUsername(username) {
 }
 
 async function getFacultyByFacultyId(facultyId) {
+	// eslint-disable-next-line no-console
+	console.log('[FACULTY] getFacultyByFacultyId called', { facultyId, time: new Date().toISOString() });
 	if (!facultyId) return null;
 	const db = getDb();
 	const coll = db.collection(COLLECTION);

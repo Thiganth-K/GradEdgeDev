@@ -1,6 +1,8 @@
 function getAdminInfo() {
 	// Mirrors backend/src/routes/admin_routes.py logic:
 	// derive admin username from environment with a sensible default.
+	// eslint-disable-next-line no-console
+	console.log('[ADMIN] getAdminInfo called', { time: new Date().toISOString() });
 	const username =
 		process.env.ADMIN_USERNAME ||
 		process.env.ADMIN_USER ||

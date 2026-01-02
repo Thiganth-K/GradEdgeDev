@@ -105,24 +105,7 @@ export default function AdminWelcomeCard({
               </button>
             ) : null}
             
-            {onManage ? (
-              <button
-                onClick={onManage}
-                className="group/btn relative animate-slideUp delay-500 overflow-hidden rounded-xl border-2 border-red-600 bg-white p-6 text-left shadow-lg transition-all duration-300 hover:-translate-y-2 hover:border-red-700 hover:shadow-2xl"
-              >
-                <div className="flex items-center space-x-3">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-red-600 transition-all duration-300 group-hover/btn:bg-red-700">
-                    <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <p className="text-base font-bold text-black">Faculty</p>
-                    <p className="text-sm text-gray-500">Manage</p>
-                  </div>
-                </div>
-              </button>
-            ) : null}
+            {/* Faculty management removed for admin users */}
             
             {onViewLogs ? (
               <button

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useParams } from 'react-router-dom'
 import { Plus, MapPin, Clock, X } from 'lucide-react'
 import { getJson, postJson } from '../../../lib/api'
 
@@ -36,20 +37,24 @@ const SessionScheduler: React.FC = () => {
   }, [])
 
   const fetchSessions = async () => {
-    const res = await getJson<{ sessions: Session[] }>('/api/faculty/sessions')
+        const { facultyId } = useParams()
+        const q = facultyId ? `?faculty_id=${facultyId}` : ''
+        const res = await getJson<{ sessions: Session[] }>(`/api/faculty/sessions${q}`)
     if (res.ok) setSessions(res.data.sessions)
   }
 
   const fetchBatches = async () => {
-    const res = await getJson<{ batches: Batch[] }>('/api/faculty/batches')
+        const { facultyId } = useParams()
+        const q = facultyId ? `?faculty_id=${facultyId}` : ''
+        const res = await getJson<{ batches: Batch[] }>(`/api/faculty/batches${q}`)
     if (res.ok) setBatches(res.data.batches)
   }
 
   const handleCreate = async () => {
      if (!newSession.title || !newSession.batch_code || !newSession.start_time) return
      const res = await postJson('/api/faculty/sessions', {
-         ...newSession,
-         faculty_id: 'current_user'
+        ...newSession,
+        faculty_id: facultyId || 'current_user'
      })
      if (res.ok) {
          setShowCreate(false)

@@ -79,6 +79,7 @@ export default function FacultyManagement({ username, institutionId: propInstitu
         full_name: facultyFullName,
         department: facultyDepartment,
       },
+      { headers: { 'x-requested-by': 'institutional' } },
     )
     setCreating(false)
 
@@ -115,6 +116,7 @@ export default function FacultyManagement({ username, institutionId: propInstitu
         department: editDepartment || undefined,
         password: editPassword || undefined,
       },
+      { headers: { 'x-requested-by': 'institutional' } },
     )
     setEditSaving(false)
     if (!res.ok || !res.data.ok) {
@@ -129,6 +131,7 @@ export default function FacultyManagement({ username, institutionId: propInstitu
     if (!institutionId) return
     const res = await deleteJson<{ ok: boolean; error?: string }>(
       `/api/institutional/${institutionId}/faculty/${usernameToDelete}`,
+      { headers: { 'x-requested-by': 'institutional' } },
     )
     if (!res.ok || !res.data.ok) {
       setListError(res.ok ? res.data.error || 'Unable to delete faculty' : res.error || 'Network error')

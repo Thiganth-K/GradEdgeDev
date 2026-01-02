@@ -25,39 +25,44 @@ router.get('/api/faculty/:username', async (req, res) => {
 	}
 });
 
-// List batches assigned to a faculty member
-// GET /api/faculty/batches?faculty_id=...
-router.get('/api/faculty/batches', async (req, res) => {
-	const facultyId = req.query.faculty_id;
+// List batches assigned to a faculty member (RESTful)
+// GET /api/faculty/:facultyId/batches
+router.get('/api/faculty/:facultyId/batches', async (req, res) => {
+	const { facultyId } = req.params;
 	try {
 		const batches = await listBatchesForFaculty(facultyId);
-		res.status(200).json({ batches });
+		return res.status(200).json({ ok: true, data: batches });
 	} catch (err) {
-		res.status(400).json({ error: err.message || 'Failed to list batches' });
+		console.error('[FACULTY] list batches error', err && err.stack ? err.stack : err);
+		return res.status(500).json({ ok: false, error: err.message || 'Failed to list batches' });
 	}
 });
 
 // List students belonging to a faculty member
 // GET /api/faculty/:facultyId/students
 router.get('/api/faculty/:facultyId/students', async (req, res) => {
+	const { facultyId } = req.params;
 	try {
-		const students = await listStudentsForFaculty(req.params.facultyId);
-		res.status(200).json({ data: students });
+		const students = await listStudentsForFaculty(facultyId);
+		return res.status(200).json({ ok: true, data: students });
 	} catch (err) {
-		res.status(400).json({ error: err.message || 'Failed to list students' });
+		console.error('[FACULTY] list students error', err && err.stack ? err.stack : err);
+		return res.status(500).json({ ok: false, error: err.message || 'Failed to list students' });
 	}
 });
 
 // Assign students to a batch (faculty view)
 // POST /api/faculty/batches/:batchCode/assign
-router.post('/api/faculty/batches/:batchCode/assign', async (req, res) => {
-	const { batchCode } = req.params;
+router.post('/api/faculty/:facultyId/batches/:batchCode/assign', async (req, res) => {
+	const { facultyId, batchCode } = req.params;
 	const { student_ids: studentIds } = req.body || {};
 	try {
+		// Optionally validate facultyId owns or is associated with the batch in controller
 		const updated = await addStudentsToBatch(batchCode, studentIds || []);
-		res.status(200).json({ ok: true, data: updated });
+		return res.status(200).json({ ok: true, data: updated });
 	} catch (err) {
-		res.status(400).json({ ok: false, error: err.message || 'Failed to assign students to batch' });
+		console.error('[FACULTY] assign to batch error', err && err.stack ? err.stack : err);
+		return res.status(500).json({ ok: false, error: err.message || 'Failed to assign students to batch' });
 	}
 });
 
