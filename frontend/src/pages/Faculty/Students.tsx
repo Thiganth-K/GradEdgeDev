@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
-import FacultySidebar from '../../components/Faculty/Sidebar';
+import { useSidebar } from '../../components/Faculty/Layout';
 import { getJson, postJson } from '../../lib/api';
 import { Menu, Search, Upload, X, Trash2, Edit2, ChevronDown } from 'lucide-react';
+import { ModernStatsCard } from '../../components/Faculty/ModernStatsCard';
+import { Skeleton } from '../../components/Skeleton';
 
 // --- Types ---
 type Student = {
@@ -21,6 +23,29 @@ type Batch = {
     course: string;
 }
 
+const StudentTableSkeleton = () => {
+    return (
+        <>
+            {[...Array(5)].map((_, i) => (
+                <tr key={i} className="animate-pulse border-b border-slate-50 last:border-none">
+                    <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                            <Skeleton className="w-9 h-9 rounded-full" />
+                            <Skeleton className="h-4 w-32" />
+                        </div>
+                    </td>
+                    <td className="px-6 py-4"><Skeleton className="h-4 w-24" /></td>
+                    <td className="px-6 py-4"><Skeleton className="h-4 w-40" /></td>
+                    <td className="px-6 py-4"><Skeleton className="h-6 w-16 px-2.5 rounded-lg" /></td>
+                    <td className="px-6 py-4"><Skeleton className="h-6 w-20 px-2.5 rounded-full" /></td>
+                    <td className="px-6 py-4 text-right"><Skeleton className="h-8 w-16 ml-auto rounded-lg" /></td>
+                </tr>
+            ))}
+        </>
+    );
+};
+
+
 export default function FacultyStudents() {
     const { facultyId } = useParams();
     const [students, setStudents] = useState<Student[]>([]);
@@ -29,8 +54,7 @@ export default function FacultyStudents() {
     const [search, setSearch] = useState('');
     
     // Sidebar State
-    const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-    const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+    const { setIsMobileOpen } = useSidebar();
 
     // Filter State
     const [selectedBatchFilter, setSelectedBatchFilter] = useState('');
@@ -92,23 +116,13 @@ export default function FacultyStudents() {
     });
 
     return (
-        <div className="flex min-h-screen bg-[#F4F7FE] font-sans">
-            {/* Responsive Sidebar */}
-            <FacultySidebar 
-                facultyId={facultyId || ''} 
-                onLogout={() => window.location.href='/'} 
-                isCollapsed={isSidebarCollapsed}
-                toggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-                isMobileOpen={isMobileSidebarOpen}
-                setIsMobileOpen={setIsMobileSidebarOpen}
-            />
-
+        <>
             {/* Main Content */}
             <div className="flex-1 flex flex-col min-h-screen transition-all duration-300 relative">
                 {/* Mobile Header */}
                 <div className="lg:hidden flex items-center justify-between p-4 bg-white border-b border-slate-100 sticky top-0 z-20">
                    <div className="flex items-center gap-3">
-                      <button onClick={() => setIsMobileSidebarOpen(true)} className="p-2 -ml-2 text-slate-600 hover:bg-slate-50 rounded-lg">
+                      <button onClick={() => setIsMobileOpen(true)} className="p-2 -ml-2 text-slate-600 hover:bg-slate-50 rounded-lg">
                          <Menu size={24} />
                       </button>
                       <h1 className="text-lg font-bold text-slate-900">Students</h1>
@@ -135,6 +149,42 @@ export default function FacultyStudents() {
                                 + Add Student
                             </button>
                         </div>
+                    </div>
+
+                    {/* Stats Overview */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                        <ModernStatsCard 
+                            title="Total Students" 
+                            value={filteredStudents.length} 
+                            subValue={selectedBatchFilter ? "In Batch" : "Enrolled"}
+                            trend="+12 this month"
+                            trendDirection="up"
+                            isActive={true}
+                        />
+                        <ModernStatsCard 
+                            title="Active" 
+                            value={filteredStudents.filter(s => s.status !== 'Inactive').length} 
+                            subValue="Students"
+                            trend="95% Active Rate"
+                            trendDirection="up"
+                            isActive={true}
+                        />
+                         <ModernStatsCard 
+                            title="Inactive" 
+                            value={filteredStudents.filter(s => s.status === 'Inactive').length} 
+                            subValue="Dropout/Left"
+                            trend="-2 from last sem"
+                            trendDirection="down"
+                            isActive={false}
+                        />
+                         <ModernStatsCard 
+                            title="Avg Attendance" 
+                            value="88%" 
+                            subValue="Class Average"
+                            trend="+5% improvement"
+                            trendDirection="up"
+                            isActive={true}
+                        />
                     </div>
 
                     {/* Filters */}
@@ -176,20 +226,21 @@ export default function FacultyStudents() {
                                         <th className="px-6 py-4">Email</th>
                                         <th className="px-6 py-4">Batch</th>
                                         <th className="px-6 py-4">Status</th>
-                                        <th className="px-6 py-4 text-right">Actions</th>
+                                        <th className="px-6 py-4 text-center">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-50">
                                     {loading ? (
-                                        <tr><td colSpan={6} className="text-center py-12 text-slate-400 font-medium">Loading students...</td></tr>
+                                        <StudentTableSkeleton />
                                     ) : filteredStudents.length === 0 ? (
+// ... rest of the code
                                         <tr><td colSpan={6} className="text-center py-12 text-slate-400 font-medium">No students found</td></tr>
                                     ) : (
                                         filteredStudents.map((s, idx) => (
                                             <tr key={idx} className="hover:bg-slate-50/80 transition-colors group">
                                                 <td className="px-6 py-4">
                                                     <div className="flex items-center gap-3">
-                                                        <div className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 font-bold text-xs ring-4 ring-white">
+                                                        <div className="w-9 h-9 rounded-xl bg-slate-900 flex items-center justify-center text-[#EA0029] font-bold text-xs shadow-md shadow-slate-200">
                                                             {s.full_name?.charAt(0) || 'S'}
                                                         </div>
                                                         <span className="font-semibold text-slate-900 text-sm">{s.full_name}</span>
@@ -198,13 +249,13 @@ export default function FacultyStudents() {
                                                 <td className="px-6 py-4 text-sm text-slate-500 font-medium">{s.enrollment_id}</td>
                                                 <td className="px-6 py-4 text-sm text-slate-500">{s.email || '-'}</td>
                                                 <td className="px-6 py-4">
-                                                    <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-blue-50 text-blue-600">
+                                                    <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold bg-gray-200 text-slate-900">
                                                         {s.batch_id || 'Unassigned'}
                                                     </span>
                                                 </td>
                                                 <td className="px-6 py-4">
-                                                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${
-                                                        s.status === 'Inactive' ? 'text-slate-500 bg-slate-100' : 'text-emerald-600 bg-emerald-50'
+                                                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold ${
+                                                        s.status === 'Inactive' ? 'text-slate-500 bg-slate-100' : 'text-slate-900 bg-gray-200'
                                                     }`}>
                                                         <span className={`w-1.5 h-1.5 rounded-full ${
                                                             s.status === 'Inactive' ? 'bg-slate-400' : 'bg-emerald-500'
@@ -212,8 +263,8 @@ export default function FacultyStudents() {
                                                         {s.status || 'Active'}
                                                     </span>
                                                 </td>
-                                                <td className="px-6 py-4 text-right">
-                                                    <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <td className="px-6 py-4 text-center">
+                                                    <div className="flex items-center justify-center gap-1">
                                                         <button className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
                                                             <Edit2 size={16} />
                                                         </button>
@@ -339,6 +390,6 @@ export default function FacultyStudents() {
                     </div>
                 )}
             </div>
-        </div>
+        </>
     );
 }

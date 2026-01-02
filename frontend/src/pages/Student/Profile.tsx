@@ -28,6 +28,10 @@ const Profile: React.FC<ProfileProps> = ({ username, onLogout }) => {
   const [error, setError] = useState<string | null>(null)
   const [saveSuccess, setSaveSuccess] = useState(false)
 
+  // Sidebar controls
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false)
+
   // Username/Password change state
   const [showCredentialsChange, setShowCredentialsChange] = useState(false)
   const [newUsername, setNewUsername] = useState('')
@@ -199,7 +203,14 @@ const Profile: React.FC<ProfileProps> = ({ username, onLogout }) => {
 
   if (loading) {
     return (
-      <StudentLayout username={username} onLogout={onLogout}>
+      <StudentLayout 
+        username={username} 
+        onLogout={onLogout}
+        isCollapsed={isSidebarCollapsed}
+        toggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+        isMobileOpen={isMobileSidebarOpen}
+        setIsMobileOpen={setIsMobileSidebarOpen}
+      >
         <div className="p-6 bg-gray-50 min-h-screen flex items-center justify-center">
           <LoadingSpinner size="lg" label="Loading profile..." />
         </div>
@@ -209,7 +220,14 @@ const Profile: React.FC<ProfileProps> = ({ username, onLogout }) => {
 
   if (error && !profile) {
     return (
-      <StudentLayout username={username} onLogout={onLogout}>
+      <StudentLayout 
+        username={username} 
+        onLogout={onLogout}
+        isCollapsed={isSidebarCollapsed}
+        toggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+        isMobileOpen={isMobileSidebarOpen}
+        setIsMobileOpen={setIsMobileSidebarOpen}
+      >
         <div className="p-6 bg-gray-50 min-h-screen">
           <div className="max-w-4xl mx-auto">
             <div className="bg-red-50 border-2 border-red-600 rounded-lg p-6 text-center">
@@ -228,7 +246,14 @@ const Profile: React.FC<ProfileProps> = ({ username, onLogout }) => {
   }
 
   return (
-    <StudentLayout username={username} onLogout={onLogout}>
+    <StudentLayout 
+      username={username} 
+      onLogout={onLogout}
+      isCollapsed={isSidebarCollapsed}
+      toggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+      isMobileOpen={isMobileSidebarOpen}
+      setIsMobileOpen={setIsMobileSidebarOpen}
+    >
       <div className="p-6 bg-gray-50 min-h-screen">
         {/* Header */}
         <div className="mb-6 bg-gradient-to-r from-red-600 to-red-700 rounded-lg p-6 shadow-lg">

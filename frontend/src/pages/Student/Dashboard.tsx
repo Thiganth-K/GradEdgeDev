@@ -24,6 +24,10 @@ interface DashboardProps {
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ username = 'Student', onLogout }) => {
+  // Sidebar controls
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false)
+
   // Animation Variants
   const containerVariants: Variants = {
     hidden: { opacity: 0 },
@@ -93,7 +97,8 @@ const Dashboard: React.FC<DashboardProps> = ({ username = 'Student', onLogout })
         const res = await (await import('../../lib/api')).studentApi.getAnnouncements(username)
         if (mounted && res.ok && res.data) {
           // res.data.data is expected to be array
-          setAnnouncements(Array.isArray(res.data.data) ? res.data.data : res.data)
+          const announcements = Array.isArray(res.data.data) ? res.data.data : (Array.isArray(res.data) ? res.data : [])
+          setAnnouncements(announcements)
         }
       } catch (e) {
         console.error('Failed to load announcements', e)
@@ -104,11 +109,11 @@ const Dashboard: React.FC<DashboardProps> = ({ username = 'Student', onLogout })
   }, [username])
 
   // Track read announcements and notice board paging/preview
-  const [readAnnouncements, setReadAnnouncements] = useState<Set<number>>(new Set())
+  const [readAnnouncements, setReadAnnouncements] = useState<Set<string>>(new Set())
   const [activeAnnouncementIndex, setActiveAnnouncementIndex] = useState(0) // start index for current page
   const [previewAnnouncement, setPreviewAnnouncement] = useState<Announcement | null>(null)
 
-  const toggleReadStatus = (id: number) => {
+  const toggleReadStatus = (id: string) => {
     setReadAnnouncements(prev => {
       const newSet = new Set(prev)
       if (newSet.has(id)) {
@@ -155,7 +160,14 @@ const Dashboard: React.FC<DashboardProps> = ({ username = 'Student', onLogout })
   ]
 
   return (
-    <StudentLayout username={username} onLogout={onLogout}>
+    <StudentLayout 
+      username={username} 
+      onLogout={onLogout}
+      isCollapsed={isSidebarCollapsed}
+      toggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+      isMobileOpen={isMobileSidebarOpen}
+      setIsMobileOpen={setIsMobileSidebarOpen}
+    >
       <motion.div
         className="p-6 bg-gray-50 min-h-screen"
         variants={containerVariants}

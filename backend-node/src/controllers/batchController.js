@@ -80,20 +80,46 @@ async function listBatchesForFaculty(facultyId) {
 	const facultyColl = db.collection('faculty');
 	const facultyDoc = await facultyColl.findOne({ faculty_id: facultyId });
 
+	let matchStage = { faculty_id: facultyId };
+	
 	if (facultyDoc && facultyDoc.institutional_id) {
-		const docs = await coll
-			.find(
-				{ $or: [{ faculty_id: facultyId }, { institutional_id: facultyDoc.institutional_id }] },
-				{ projection: { _id: 0 } },
-			)
-			.toArray();
-		return docs;
+		matchStage = {
+			$or: [
+				{ faculty_id: facultyId },
+				{ institutional_id: facultyDoc.institutional_id }
+			]
+		};
 	}
 
-	// Fallback: return only batches explicitly assigned to this faculty
-	const docs = await coll
-		.find({ faculty_id: facultyId }, { projection: { _id: 0 } })
-		.toArray();
+	const pipeline = [
+		{ $match: matchStage },
+		{
+			$lookup: {
+				from: 'faculty',
+				localField: 'faculty_id',
+				foreignField: 'faculty_id',
+				as: 'faculty_info'
+			}
+		},
+		{
+			$addFields: {
+				faculty_name: {
+					$ifNull: [
+						{ $arrayElemAt: ["$faculty_info.full_name", 0] },
+						"Unknown Faculty"
+					]
+				}
+			}
+		},
+		{
+			$project: {
+				_id: 0,
+				faculty_info: 0
+			}
+		}
+	];
+
+	const docs = await coll.aggregate(pipeline).toArray();
 	return docs;
 }
 

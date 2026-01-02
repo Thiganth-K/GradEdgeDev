@@ -4,6 +4,7 @@ import { postJson, getJson } from './lib/api'
 import FacultyDashboard from './pages/Faculty/Dashboard'
 import FacultyStudents from './pages/Faculty/Students'
 import FacultyBatches from './pages/Faculty/Batches'
+import FacultyLayout from './components/Faculty/Layout'
 
 
 import { useEffect, useState, type ReactElement } from 'react'
@@ -173,6 +174,7 @@ function App() {
   }
 
   // Common wrapper for protected faculty routes to avoid code duplication
+  // Also now provides the FacultyLayout context to all faculty pages
   const ProtectedFacultyRoute = ({ children }: { children: ReactElement }) => {
     return loggedIn && role === 'faculty' ? children : <LoginPage onLoginSuccess={handleLoginSuccess} />
   }
