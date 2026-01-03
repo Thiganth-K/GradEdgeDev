@@ -2,6 +2,7 @@ require('dotenv').config();
 
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 const { connectDb } = require('./config/db');
 
 // Route modules
@@ -46,6 +47,18 @@ app.use(logsRoutes);
 app.use('/api', (req, res) => {
 	res.status(404).json({ ok: false, error: 'Not found' });
 });
+
+// Serve frontend `dist` (if present) for production / static hosting.
+// This allows the backend to serve the built frontend and handle client-side routing.
+const distPath = path.resolve(__dirname, '../../frontend/dist');
+app.use(express.static(distPath));
+
+// For any non-API route, return the frontend index.html so the SPA can handle routing.
+// Use `app.use` instead of a wildcard route string to avoid path-to-regexp parsing issues.
+app.use((req, res, next) => {
+	if (req.path.startsWith('/api')) return next()
+	return res.sendFile(path.join(distPath, 'index.html'))
+})
 
 const PORT = process.env.PORT || 5005;
 

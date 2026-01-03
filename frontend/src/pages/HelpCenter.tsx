@@ -398,11 +398,14 @@ const HelpCenter: React.FC<HelpCenterProps> = ({ username, role, onLogout, facul
     // 1. Student Layout
     if (role === 'student' && username && onLogout) {
         return (
-            <StudentLayout username={username} onLogout={onLogout}>
-                {/* StudentLayout provides the sidebar and a flex-1 container. 
-                     We need to ensure HelpContent fits well inside. 
-                     Since HelpContent has 'min-h-full' it should expand. 
-                 */}
+            <StudentLayout
+                username={username}
+                onLogout={onLogout}
+                isCollapsed={isSidebarCollapsed}
+                toggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+                isMobileOpen={isMobileSidebarOpen}
+                setIsMobileOpen={setIsMobileSidebarOpen}
+            >
                 {HelpContent}
             </StudentLayout>
         )

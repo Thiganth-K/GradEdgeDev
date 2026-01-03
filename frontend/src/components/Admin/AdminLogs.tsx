@@ -200,7 +200,6 @@ export default function AdminLogs() {
                       </thead>
                       <tbody className="divide-y divide-red-100">
                         {(() => {
-                          const totalPages = Math.max(1, Math.ceil(logs.length / pageSize))
                           const start = (currentPage - 1) * pageSize
                           const end = start + pageSize
                           const paged = logs.slice(start, end)

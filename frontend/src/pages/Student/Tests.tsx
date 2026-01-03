@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useLocation } from 'react-router-dom'
 import { useNavigate } from 'react-router-dom'
 import { getJson, postJson } from '../../lib/api'
@@ -40,7 +40,7 @@ export default function StudentTests({ username = '' }: Props) {
   const [tests, setTests] = useState<TestListItem[]>([])
   const [active, setActive] = useState<TestDetail | null>(null)
   const [answers, setAnswers] = useState<number[]>([])
-  const [loading, setLoading] = useState(false)
+  const [loading] = useState(false)
   const [visitedQuestions, setVisitedQuestions] = useState<Set<number>>(new Set())
   const [flaggedQuestions, setFlaggedQuestions] = useState<Set<number>>(new Set())
   const [currentQuestion, setCurrentQuestion] = useState(0)
@@ -85,7 +85,7 @@ export default function StudentTests({ username = '' }: Props) {
     const percentage = Math.round((score / total) * 100)
     setResult({ score, total, percentage })
     setShowResult(true)
-  }
+  }, [answers, active, username])
 
   const closeResultModal = async () => {
     setShowResult(false)
@@ -95,7 +95,7 @@ export default function StudentTests({ username = '' }: Props) {
     setVisitedQuestions(new Set())
     setFlaggedQuestions(new Set())
     await load()
-  }, [active, answers, username, load])
+  }
 
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { void load() }, [load])
@@ -163,6 +163,57 @@ export default function StudentTests({ username = '' }: Props) {
         showConfetti: false
       }
     }
+  }
+
+  // Helpers for question navigation and filtering
+  const getFilteredQuestions = (): number[] => {
+    if (!active) return []
+    if (filterMode === 'all') return active.questions.map((_, i) => i)
+    if (filterMode === 'flagged') return Array.from(flaggedQuestions).filter(i => i >= 0 && i < active.questions.length).sort((a, b) => a - b)
+    // unanswered
+    return active.questions.map((_, i) => i).filter(i => answers[i] === -1)
+  }
+
+  const toggleFlag = (i: number) => {
+    setFlaggedQuestions(prev => {
+      const s = new Set(prev)
+      if (s.has(i)) s.delete(i)
+      else s.add(i)
+      return s
+    })
+  }
+
+  const scrollToQuestion = (i: number) => {
+    if (i == null || i < 0 || !active) return
+    const el = questionRefs.current[i]
+    if (el && el.scrollIntoView) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    setCurrentQuestion(i)
+    setVisitedQuestions(prev => { const s = new Set(prev); s.add(i); return s })
+  }
+
+  const goToPrevQuestion = () => {
+    setCurrentQuestion(prev => {
+      const next = Math.max(0, prev - 1)
+      scrollToQuestion(next)
+      return next
+    })
+  }
+
+  const goToNextQuestion = () => {
+    if (!active) return
+    setCurrentQuestion(prev => {
+      const next = Math.min(active.questions.length - 1, prev + 1)
+      scrollToQuestion(next)
+      return next
+    })
+  }
+
+  const clearAllAnswers = () => {
+    if (!active) return
+    if (!confirm('Clear all answers?')) return
+    setAnswers(Array(active.questions.length).fill(-1))
+    setVisitedQuestions(new Set())
+    setFlaggedQuestions(new Set())
   }
 
   const answeredCount = answers.filter(a => a !== -1).length

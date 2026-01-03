@@ -176,7 +176,14 @@ function App() {
   // Common wrapper for protected faculty routes to avoid code duplication
   // Also now provides the FacultyLayout context to all faculty pages
   const ProtectedFacultyRoute = ({ children }: { children: ReactElement }) => {
-    return loggedIn && role === 'faculty' ? children : <LoginPage onLoginSuccess={handleLoginSuccess} />
+    if (!(loggedIn && role === 'faculty')) return <LoginPage onLoginSuccess={handleLoginSuccess} />
+
+    // Wrap faculty pages with FacultyLayout so `useSidebar` hook has context
+    return (
+      <FacultyLayout facultyId={facultyId || ''} onLogout={handleLogout}>
+        {children}
+      </FacultyLayout>
+    )
   }
 
   return (

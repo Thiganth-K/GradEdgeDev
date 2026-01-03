@@ -8,6 +8,7 @@ type TestDoc = {
   title: string
   type: 'aptitude' | 'technical' | 'psychometric'
   createdAt?: string
+  questions?: Array<{ q: string; options: string[]; correctIndex: number }>
 }
 
 type Props = {
@@ -19,7 +20,7 @@ export default function InstitutionalTests({ username, institutionId: propInstit
   const navigate = useNavigate()
   const [institutionId] = useState(propInstitutionId || username || '')
   const [tests, setTests] = useState<TestDoc[]>([])
-  const [facultyList, setFacultyList] = useState<Array<{ username: string; faculty_id?: string }>>([])
+  const [facultyList, setFacultyList] = useState<Array<{ username: string; faculty_id?: string; full_name?: string }>>([])
   const [batchList, setBatchList] = useState<Array<{ batch_code: string; name?: string }>>([])
   const [type, setType] = useState<'aptitude' | 'technical' | 'psychometric'>('aptitude')
   const [title, setTitle] = useState('')
@@ -29,16 +30,14 @@ export default function InstitutionalTests({ username, institutionId: propInstit
   const [selectedBatchCodes, setSelectedBatchCodes] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
 
-  const header = { headers: { 'x-requested-by': 'institutional' } }
-
   async function load() {
     if (!institutionId) return
     setLoading(true)
     const res = await institutionalApi.listTests(institutionId)
     setLoading(false)
     if (!res.ok) return
-    // backend shape: { ok: true, data: [...] }
-    const docs = (res.data && (res.data.data ?? res.data)) || []
+    // backend returns { tests: [...] }
+    const docs = (res.data && (res.data.tests ?? [])) || []
     setTests(docs)
   }
 

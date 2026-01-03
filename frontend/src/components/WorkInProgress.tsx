@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { Hammer, HardHat, Construction, ArrowLeft } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
@@ -12,9 +12,19 @@ interface WorkInProgressProps {
 
 const WorkInProgress: React.FC<WorkInProgressProps> = ({ title, username, onLogout }) => {
     const navigate = useNavigate()
+    // Local sidebar state to satisfy StudentLayout props
+    const [isCollapsed, setIsCollapsed] = useState(false)
+    const [isMobileOpen, setIsMobileOpen] = useState(false)
 
     return (
-        <StudentLayout username={username} onLogout={onLogout}>
+        <StudentLayout
+            username={username}
+            onLogout={onLogout}
+            isCollapsed={isCollapsed}
+            toggleCollapse={() => setIsCollapsed(prev => !prev)}
+            isMobileOpen={isMobileOpen}
+            setIsMobileOpen={setIsMobileOpen}
+        >
             <div className="min-h-screen bg-gray-50 p-8">
                 {/* Header */}
                 <div className="mb-8 flex items-center gap-4">
