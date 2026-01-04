@@ -1,5 +1,10 @@
 require('dotenv').config();
 
+// Ensure a sensible default for NODE_ENV when not explicitly set by the environment
+if (!process.env.NODE_ENV) {
+	process.env.NODE_ENV = 'production';
+}
+
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
