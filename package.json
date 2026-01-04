@@ -4,7 +4,7 @@
   "description": "Work done :\r 1.Login page UI improved \r 2.Added the welcome message near the announcement and upcoming sessions\r 3.Typography updated accross the app \r 4.Dashboard UI improved",
   "main": "index.js",
   "scripts": {
-    "build": "npm --prefix frontend run build",
+    "build": "npm --prefix frontend install --include=dev && npm --prefix frontend run build",
     "start": "npm --prefix backend-node run build-start",
     "start:dev": "npm --prefix backend-node run dev",
     "test": "echo \"Error: no test specified\" && exit 1"
