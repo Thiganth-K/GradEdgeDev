@@ -70,16 +70,19 @@ const PORT = process.env.PORT || 5005;
 // Connect to MongoDB first, then start server
 const uri = process.env.MONGO_URI;
 
+// Try to connect to MongoDB, but don't block server startup if connection fails.
 connectDb(uri)
 	.then(() => {
 		console.log('Connected to MongoDB');
-		app.listen(PORT, () => {
-			console.log(`Node backend listening on port ${PORT}`);
-		});
 	})
 	.catch((err) => {
 		console.error('Failed to connect to MongoDB', err);
-		process.exit(1);
+		console.warn('Starting server without a database connection. Some features may not work.');
+	})
+	.finally(() => {
+		app.listen(PORT, () => {
+			console.log(`Node backend listening on port ${PORT}`);
+		});
 	});
 
 module.exports = app;
