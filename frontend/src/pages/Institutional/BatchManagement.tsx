@@ -9,25 +9,6 @@ type FacultyRow = {
   department?: string
 }
 
-type StudentRow = {
-  name: string
-  regno: string
-  dept: string
-  email: string
-  mobile: string
-}
-
-type StudentDoc = {
-  _id?: string
-  full_name?: string
-  enrollment_id?: string
-  department?: string
-  email?: string
-  mobile?: string
-  faculty_id?: string
-  faculty_username?: string
-}
-
 type BatchRow = {
   batch_code: string
   name?: string
