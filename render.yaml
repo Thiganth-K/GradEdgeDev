@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: gradedge
+    runtime: node
+    buildCommand: npm --prefix backend-node install && npm --prefix frontend install --include=dev && npm --prefix frontend run build
+    startCommand: node index.js
+    envVars:
+      - key: NODE_ENV
+        value: production
