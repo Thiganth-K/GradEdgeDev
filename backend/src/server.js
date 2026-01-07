@@ -7,8 +7,12 @@ dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 // Log important env presence at startup for debugging
 const _saSecret = (process.env.SUPERADMIN_JWT_SECRET || '').toString().trim();
+const _adminSecret = (process.env.ADMIN_JWT_SECRET || '').toString().trim();
+const _instSecret = (process.env.INSTITUTION_JWT_SECRET || '').toString().trim();
 const _mongoUri = (process.env.MONGO_URI || '').toString().trim();
 console.log('[ENV] SUPERADMIN_JWT_SECRET set:', _saSecret ? 'yes' : 'no');
+console.log('[ENV] ADMIN_JWT_SECRET set:', _adminSecret ? 'yes' : 'no');
+console.log('[ENV] INSTITUTION_JWT_SECRET set:', _instSecret ? 'yes' : 'no');
 console.log('[ENV] MONGO_URI set:', _mongoUri ? 'yes' : 'no');
 
 const app = express();
@@ -42,6 +46,10 @@ app.use('/superadmin', superAdminRoutes);
 // Admin routes (persistent admins stored in MongoDB)
 const adminRoutes = require('./routes/Admin/AdminRoutes');
 app.use('/admin', adminRoutes);
+
+// Institution public routes
+const institutionRoutes = require('./routes/Institution/InstitutionRoutes');
+app.use('/institution', institutionRoutes);
 
 app.get('/', (req, res) => {
   res.json({ message: 'GradEdgeDev backend running' });

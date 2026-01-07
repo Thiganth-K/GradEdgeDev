@@ -62,8 +62,8 @@ const listAdmins = async (req, res) => {
 
 const createAdmin = async (req, res) => {
   try {
-    const { username, password } = req.body || {};
-    console.log('[SuperAdmin.createAdmin] called by', req.superadmin && req.superadmin.username, 'payload', { username });
+    const { username, password, institutionLimit } = req.body || {};
+    console.log('[SuperAdmin.createAdmin] called by', req.superadmin && req.superadmin.username, 'payload', { username, institutionLimit });
     if (!username || !password) {
       console.log('[SuperAdmin.createAdmin] missing username or password');
       return res.status(400).json({ success: false, message: 'username and password required' });
@@ -76,9 +76,9 @@ const createAdmin = async (req, res) => {
     }
 
     const hash = await bcrypt.hash(password, 10);
-    const created = await Admin.create({ username, passwordHash: hash });
-    console.log('[SuperAdmin.createAdmin] created admin', created._id.toString());
-    res.json({ success: true, data: { id: created._id, username: created.username } });
+    const created = await Admin.create({ username, passwordHash: hash, institutionLimit: typeof institutionLimit === 'number' ? institutionLimit : 10 });
+    console.log('[SuperAdmin.createAdmin] created admin', created._id.toString(), 'limit', created.institutionLimit);
+    res.json({ success: true, data: { id: created._id, username: created.username, institutionLimit: created.institutionLimit } });
   } catch (err) {
     console.error('[SuperAdmin.createAdmin] error', err);
     res.status(500).json({ success: false, message: err.message });
@@ -88,10 +88,11 @@ const createAdmin = async (req, res) => {
 const updateAdmin = async (req, res) => {
   try {
     const { id } = req.params;
-    const { username, password } = req.body || {};
+    const { username, password, institutionLimit } = req.body || {};
     const update = {};
-    console.log('[SuperAdmin.updateAdmin] called by', req.superadmin && req.superadmin.username, 'id', id, 'payload', { username });
+    console.log('[SuperAdmin.updateAdmin] called by', req.superadmin && req.superadmin.username, 'id', id, 'payload', { username, institutionLimit });
     if (username) update.username = username;
+    if (typeof institutionLimit === 'number') update.institutionLimit = institutionLimit;
     if (password) update.passwordHash = await bcrypt.hash(password, 10);
 
     const updated = await Admin.findByIdAndUpdate(id, update, { new: true });
@@ -99,8 +100,8 @@ const updateAdmin = async (req, res) => {
       console.log('[SuperAdmin.updateAdmin] not found', id);
       return res.status(404).json({ success: false, message: 'not found' });
     }
-    console.log('[SuperAdmin.updateAdmin] updated', updated._id.toString());
-    res.json({ success: true, data: { id: updated._id, username: updated.username } });
+    console.log('[SuperAdmin.updateAdmin] updated', updated._id.toString(), 'limit', updated.institutionLimit);
+    res.json({ success: true, data: { id: updated._id, username: updated.username, institutionLimit: updated.institutionLimit } });
   } catch (err) {
     console.error('[SuperAdmin.updateAdmin] error', err);
     res.status(500).json({ success: false, message: err.message });

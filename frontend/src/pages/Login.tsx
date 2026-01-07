@@ -38,7 +38,23 @@ const Login: React.FC = () => {
       if (res.ok && body.success) {
         localStorage.setItem('gradedge_role', 'admin');
         localStorage.setItem('admin_data', JSON.stringify(body.data || {}));
+        if (body.token) localStorage.setItem('admin_token', body.token);
         window.location.href = '/admin/dashboard';
+        return;
+      }
+
+      // If not admin, try institution login using the same username as institutionId
+      res = await fetch(`${BACKEND}/institution/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ institutionId: username, password }),
+      });
+      body = await res.json().catch(() => ({}));
+      if (res.ok && body.success) {
+        localStorage.setItem('gradedge_role', 'institution');
+        localStorage.setItem('institution_data', JSON.stringify(body.data || {}));
+        if (body.token) localStorage.setItem('institution_token', body.token);
+        window.location.href = '/institution/dashboard';
         return;
       }
 

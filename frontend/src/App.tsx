@@ -7,6 +7,7 @@ import ViewLogs from './pages/SuperAdmin/ViewLogs'
 import AdminDashboard from './pages/Admin/Dashboard'
 import AdminInstitutionManagement from './pages/Admin/InstitutionManagement'
 import AdminViewLogs from './pages/Admin/ViewLogs'
+import InstitutionDashboard from './pages/Institution/Dashboard'
 import './App.css'
 
 const App: React.FC = () => {
@@ -31,6 +32,7 @@ const App: React.FC = () => {
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
         <Route path="/admin/institutions" element={<AdminInstitutionManagement />} />
         <Route path="/admin/logs" element={<AdminViewLogs />} />
+        <Route path="/institution/dashboard" element={<InstitutionDashboard />} />
         <Route path="*" element={<div className="p-8">Page not found</div>} />
       </Routes>
     </div>
