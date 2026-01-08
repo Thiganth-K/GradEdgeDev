@@ -28,7 +28,7 @@ const Login: React.FC = () => {
         return;
       }
 
-      // If not superadmin, try regular admin (stored in DB)
+      // If not admin, try regular admin (stored in DB)
       res = await fetch(`${BACKEND}/admin/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -55,6 +55,32 @@ const Login: React.FC = () => {
         localStorage.setItem('institution_data', JSON.stringify(body.data || {}));
         if (body.token) localStorage.setItem('institution_token', body.token);
         window.location.href = '/institution/dashboard';
+        return;
+      }
+
+      // If not institution, try faculty login
+      res = await fetch(`${BACKEND}/institution/faculty/login`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password }),
+      });
+      body = await res.json().catch(() => ({}));
+      if (res.ok && body.success) {
+        localStorage.setItem('gradedge_role', 'faculty');
+        localStorage.setItem('faculty_data', JSON.stringify(body.data || {}));
+        if (body.token) localStorage.setItem('faculty_token', body.token);
+        window.location.href = '/faculty/dashboard';
+        return;
+      }
+
+      // If not faculty, try student login
+      res = await fetch(`${BACKEND}/institution/student/login`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password }),
+      });
+      body = await res.json().catch(() => ({}));
+      if (res.ok && body.success) {
+        localStorage.setItem('gradedge_role', 'student');
+        localStorage.setItem('student_data', JSON.stringify(body.data || {}));
+        if (body.token) localStorage.setItem('student_token', body.token);
+        window.location.href = '/student/dashboard';
         return;
       }
 

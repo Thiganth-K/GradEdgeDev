@@ -1,6 +1,16 @@
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const Institution = require('../../models/Institution');
+const Faculty = require('../../models/Faculty');
+const Student = require('../../models/Student');
+const Batch = require('../../models/Batch');
+const Test = require('../../models/Test');
+const Question = require('../../models/Question');
+const TestAttempt = require('../../models/TestAttempt');
+
+// =====================
+// AUTH
+// =====================
 
 const login = async (req, res) => {
   const { institutionId, password } = req.body || {};
@@ -35,8 +45,1019 @@ const login = async (req, res) => {
   }
 };
 
+const facultyLogin = async (req, res) => {
+  const { username, password } = req.body || {};
+  console.log('[Institution.facultyLogin] called with username:', username);
+  
+  if (!username || !password) {
+    console.log('[Institution.facultyLogin] ✗ missing credentials');
+    return res.status(400).json({ success: false, message: 'username and password required' });
+  }
+  
+  try {
+    const f = await Faculty.findOne({ username });
+    if (!f) {
+      console.log('[Institution.facultyLogin] ✗ faculty not found:', username);
+      return res.status(401).json({ success: false, message: 'invalid credentials' });
+    }
+    
+    const ok = await bcrypt.compare(password, f.passwordHash);
+    if (!ok) {
+      console.log('[Institution.facultyLogin] ✗ invalid password for:', username);
+      return res.status(401).json({ success: false, message: 'invalid credentials' });
+    }
+    
+    const secret = process.env.INSTITUTION_JWT_SECRET || process.env.ADMIN_JWT_SECRET || process.env.SUPERADMIN_JWT_SECRET;
+    if (!secret) {
+      console.error('[Institution.facultyLogin] ✗ JWT secret not configured');
+      return res.status(500).json({ success: false, message: 'server jwt secret not configured' });
+    }
+    
+    const token = jwt.sign({ role: 'faculty', id: f._id, username: f.username, facultyRole: f.role }, secret, { expiresIn: '4h' });
+    console.log('[Institution.facultyLogin] ✓ authenticated faculty:', username, 'role:', f.role);
+    return res.json({ success: true, role: 'faculty', token, data: { id: f._id, username: f.username, role: f.role } });
+  } catch (err) {
+    console.error('[Institution.facultyLogin] ✗ error:', err.message);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+const studentLogin = async (req, res) => {
+  const { username, password } = req.body || {};
+  console.log('[Institution.studentLogin] called with username:', username);
+  
+  if (!username || !password) {
+    console.log('[Institution.studentLogin] ✗ missing credentials');
+    return res.status(400).json({ success: false, message: 'username and password required' });
+  }
+  
+  try {
+    const s = await Student.findOne({ username });
+    if (!s) {
+      console.log('[Institution.studentLogin] ✗ student not found:', username);
+      return res.status(401).json({ success: false, message: 'invalid credentials' });
+    }
+    
+    const ok = await bcrypt.compare(password, s.passwordHash);
+    if (!ok) {
+      console.log('[Institution.studentLogin] ✗ invalid password for:', username);
+      return res.status(401).json({ success: false, message: 'invalid credentials' });
+    }
+    
+    const secret = process.env.INSTITUTION_JWT_SECRET || process.env.ADMIN_JWT_SECRET || process.env.SUPERADMIN_JWT_SECRET;
+    if (!secret) {
+      console.error('[Institution.studentLogin] ✗ JWT secret not configured');
+      return res.status(500).json({ success: false, message: 'server jwt secret not configured' });
+    }
+    
+    const token = jwt.sign({ role: 'student', id: s._id, username: s.username }, secret, { expiresIn: '4h' });
+    console.log('[Institution.studentLogin] ✓ authenticated student:', username);
+    return res.json({ success: true, role: 'student', token, data: { id: s._id, username: s.username, name: s.name } });
+  } catch (err) {
+    console.error('[Institution.studentLogin] ✗ error:', err.message);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// =====================
+// FACULTY CRUD
+// =====================
+
+const listFaculties = async (req, res) => {
+  try {
+    const instId = req.institution && req.institution.id;
+    const instName = req.institution && req.institution.name;
+    console.log('[Institution.listFaculties] called by institution:', instName);
+    
+    const docs = await Faculty.find({ createdBy: instId }).select('-passwordHash');
+    console.log('[Institution.listFaculties] ✓ found', docs.length, 'faculties');
+    return res.json({ success: true, data: docs });
+  } catch (err) {
+    console.error('[Institution.listFaculties] ✗ error:', err.message);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+const createFaculty = async (req, res) => {
+  try {
+    const instId = req.institution && req.institution.id;
+    const instName = req.institution && req.institution.name;
+    const { username, password, role } = req.body || {};
+    console.log('[Institution.createFaculty] called by institution:', instName);
+    console.log('[Institution.createFaculty] payload: { username:', username, ', role:', role, '}');
+    
+    if (!username || !password || !role) {
+      console.log('[Institution.createFaculty] ✗ missing required fields');
+      return res.status(400).json({ success: false, message: 'username, password and role required' });
+    }
+    
+    const existing = await Faculty.findOne({ username });
+    if (existing) {
+      console.log('[Institution.createFaculty] ✗ username already taken:', username);
+      return res.status(400).json({ success: false, message: 'username taken' });
+    }
+    
+    const hash = await bcrypt.hash(password, 10);
+    const f = await Faculty.create({ username, passwordHash: hash, role, createdBy: instId });
+    console.log('[Institution.createFaculty] ✓ created - id:', f._id.toString(), 'username:', f.username, 'role:', f.role);
+    return res.json({ success: true, data: { id: f._id, username: f.username, role: f.role } });
+  } catch (err) {
+    console.error('[Institution.createFaculty] ✗ error:', err.message);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+const updateFaculty = async (req, res) => {
+  try {
+    const instId = req.institution && req.institution.id;
+    const instName = req.institution && req.institution.name;
+    const id = req.params.id;
+    console.log('[Institution.updateFaculty] called by institution:', instName);
+    console.log('[Institution.updateFaculty] target id:', id);
+    
+    const updates = {};
+    if (req.body.username) updates.username = req.body.username;
+    if (req.body.role) updates.role = req.body.role;
+    if (req.body.password) updates.passwordHash = await bcrypt.hash(req.body.password, 10);
+    
+    const f = await Faculty.findOneAndUpdate({ _id: id, createdBy: instId }, updates, { new: true }).select('-passwordHash');
+    if (!f) {
+      console.log('[Institution.updateFaculty] ✗ faculty not found:', id);
+      return res.status(404).json({ success: false, message: 'not found' });
+    }
+    
+    console.log('[Institution.updateFaculty] ✓ updated - id:', f._id.toString(), 'username:', f.username);
+    return res.json({ success: true, data: f });
+  } catch (err) {
+    console.error('[Institution.updateFaculty] ✗ error:', err.message);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+const deleteFaculty = async (req, res) => {
+  try {
+    const instId = req.institution && req.institution.id;
+    const instName = req.institution && req.institution.name;
+    const id = req.params.id;
+    console.log('[Institution.deleteFaculty] called by institution:', instName);
+    console.log('[Institution.deleteFaculty] target id:', id);
+    
+    const f = await Faculty.findOneAndDelete({ _id: id, createdBy: instId });
+    if (!f) {
+      console.log('[Institution.deleteFaculty] ✗ faculty not found:', id);
+      return res.status(404).json({ success: false, message: 'not found' });
+    }
+    
+    console.log('[Institution.deleteFaculty] ✓ deleted - id:', f._id.toString(), 'username:', f.username);
+    return res.json({ success: true, message: 'deleted' });
+  } catch (err) {
+    console.error('[Institution.deleteFaculty] ✗ error:', err.message);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// =====================
+// STUDENT CRUD
+// =====================
+
+const listStudents = async (req, res) => {
+  try {
+    const instId = req.institution && req.institution.id;
+    const instName = req.institution && req.institution.name;
+    console.log('[Institution.listStudents] called by institution:', instName);
+    
+    const docs = await Student.find({ createdBy: instId }).select('-passwordHash');
+    console.log('[Institution.listStudents] ✓ found', docs.length, 'students');
+    return res.json({ success: true, data: docs });
+  } catch (err) {
+    console.error('[Institution.listStudents] ✗ error:', err.message);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+const createStudent = async (req, res) => {
+  try {
+    const instId = req.institution && req.institution.id;
+    const instName = req.institution && req.institution.name;
+    const { username, password, name, email, dept, regno } = req.body || {};
+    console.log('[Institution.createStudent] called by institution:', instName);
+    console.log('[Institution.createStudent] payload: { username:', username, ', name:', name, ', dept:', dept, ', regno:', regno, '}');
+    
+    if (!username || !password) {
+      console.log('[Institution.createStudent] ✗ missing required fields');
+      return res.status(400).json({ success: false, message: 'username and password required' });
+    }
+    
+    const existing = await Student.findOne({ username });
+    if (existing) {
+      console.log('[Institution.createStudent] ✗ username already taken:', username);
+      return res.status(400).json({ success: false, message: 'username taken' });
+    }
+    
+    const hash = await bcrypt.hash(password, 10);
+    const s = await Student.create({ username, passwordHash: hash, name, email, dept, regno, createdBy: instId });
+    console.log('[Institution.createStudent] ✓ created - id:', s._id.toString(), 'username:', s.username, 'name:', s.name);
+    return res.json({ success: true, data: { id: s._id, username: s.username, name: s.name } });
+  } catch (err) {
+    console.error('[Institution.createStudent] ✗ error:', err.message);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+const updateStudent = async (req, res) => {
+  try {
+    const instId = req.institution && req.institution.id;
+    const instName = req.institution && req.institution.name;
+    const id = req.params.id;
+    console.log('[Institution.updateStudent] called by institution:', instName);
+    console.log('[Institution.updateStudent] target id:', id);
+    
+    const updates = {};
+    ['username', 'name', 'email', 'dept', 'regno'].forEach((k) => { if (req.body[k]) updates[k] = req.body[k]; });
+    if (req.body.password) updates.passwordHash = await bcrypt.hash(req.body.password, 10);
+    
+    const s = await Student.findOneAndUpdate({ _id: id, createdBy: instId }, updates, { new: true }).select('-passwordHash');
+    if (!s) {
+      console.log('[Institution.updateStudent] ✗ student not found:', id);
+      return res.status(404).json({ success: false, message: 'not found' });
+    }
+    
+    console.log('[Institution.updateStudent] ✓ updated - id:', s._id.toString(), 'username:', s.username);
+    return res.json({ success: true, data: s });
+  } catch (err) {
+    console.error('[Institution.updateStudent] ✗ error:', err.message);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+const deleteStudent = async (req, res) => {
+  try {
+    const instId = req.institution && req.institution.id;
+    const instName = req.institution && req.institution.name;
+    const id = req.params.id;
+    console.log('[Institution.deleteStudent] called by institution:', instName);
+    console.log('[Institution.deleteStudent] target id:', id);
+    
+    const s = await Student.findOneAndDelete({ _id: id, createdBy: instId });
+    if (!s) {
+      console.log('[Institution.deleteStudent] ✗ student not found:', id);
+      return res.status(404).json({ success: false, message: 'not found' });
+    }
+    
+    console.log('[Institution.deleteStudent] ✓ deleted - id:', s._id.toString(), 'username:', s.username);
+    return res.json({ success: true, message: 'deleted' });
+  } catch (err) {
+    console.error('[Institution.deleteStudent] ✗ error:', err.message);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// =====================
+// BATCH CRUD
+// =====================
+
+const listBatches = async (req, res) => {
+  try {
+    const instId = req.institution && req.institution.id;
+    const instName = req.institution && req.institution.name;
+    console.log('[Institution.listBatches] called by institution:', instName);
+    
+    const docs = await Batch.find({ createdBy: instId }).populate('faculty', 'username role').populate('students', 'username name regno');
+    console.log('[Institution.listBatches] ✓ found', docs.length, 'batches');
+    return res.json({ success: true, data: docs });
+  } catch (err) {
+    console.error('[Institution.listBatches] ✗ error:', err.message);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+const createBatch = async (req, res) => {
+  try {
+    const instId = req.institution && req.institution.id;
+    const instName = req.institution && req.institution.name;
+    const { name, facultyId, studentIds } = req.body || {};
+    console.log('[Institution.createBatch] called by institution:', instName);
+    console.log('[Institution.createBatch] payload: { name:', name, ', facultyId:', facultyId, ', studentCount:', Array.isArray(studentIds) ? studentIds.length : 0, '}');
+    
+    if (!name) {
+      console.log('[Institution.createBatch] ✗ missing name');
+      return res.status(400).json({ success: false, message: 'name required' });
+    }
+    
+    const b = await Batch.create({ name, faculty: facultyId || null, students: Array.isArray(studentIds) ? studentIds : [], createdBy: instId });
+    console.log('[Institution.createBatch] ✓ created - id:', b._id.toString(), 'name:', b.name, 'students:', b.students.length);
+    return res.json({ success: true, data: b });
+  } catch (err) {
+    console.error('[Institution.createBatch] ✗ error:', err.message);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+const updateBatch = async (req, res) => {
+  try {
+    const instId = req.institution && req.institution.id;
+    const instName = req.institution && req.institution.name;
+    const id = req.params.id;
+    console.log('[Institution.updateBatch] called by institution:', instName);
+    console.log('[Institution.updateBatch] target id:', id);
+    
+    const updates = {};
+    if (req.body.name) updates.name = req.body.name;
+    if (req.body.facultyId) updates.faculty = req.body.facultyId;
+    if (Array.isArray(req.body.studentIds)) updates.students = req.body.studentIds;
+    
+    const b = await Batch.findOneAndUpdate({ _id: id, createdBy: instId }, updates, { new: true }).populate('faculty', 'username role').populate('students', 'username name regno');
+    if (!b) {
+      console.log('[Institution.updateBatch] ✗ batch not found:', id);
+      return res.status(404).json({ success: false, message: 'not found' });
+    }
+    
+    console.log('[Institution.updateBatch] ✓ updated - id:', b._id.toString(), 'name:', b.name);
+    return res.json({ success: true, data: b });
+  } catch (err) {
+    console.error('[Institution.updateBatch] ✗ error:', err.message);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+const deleteBatch = async (req, res) => {
+  try {
+    const instId = req.institution && req.institution.id;
+    const instName = req.institution && req.institution.name;
+    const id = req.params.id;
+    console.log('[Institution.deleteBatch] called by institution:', instName);
+    console.log('[Institution.deleteBatch] target id:', id);
+    
+    const b = await Batch.findOneAndDelete({ _id: id, createdBy: instId });
+    if (!b) {
+      console.log('[Institution.deleteBatch] ✗ batch not found:', id);
+      return res.status(404).json({ success: false, message: 'not found' });
+    }
+    
+    console.log('[Institution.deleteBatch] ✓ deleted - id:', b._id.toString(), 'name:', b.name);
+    return res.json({ success: true, message: 'deleted' });
+  } catch (err) {
+    console.error('[Institution.deleteBatch] ✗ error:', err.message);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// =====================
+// QUESTION LIBRARY
+// =====================
+
+const listQuestions = async (req, res) => {
+  try {
+    const { category } = req.query || {};
+    const instName = req.institution?.name || 'unknown';
+    console.log('[Institution.listQuestions] called by institution:', instName);
+    if (category) console.log('[Institution.listQuestions] category filter:', category);
+    
+    const filter = { createdBy: req.institution?.id };
+    if (category) filter.category = category;
+    const items = await Question.find(filter).sort({ createdAt: -1 });
+    console.log('[Institution.listQuestions] ✓ found', items.length, 'questions');
+    res.json({ success: true, data: items });
+  } catch (err) {
+    console.error('[Institution.listQuestions] ✗ error:', err.message);
+    res.status(500).json({ success: false, message: 'failed to list questions' });
+  }
+};
+
+const createQuestion = async (req, res) => {
+  try {
+    const { text, options, correctIndex, category, difficulty, tags } = req.body || {};
+    const instName = req.institution?.name || 'unknown';
+    console.log('[Institution.createQuestion] called by institution:', instName);
+    console.log('[Institution.createQuestion] payload: { category:', category, ', difficulty:', difficulty, ', options:', options?.length || 0, '}');
+    
+    if (!text || !Array.isArray(options) || options.length < 2 || typeof correctIndex !== 'number') {
+      console.log('[Institution.createQuestion] ✗ invalid payload');
+      return res.status(400).json({ success: false, message: 'invalid question payload' });
+    }
+    if (!['aptitude', 'technical', 'psycometric'].includes(category)) {
+      console.log('[Institution.createQuestion] ✗ invalid category:', category);
+      return res.status(400).json({ success: false, message: 'invalid category' });
+    }
+    
+    const q = await Question.create({
+      text,
+      options: options.map((t) => ({ text: t })),
+      correctIndex,
+      category,
+      difficulty,
+      tags,
+      createdBy: req.institution?.id,
+    });
+    console.log('[Institution.createQuestion] ✓ created - id:', q._id.toString(), 'category:', q.category);
+    res.status(201).json({ success: true, data: q });
+  } catch (err) {
+    console.error('[Institution.createQuestion] ✗ error:', err.message);
+    res.status(500).json({ success: false, message: 'failed to create question' });
+  }
+};
+
+const updateQuestion = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const instName = req.institution?.name || 'unknown';
+    console.log('[Institution.updateQuestion] called by institution:', instName);
+    console.log('[Institution.updateQuestion] target id:', id);
+    
+    const q = await Question.findOne({ _id: id, createdBy: req.institution?.id });
+    if (!q) {
+      console.log('[Institution.updateQuestion] ✗ question not found:', id);
+      return res.status(404).json({ success: false, message: 'question not found' });
+    }
+    
+    const { text, options, correctIndex, category, difficulty, tags } = req.body || {};
+    if (text !== undefined) q.text = text;
+    if (Array.isArray(options) && options.length >= 2) q.options = options.map((t) => ({ text: t }));
+    if (typeof correctIndex === 'number') q.correctIndex = correctIndex;
+    if (category && ['aptitude', 'technical', 'psycometric'].includes(category)) q.category = category;
+    if (difficulty) q.difficulty = difficulty;
+    if (tags) q.tags = tags;
+    await q.save();
+    
+    console.log('[Institution.updateQuestion] ✓ updated - id:', q._id.toString());
+    res.json({ success: true, data: q });
+  } catch (err) {
+    console.error('[Institution.updateQuestion] ✗ error:', err.message);
+    res.status(500).json({ success: false, message: 'failed to update question' });
+  }
+};
+
+const deleteQuestion = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const instName = req.institution?.name || 'unknown';
+    console.log('[Institution.deleteQuestion] called by institution:', instName);
+    console.log('[Institution.deleteQuestion] target id:', id);
+    
+    const q = await Question.findOneAndDelete({ _id: id, createdBy: req.institution?.id });
+    if (!q) {
+      console.log('[Institution.deleteQuestion] ✗ question not found:', id);
+      return res.status(404).json({ success: false, message: 'question not found' });
+    }
+    
+    console.log('[Institution.deleteQuestion] ✓ deleted - id:', q._id.toString());
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[Institution.deleteQuestion] ✗ error:', err.message);
+    res.status(500).json({ success: false, message: 'failed to delete question' });
+  }
+};
+
+// =====================
+// TESTS
+// =====================
+
+const listTests = async (req, res) => {
+  try {
+    const instName = req.institution?.name || 'unknown';
+    console.log('[Institution.listTests] called by institution:', instName);
+    
+    const tests = await Test.find({ createdBy: req.institution?.id }).populate('assignedFaculty', 'username role').sort({ createdAt: -1 });
+    console.log('[Institution.listTests] ✓ found', tests.length, 'tests');
+    res.json({ success: true, data: tests });
+  } catch (err) {
+    console.error('[Institution.listTests] ✗ error:', err.message);
+    res.status(500).json({ success: false, message: 'failed to list tests' });
+  }
+};
+
+const getTest = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const instName = req.institution?.name || 'unknown';
+    console.log('[Institution.getTest] called by institution:', instName);
+    console.log('[Institution.getTest] target id:', id);
+    
+    const t = await Test.findOne({ _id: id, createdBy: req.institution?.id }).populate('assignedFaculty', 'username role');
+    if (!t) {
+      console.log('[Institution.getTest] ✗ test not found:', id);
+      return res.status(404).json({ success: false, message: 'test not found' });
+    }
+    
+    console.log('[Institution.getTest] ✓ found - id:', t._id.toString(), 'name:', t.name);
+    res.json({ success: true, data: t });
+  } catch (err) {
+    console.error('[Institution.getTest] ✗ error:', err.message);
+    res.status(500).json({ success: false, message: 'failed to get test' });
+  }
+};
+
+const createTest = async (req, res) => {
+  try {
+    const { name, type, durationMinutes, startTime, endTime, assignedFacultyId, batchIds, questionIds, customQuestions } = req.body || {};
+    const instName = req.institution?.name || 'unknown';
+    console.log('[Institution.createTest] called by institution:', instName);
+    console.log('[Institution.createTest] payload: { name:', name, ', type:', type, ', duration:', durationMinutes, ', batchCount:', batchIds?.length || 0, '}');
+    
+    if (!name || !['aptitude', 'technical', 'psycometric'].includes(type)) {
+      console.log('[Institution.createTest] ✗ invalid payload');
+      return res.status(400).json({ success: false, message: 'invalid test payload' });
+    }
+    
+    const embeddedQuestions = [];
+    if (Array.isArray(questionIds) && questionIds.length) {
+      const qs = await Question.find({ _id: { $in: questionIds }, category: type });
+      for (const q of qs) {
+        embeddedQuestions.push({
+          questionId: q._id,
+          text: q.text,
+          options: (q.options || []).map((o) => o.text),
+          correctIndex: q.correctIndex,
+        });
+      }
+    }
+    if (Array.isArray(customQuestions) && customQuestions.length) {
+      for (const cq of customQuestions) {
+        const { text, options, correctIndex } = cq;
+        if (!text || !Array.isArray(options) || options.length < 2 || typeof correctIndex !== 'number') continue;
+        embeddedQuestions.push({ questionId: undefined, text, options, correctIndex });
+      }
+    }
+    if (embeddedQuestions.length === 0) {
+      console.log('[Institution.createTest] ✗ no questions provided');
+      return res.status(400).json({ success: false, message: 'no questions provided' });
+    }
+    
+    const t = await Test.create({
+      name,
+      type,
+      durationMinutes: durationMinutes || 30,
+      startTime: startTime ? new Date(startTime) : undefined,
+      endTime: endTime ? new Date(endTime) : undefined,
+      assignedFaculty: assignedFacultyId || undefined,
+      assignedBatches: Array.isArray(batchIds) ? batchIds : [],
+      createdBy: req.institution?.id,
+      questions: embeddedQuestions,
+    });
+    console.log('[Institution.createTest] ✓ created - id:', t._id.toString(), 'name:', t.name, 'questions:', t.questions.length);
+    res.status(201).json({ success: true, data: t });
+  } catch (err) {
+    console.error('[Institution.createTest] ✗ error:', err.message);
+    res.status(500).json({ success: false, message: 'failed to create test' });
+  }
+};
+
+const updateTest = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const instName = req.institution?.name || 'unknown';
+    console.log('[Institution.updateTest] called by institution:', instName);
+    console.log('[Institution.updateTest] target id:', id);
+    
+    const t = await Test.findOne({ _id: id, createdBy: req.institution?.id });
+    if (!t) {
+      console.log('[Institution.updateTest] ✗ test not found:', id);
+      return res.status(404).json({ success: false, message: 'test not found' });
+    }
+    
+    const { name, type, durationMinutes, startTime, endTime, assignedFacultyId, batchIds, questionIds, customQuestions, removeQuestionIndices } = req.body || {};
+    
+    if (name !== undefined) t.name = name;
+    if (type !== undefined && ['aptitude', 'technical', 'psycometric'].includes(type)) t.type = type;
+    if (durationMinutes !== undefined) t.durationMinutes = durationMinutes;
+    if (startTime !== undefined) t.startTime = startTime ? new Date(startTime) : undefined;
+    if (endTime !== undefined) t.endTime = endTime ? new Date(endTime) : undefined;
+    if (assignedFacultyId !== undefined) t.assignedFaculty = assignedFacultyId || undefined;
+    if (Array.isArray(batchIds)) t.assignedBatches = batchIds;
+
+    if (removeQuestionIndices && Array.isArray(removeQuestionIndices)) {
+      const sorted = [...removeQuestionIndices].sort((a, b) => b - a);
+      for (const idx of sorted) {
+        if (idx >= 0 && idx < t.questions.length) {
+          t.questions.splice(idx, 1);
+        }
+      }
+      console.log('[Institution.updateTest] removed', removeQuestionIndices.length, 'questions');
+    }
+
+    if (Array.isArray(questionIds) && questionIds.length) {
+      const qs = await Question.find({ _id: { $in: questionIds }, category: t.type });
+      for (const q of qs) {
+        const exists = t.questions.some((tq) => String(tq.questionId) === String(q._id));
+        if (!exists) {
+          t.questions.push({
+            questionId: q._id,
+            text: q.text,
+            options: (q.options || []).map((o) => o.text),
+            correctIndex: q.correctIndex,
+          });
+        }
+      }
+      console.log('[Institution.updateTest] added', qs.length, 'library questions');
+    }
+
+    if (Array.isArray(customQuestions) && customQuestions.length) {
+      for (const cq of customQuestions) {
+        const { text, options, correctIndex } = cq;
+        if (!text || !Array.isArray(options) || options.length < 2 || typeof correctIndex !== 'number') continue;
+        t.questions.push({ questionId: undefined, text, options, correctIndex });
+      }
+      console.log('[Institution.updateTest] added', customQuestions.length, 'custom questions');
+    }
+
+    await t.save();
+    console.log('[Institution.updateTest] ✓ updated - id:', t._id.toString());
+    res.json({ success: true, data: t });
+  } catch (err) {
+    console.error('[Institution.updateTest] ✗ error:', err.message);
+    res.status(500).json({ success: false, message: 'failed to update test' });
+  }
+};
+
+const assignTestBatches = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { batchIds } = req.body || {};
+    const instName = req.institution?.name || 'unknown';
+    console.log('[Institution.assignTestBatches] called by institution:', instName);
+    console.log('[Institution.assignTestBatches] test id:', id, '| batchCount:', batchIds?.length || 0);
+    
+    const t = await Test.findOne({ _id: id, createdBy: req.institution?.id });
+    if (!t) {
+      console.log('[Institution.assignTestBatches] ✗ test not found:', id);
+      return res.status(404).json({ success: false, message: 'test not found' });
+    }
+    
+    t.assignedBatches = Array.isArray(batchIds) ? batchIds : [];
+    await t.save();
+    console.log('[Institution.assignTestBatches] ✓ assigned', t.assignedBatches.length, 'batches to test');
+    res.json({ success: true, data: t });
+  } catch (err) {
+    console.error('[Institution.assignTestBatches] ✗ error:', err.message);
+    res.status(500).json({ success: false, message: 'failed to assign batches' });
+  }
+};
+
+const deleteTest = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const instName = req.institution?.name || 'unknown';
+    console.log('[Institution.deleteTest] called by institution:', instName);
+    console.log('[Institution.deleteTest] target id:', id);
+    
+    const t = await Test.findOneAndDelete({ _id: id, createdBy: req.institution?.id });
+    if (!t) {
+      console.log('[Institution.deleteTest] ✗ test not found:', id);
+      return res.status(404).json({ success: false, message: 'test not found' });
+    }
+    
+    const deletedAttempts = await TestAttempt.deleteMany({ testId: id });
+    console.log('[Institution.deleteTest] ✓ deleted test - id:', t._id.toString(), 'name:', t.name);
+    console.log('[Institution.deleteTest] also deleted', deletedAttempts.deletedCount, 'test attempts');
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[Institution.deleteTest] ✗ error:', err.message);
+    res.status(500).json({ success: false, message: 'failed to delete test' });
+  }
+};
+
+// =====================
+// STUDENT TEST PARTICIPATION
+// =====================
+
+const listStudentTests = async (req, res) => {
+  try {
+    const studentId = req.student?.id;
+    if (!studentId) return res.status(401).json({ success: false, message: 'unauthorized' });
+    const batches = await Batch.find({ students: studentId }).select('_id');
+    const batchIds = batches.map((b) => b._id);
+    const now = new Date();
+    const tests = await Test.find({
+      $or: [
+        { assignedStudents: studentId },
+        { assignedBatches: { $in: batchIds } },
+      ],
+      $and: [
+        { $or: [{ startTime: { $exists: false } }, { startTime: { $lte: now } }] },
+        { $or: [{ endTime: { $exists: false } }, { endTime: { $gte: now } }] },
+      ],
+    }).sort({ startTime: 1 });
+    res.json({ success: true, data: tests });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'failed to list student tests' });
+  }
+};
+
+const getStudentTest = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const studentId = req.student?.id;
+    const batches = await Batch.find({ students: studentId }).select('_id');
+    const batchIds = batches.map((b) => b._id);
+    const t = await Test.findOne({
+      _id: id,
+      $or: [{ assignedStudents: studentId }, { assignedBatches: { $in: batchIds } }],
+    });
+    if (!t) return res.status(404).json({ success: false, message: 'test not found' });
+    const sanitized = {
+      _id: t._id,
+      name: t.name,
+      type: t.type,
+      durationMinutes: t.durationMinutes,
+      startTime: t.startTime,
+      endTime: t.endTime,
+      questions: t.questions.map((q) => ({ text: q.text, options: q.options })),
+    };
+    res.json({ success: true, data: sanitized });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'failed to get test' });
+  }
+};
+
+const startTestAttempt = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const studentId = req.student?.id;
+    const studentUsername = req.student?.username;
+    console.log('[Institution.startTestAttempt] called by student:', studentUsername);
+    console.log('[Institution.startTestAttempt] test id:', id);
+    
+    const t = await Test.findById(id);
+    if (!t) {
+      console.log('[Institution.startTestAttempt] ✗ test not found:', id);
+      return res.status(404).json({ success: false, message: 'test not found' });
+    }
+    
+    const batches = await Batch.find({ students: studentId }).select('_id');
+    const batchIds = batches.map((b) => b._id.toString());
+    const eligible = t.assignedStudents?.map(String).includes(String(studentId)) || t.assignedBatches?.map(String).some((b) => batchIds.includes(b));
+    if (!eligible) {
+      console.log('[Institution.startTestAttempt] ✗ student not eligible for test:', id);
+      return res.status(403).json({ success: false, message: 'not eligible for this test' });
+    }
+    
+    let attempt = await TestAttempt.findOne({ testId: id, studentId });
+    if (!attempt) {
+      attempt = await TestAttempt.create({ testId: id, studentId, total: t.questions.length });
+      console.log('[Institution.startTestAttempt] ✓ new attempt created - id:', attempt._id.toString());
+    } else {
+      console.log('[Institution.startTestAttempt] ✓ existing attempt found - id:', attempt._id.toString());
+    }
+    
+    res.json({ success: true, data: { attemptId: attempt._id, startedAt: attempt.startedAt } });
+  } catch (err) {
+    console.error('[Institution.startTestAttempt] ✗ error:', err.message);
+    res.status(500).json({ success: false, message: 'failed to start attempt' });
+  }
+};
+
+const submitTestAttempt = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const studentId = req.student?.id;
+    const studentUsername = req.student?.username;
+    const { responses, startedAt } = req.body || {};
+    console.log('[Institution.submitTestAttempt] called by student:', studentUsername);
+    console.log('[Institution.submitTestAttempt] test id:', id, '| responseCount:', responses?.length || 0);
+    
+    const t = await Test.findById(id);
+    if (!t) {
+      console.log('[Institution.submitTestAttempt] ✗ test not found:', id);
+      return res.status(404).json({ success: false, message: 'test not found' });
+    }
+    
+    if (!Array.isArray(responses) || responses.length !== t.questions.length) {
+      console.log('[Institution.submitTestAttempt] ✗ invalid response count');
+      return res.status(400).json({ success: false, message: 'invalid responses payload' });
+    }
+    
+    const now = new Date();
+    const start = startedAt ? new Date(startedAt) : now;
+    const secs = Math.max(1, Math.floor((now.getTime() - start.getTime()) / 1000));
+    let correctCount = 0;
+    const respRecords = [];
+    for (let i = 0; i < t.questions.length; i++) {
+      const q = t.questions[i];
+      const sel = responses[i];
+      const isCorrect = Number(sel) === Number(q.correctIndex);
+      if (isCorrect) correctCount++;
+      respRecords.push({ qIdx: i, selected: sel, correct: isCorrect });
+    }
+    const score = Math.round((correctCount / t.questions.length) * 100);
+    
+    let attempt = await TestAttempt.findOne({ testId: id, studentId });
+    if (!attempt) {
+      attempt = await TestAttempt.create({ testId: id, studentId, total: t.questions.length, correctCount, score, responses: respRecords, timeTakenSeconds: secs, completedAt: now });
+      console.log('[Institution.submitTestAttempt] ✓ new attempt submitted - score:', score);
+    } else {
+      attempt.correctCount = correctCount;
+      attempt.score = score;
+      attempt.responses = respRecords;
+      attempt.timeTakenSeconds = secs;
+      attempt.completedAt = now;
+      await attempt.save();
+      console.log('[Institution.submitTestAttempt] ✓ attempt updated - score:', score);
+    }
+    
+    res.json({ success: true, data: { score, correctCount, total: t.questions.length } });
+  } catch (err) {
+    console.error('[Institution.submitTestAttempt] ✗ error:', err.message);
+    res.status(500).json({ success: false, message: 'failed to submit attempt' });
+  }
+};
+
+// =====================
+// FACULTY VIEWS
+// =====================
+
+const listAssignedTestsForFaculty = async (req, res) => {
+  try {
+    const facultyId = req.faculty?.id;
+    const facultyUsername = req.faculty?.username;
+    console.log('[Institution.listAssignedTestsForFaculty] called by faculty:', facultyUsername);
+    
+    const tests = await Test.find({ assignedFaculty: facultyId }).sort({ startTime: 1 });
+    console.log('[Institution.listAssignedTestsForFaculty] ✓ found', tests.length, 'assigned tests');
+    res.json({ success: true, data: tests });
+  } catch (err) {
+    console.error('[Institution.listAssignedTestsForFaculty] ✗ error:', err.message);
+    res.status(500).json({ success: false, message: 'failed to list assigned tests' });
+  }
+};
+
+const getTestResultsForFaculty = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const facultyId = req.faculty?.id;
+    const facultyUsername = req.faculty?.username;
+    console.log('[Institution.getTestResultsForFaculty] called by faculty:', facultyUsername);
+    console.log('[Institution.getTestResultsForFaculty] test id:', id);
+    
+    const t = await Test.findById(id);
+    if (!t) {
+      console.log('[Institution.getTestResultsForFaculty] ✗ test not found:', id);
+      return res.status(404).json({ success: false, message: 'test not found' });
+    }
+    
+    if (String(t.assignedFaculty) !== String(facultyId)) {
+      console.log('[Institution.getTestResultsForFaculty] ✗ forbidden - test not assigned to faculty');
+      return res.status(403).json({ success: false, message: 'forbidden' });
+    }
+    
+    let studentIds = [];
+    if (Array.isArray(t.assignedBatches) && t.assignedBatches.length) {
+      const batches = await Batch.find({ _id: { $in: t.assignedBatches } });
+      for (const b of batches) {
+        for (const s of b.students || []) studentIds.push(String(s));
+      }
+    }
+    for (const s of t.assignedStudents || []) studentIds.push(String(s));
+    studentIds = Array.from(new Set(studentIds));
+    
+    const attempts = await TestAttempt.find({ testId: id, studentId: { $in: studentIds } }).populate('studentId', 'username name email');
+    const status = studentIds.map((sid) => {
+      const attempt = attempts.find((a) => String(a.studentId?._id || a.studentId) === String(sid));
+      if (!attempt) return { studentId: sid, status: 'pending' };
+      return {
+        studentId: String(attempt.studentId?._id || attempt.studentId),
+        student: attempt.studentId?.username || undefined,
+        name: attempt.studentId?.name || undefined,
+        email: attempt.studentId?.email || undefined,
+        status: attempt.completedAt ? 'completed' : 'started',
+        timeTakenSeconds: attempt.timeTakenSeconds,
+        score: attempt.score,
+        correctCount: attempt.correctCount,
+        total: attempt.total,
+        responses: attempt.responses || [],
+        startedAt: attempt.startedAt,
+        completedAt: attempt.completedAt,
+      };
+    });
+    
+    console.log('[Institution.getTestResultsForFaculty] ✓ found results - total students:', studentIds.length, ', completed:', attempts.filter(a => a.completedAt).length);
+    res.json({ success: true, data: { test: t, status } });
+  } catch (err) {
+    console.error('[Institution.getTestResultsForFaculty] ✗ error:', err.message);
+    res.status(500).json({ success: false, message: 'failed to get results' });
+  }
+};
+
+// =====================
+// FACULTY SELF-SERVICE
+// =====================
+
+const listFacultyAnnouncements = async (req, res) => {
+  try {
+    const facultyId = req.faculty?.id;
+    const facultyUsername = req.faculty?.username;
+    console.log('[Institution.listFacultyAnnouncements] called by faculty:', facultyUsername);
+    
+    if (!facultyId) {
+      console.log('[Institution.listFacultyAnnouncements] ✗ unauthorized');
+      return res.status(401).json({ success: false, message: 'unauthorized' });
+    }
+
+    const [batches, tests] = await Promise.all([
+      Batch.find({ faculty: facultyId }).populate('createdBy', 'name institutionId').select('name createdAt createdBy'),
+      Test.find({ assignedFaculty: facultyId }).populate('createdBy', 'name institutionId').select('name type createdAt createdBy'),
+    ]);
+
+    const announcements = [
+      ...batches.map((b) => ({
+        type: 'batch',
+        title: b.name,
+        createdAt: b.createdAt,
+        institution: b.createdBy ? b.createdBy.name : undefined,
+      })),
+      ...tests.map((t) => ({
+        type: 'test',
+        title: t.name,
+        testType: t.type,
+        createdAt: t.createdAt,
+        institution: t.createdBy ? t.createdBy.name : undefined,
+      })),
+    ].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    console.log('[Institution.listFacultyAnnouncements] ✓ found', announcements.length, 'announcements (batches:', batches.length, ', tests:', tests.length, ')');
+    return res.json({ success: true, data: announcements });
+  } catch (err) {
+    console.error('[Institution.listFacultyAnnouncements] ✗ error:', err.message);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+const listFacultyBatches = async (req, res) => {
+  try {
+    const facultyId = req.faculty?.id;
+    const facultyUsername = req.faculty?.username;
+    console.log('[Institution.listFacultyBatches] called by faculty:', facultyUsername);
+    
+    if (!facultyId) {
+      console.log('[Institution.listFacultyBatches] ✗ unauthorized');
+      return res.status(401).json({ success: false, message: 'unauthorized' });
+    }
+
+    const docs = await Batch.find({ faculty: facultyId })
+      .populate('students', 'username name regno email')
+      .populate('createdBy', 'name institutionId');
+
+    console.log('[Institution.listFacultyBatches] ✓ found', docs.length, 'batches');
+    return res.json({ success: true, data: docs });
+  } catch (err) {
+    console.error('[Institution.listFacultyBatches] ✗ error:', err.message);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 const welcome = (req, res) => {
   res.json({ success: true, message: `Welcome to the institution dashboard` });
 };
 
-module.exports = { login, welcome };
+module.exports = {
+  // Auth & basic
+  login,
+  facultyLogin,
+  studentLogin,
+  welcome,
+
+  // Faculty CRUD
+  listFaculties,
+  createFaculty,
+  updateFaculty,
+  deleteFaculty,
+
+  // Student CRUD
+  listStudents,
+  createStudent,
+  updateStudent,
+  deleteStudent,
+
+  // Batch CRUD
+  listBatches,
+  createBatch,
+  updateBatch,
+  deleteBatch,
+
+  // Question library
+  listQuestions,
+  createQuestion,
+  updateQuestion,
+  deleteQuestion,
+
+  // Tests
+  listTests,
+  getTest,
+  createTest,
+  updateTest,
+  deleteTest,
+  assignTestBatches,
+
+  // Student participation
+  listStudentTests,
+  getStudentTest,
+  startTestAttempt,
+  submitTestAttempt,
+
+  // Faculty views
+  listAssignedTestsForFaculty,
+  getTestResultsForFaculty,
+
+  // Faculty self-service
+  listFacultyAnnouncements,
+  listFacultyBatches,
+};

@@ -8,6 +8,14 @@ import AdminDashboard from './pages/Admin/Dashboard'
 import AdminInstitutionManagement from './pages/Admin/InstitutionManagement'
 import AdminViewLogs from './pages/Admin/ViewLogs'
 import InstitutionDashboard from './pages/Institution/Dashboard'
+import FacultyManagement from './pages/Institution/FacultyManagement'
+import StudentManagement from './pages/Institution/StudentManagement'
+import BatchManagement from './pages/Institution/BatchManagement'
+import TestManagement from './pages/Institution/TestManagement'
+import FacultyDashboard from './pages/Faculty/Dashboard'
+import FacultyTestResults from './pages/Faculty/TestResults'
+import StudentDashboard from './pages/Student/Dashboard'
+import StudentTest from './pages/Student/Test'
 import './App.css'
 
 const App: React.FC = () => {
@@ -33,6 +41,14 @@ const App: React.FC = () => {
         <Route path="/admin/institutions" element={<AdminInstitutionManagement />} />
         <Route path="/admin/logs" element={<AdminViewLogs />} />
         <Route path="/institution/dashboard" element={<InstitutionDashboard />} />
+        <Route path="/institution/faculties" element={<FacultyManagement />} />
+        <Route path="/institution/students" element={<StudentManagement />} />
+        <Route path="/institution/batches" element={<BatchManagement />} />
+        <Route path="/institution/tests" element={<TestManagement />} />
+        <Route path="/faculty/dashboard" element={<FacultyDashboard />} />
+        <Route path="/faculty/test/:id/results" element={<FacultyTestResults />} />
+        <Route path="/student/dashboard" element={<StudentDashboard />} />
+        <Route path="/student/test/:id" element={<StudentTest />} />
         <Route path="*" element={<div className="p-8">Page not found</div>} />
       </Routes>
     </div>

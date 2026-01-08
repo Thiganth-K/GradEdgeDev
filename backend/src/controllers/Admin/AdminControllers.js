@@ -43,26 +43,40 @@ const login = async (req, res) => {
 // Institution management (admin-protected)
 const listInstitutions = async (req, res) => {
   try {
-    console.log('[Admin.listInstitutions] called by', req.admin && req.admin.username);
+    const adminUser = req.admin && req.admin.username;
+    console.log('[Admin.listInstitutions] called by', adminUser);
+    
     // Only return institutions created by this admin
     const adminId = req.admin && req.admin.id;
     const query = adminId ? { createdBy: adminId } : {};
     const list = await Institution.find(query, { passwordHash: 0 }).lean();
+    
+    console.log('[Admin.listInstitutions] ✓ found', list.length, 'institutions');
     res.json({ success: true, data: list });
   } catch (err) {
-    console.error('[Admin.listInstitutions] error', err);
+    console.error('[Admin.listInstitutions] ✗ error:', err.message);
     res.status(500).json({ success: false, message: err.message });
   }
 };
 
 const createInstitution = async (req, res) => {
   try {
-    console.log('[Admin.createInstitution] called by', req.admin && req.admin.username);
+    const adminUser = req.admin && req.admin.username;
+    console.log('[Admin.createInstitution] called by', adminUser);
+    
     const { name, institutionId, password, location, contactNo, email } = req.body || {};
-    if (!name || !institutionId || !password) return res.status(400).json({ success: false, message: 'name, institutionId and password required' });
+    console.log('[Admin.createInstitution] payload: { name:', name, ', institutionId:', institutionId, ', location:', location, '}');
+    
+    if (!name || !institutionId || !password) {
+      console.log('[Admin.createInstitution] ✗ missing required fields');
+      return res.status(400).json({ success: false, message: 'name, institutionId and password required' });
+    }
 
     const exists = await Institution.findOne({ institutionId });
-    if (exists) return res.status(409).json({ success: false, message: 'institutionId already exists' });
+    if (exists) {
+      console.log('[Admin.createInstitution] ✗ institutionId already exists:', institutionId);
+      return res.status(409).json({ success: false, message: 'institutionId already exists' });
+    }
 
     // enforce per-admin creation limit
     const adminId = req.admin && req.admin.id;
@@ -70,25 +84,36 @@ const createInstitution = async (req, res) => {
     const limit = (adminDoc && typeof adminDoc.institutionLimit === 'number') ? adminDoc.institutionLimit : 10;
     const currentCount = adminId ? await Institution.countDocuments({ createdBy: adminId }) : 0;
     if (currentCount >= limit) {
-      console.log('[Admin.createInstitution] limit reached for admin', adminId, 'limit', limit);
+      console.log('[Admin.createInstitution] ✗ limit reached for admin', adminId, '- current:', currentCount, 'limit:', limit);
       return res.status(403).json({ success: false, message: `institution create limit reached (${limit})` });
     }
 
     const hash = await bcrypt.hash(password, 10);
     const created = await Institution.create({ name, institutionId, passwordHash: hash, location, contactNo, email, createdBy: adminId });
-    console.log('[Admin.createInstitution] created', created.institutionId, 'by', adminId);
+    console.log('[Admin.createInstitution] ✓ created - id:', created._id.toString(), 'name:', created.name, 'institutionId:', created.institutionId);
     res.json({ success: true, data: { id: created._id, name: created.name, institutionId: created.institutionId } });
   } catch (err) {
-    console.error('[Admin.createInstitution] error', err);
+    console.error('[Admin.createInstitution] ✗ error:', err.message);
     res.status(500).json({ success: false, message: err.message });
   }
 };
 
 const updateInstitution = async (req, res) => {
   try {
-    console.log('[Admin.updateInstitution] called by', req.admin && req.admin.username);
+    const adminUser = req.admin && req.admin.username;
     const id = req.params.id;
+    console.log('[Admin.updateInstitution] called by', adminUser);
+    console.log('[Admin.updateInstitution] target id:', id);
+    
+    const adminId = req.admin && req.admin.id;
+    if (!adminId) {
+      console.log('[Admin.updateInstitution] ✗ unauthorized access');
+      return res.status(401).json({ success: false, message: 'unauthorized' });
+    }
+    
     const { name, password, location, contactNo, email } = req.body || {};
+    console.log('[Admin.updateInstitution] payload: { name:', name, ', location:', location, ', contactNo:', contactNo, '}');
+    
     const update = {};
     if (name) update.name = name;
     if (location) update.location = location;
@@ -96,24 +121,43 @@ const updateInstitution = async (req, res) => {
     if (email) update.email = email;
     if (password) update.passwordHash = await bcrypt.hash(password, 10);
 
-    const updated = await Institution.findByIdAndUpdate(id, update, { new: true }).lean();
-    if (!updated) return res.status(404).json({ success: false, message: 'institution not found' });
-    res.json({ success: true, data: updated });
+    const updated = await Institution.findOneAndUpdate({ _id: id, createdBy: adminId }, update, { new: true }).lean();
+    if (!updated) {
+      console.log('[Admin.updateInstitution] ✗ institution not found:', id);
+      return res.status(404).json({ success: false, message: 'institution not found' });
+    }
+    
+    console.log('[Admin.updateInstitution] ✓ updated institution - id:', updated._id, 'name:', updated.name);
+    res.json({ success: true, data: { id: updated._id, name: updated.name } });
   } catch (err) {
-    console.error('[Admin.updateInstitution] error', err);
+    console.error('[Admin.updateInstitution] ✗ error:', err.message);
     res.status(500).json({ success: false, message: err.message });
   }
 };
 
 const deleteInstitution = async (req, res) => {
   try {
-    console.log('[Admin.deleteInstitution] called by', req.admin && req.admin.username);
+    const adminUser = req.admin && req.admin.username;
     const id = req.params.id;
-    const del = await Institution.findByIdAndDelete(id).lean();
-    if (!del) return res.status(404).json({ success: false, message: 'institution not found' });
+    console.log('[Admin.deleteInstitution] called by', adminUser);
+    console.log('[Admin.deleteInstitution] target id:', id);
+    
+    const adminId = req.admin && req.admin.id;
+    if (!adminId) {
+      console.log('[Admin.deleteInstitution] ✗ unauthorized access');
+      return res.status(401).json({ success: false, message: 'unauthorized' });
+    }
+    
+    const del = await Institution.findOneAndDelete({ _id: id, createdBy: adminId }).lean();
+    if (!del) {
+      console.log('[Admin.deleteInstitution] ✗ institution not found:', id);
+      return res.status(404).json({ success: false, message: 'institution not found' });
+    }
+    
+    console.log('[Admin.deleteInstitution] ✓ deleted institution - id:', del._id, 'name:', del.name);
     res.json({ success: true, data: { id: del._id } });
   } catch (err) {
-    console.error('[Admin.deleteInstitution] error', err);
+    console.error('[Admin.deleteInstitution] ✗ error:', err.message);
     res.status(500).json({ success: false, message: err.message });
   }
 };

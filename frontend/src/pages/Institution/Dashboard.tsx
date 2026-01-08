@@ -1,15 +1,166 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+
+const BACKEND = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
+type Faculty = { _id: string; username: string; role: string };
+type Student = { _id: string; username: string; name?: string; dept?: string };
+type Batch = { _id: string; name: string; faculty?: { username: string }; students?: any[] };
+type Test = { _id: string; name: string; type: string; assignedFaculty?: { username: string } };
 
 const InstitutionDashboard: React.FC = () => {
   const data = typeof window !== 'undefined' ? localStorage.getItem('institution_data') : null;
   const inst = data ? JSON.parse(data) : null;
 
+  const [faculties, setFaculties] = useState<Faculty[]>([]);
+  const [students, setStudents] = useState<Student[]>([]);
+  const [batches, setBatches] = useState<Batch[]>([]);
+  const [tests, setTests] = useState<Test[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadData = async () => {
+    const role = typeof window !== 'undefined' ? localStorage.getItem('gradedge_role') : null;
+    if (role !== 'institution') {
+      window.location.href = '/login';
+      return;
+    }
+    const token = typeof window !== 'undefined' ? localStorage.getItem('institution_token') : null;
+    if (!token) {
+      setError('Missing institution token, please login again.');
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    const headers = { Authorization: `Bearer ${token}` };
+    try {
+      const [fRes, sRes, bRes, tRes] = await Promise.all([
+        fetch(`${BACKEND}/institution/faculties`, { headers }),
+        fetch(`${BACKEND}/institution/students`, { headers }),
+        fetch(`${BACKEND}/institution/batches`, { headers }),
+        fetch(`${BACKEND}/institution/tests`, { headers }),
+      ]);
+      const [f, s, b, t] = await Promise.all([
+        fRes.json().catch(() => ({})),
+        sRes.json().catch(() => ({})),
+        bRes.json().catch(() => ({})),
+        tRes.json().catch(() => ({})),
+      ]);
+      if (!fRes.ok || !f.success) throw new Error(f.message || 'Failed to load faculties');
+      if (!sRes.ok || !s.success) throw new Error(s.message || 'Failed to load students');
+      if (!bRes.ok || !b.success) throw new Error(b.message || 'Failed to load batches');
+      if (!tRes.ok || !t.success) throw new Error(t.message || 'Failed to load tests');
+      setFaculties(Array.isArray(f.data) ? f.data : []);
+      setStudents(Array.isArray(s.data) ? s.data : []);
+      setBatches(Array.isArray(b.data) ? b.data : []);
+      setTests(Array.isArray(t.data) ? t.data : []);
+    } catch (err: any) {
+      setError(err.message || 'Unable to load dashboard data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const StatCard = ({ title, value, action }: { title: string; value: number; action: { label: string; href: string } }) => (
+    <div className="bg-white rounded shadow p-4 flex flex-col justify-between">
+      <div>
+        <div className="text-sm text-gray-500">{title}</div>
+        <div className="text-3xl font-bold text-red-700 mt-1">{value}</div>
+      </div>
+      <a href={action.href} className="mt-3 inline-flex items-center text-sm text-red-700 font-semibold">
+        {action.label}
+        <span className="ml-1">→</span>
+      </a>
+    </div>
+  );
+
+  const ListCard = ({ title, items, empty, href }: { title: string; items: React.ReactNode; empty: string; href: string }) => (
+    <section className="bg-white rounded shadow p-5">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-lg font-semibold">{title}</h3>
+        <a href={href} className="text-sm text-red-700 font-semibold">Manage</a>
+      </div>
+      {items || <p className="text-sm text-gray-600">{empty}</p>}
+    </section>
+  );
+
+  const take = <T,>(arr: T[], n: number) => arr.slice(0, n);
+
+  const recentFaculties = faculties.length ? (
+    <ul className="space-y-2 text-sm text-gray-800">
+      {take(faculties, 4).map((f) => (
+        <li key={f._id} className="flex items-center justify-between border-b last:border-b-0 pb-1">
+          <span>{f.username}</span>
+          <span className="text-xs text-gray-500">{f.role}</span>
+        </li>
+      ))}
+    </ul>
+  ) : null;
+
+  const recentStudents = students.length ? (
+    <ul className="space-y-2 text-sm text-gray-800">
+      {take(students, 4).map((s) => (
+        <li key={s._id} className="flex items-center justify-between border-b last:border-b-0 pb-1">
+          <span>{s.name || s.username}</span>
+          <span className="text-xs text-gray-500">{s.dept || s.username}</span>
+        </li>
+      ))}
+    </ul>
+  ) : null;
+
+  const recentBatches = batches.length ? (
+    <ul className="space-y-2 text-sm text-gray-800">
+      {take(batches, 4).map((b) => (
+        <li key={b._id} className="flex items-center justify-between border-b last:border-b-0 pb-1">
+          <span>{b.name}</span>
+          <span className="text-xs text-gray-500">Faculty: {b.faculty?.username || '—'}</span>
+        </li>
+      ))}
+    </ul>
+  ) : null;
+
+  const recentTests = tests.length ? (
+    <ul className="space-y-2 text-sm text-gray-800">
+      {take(tests, 4).map((t) => (
+        <li key={t._id} className="flex items-center justify-between border-b last:border-b-0 pb-1">
+          <span>{t.name}</span>
+          <span className="text-xs text-gray-500">{t.type}{t.assignedFaculty ? ` • ${t.assignedFaculty.username}` : ''}</span>
+        </li>
+      ))}
+    </ul>
+  ) : null;
+
   return (
-    <div className="p-8">
-      <div className="max-w-4xl mx-auto">
-        <div className="bg-white p-6 rounded shadow">
-          <h1 className="text-2xl font-bold">Welcome{inst && inst.name ? `, ${inst.name}` : ''}</h1>
-          <p className="mt-4 text-gray-700">This is your institution dashboard. Institution ID: {inst?.institutionId || 'N/A'}</p>
+    <div className="min-h-screen bg-red-50 p-6">
+      <div className="max-w-6xl mx-auto space-y-6">
+        <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <div>
+            <h1 className="text-3xl font-bold text-red-700">Institution Dashboard</h1>
+            <p className="text-gray-700">Welcome{inst?.name ? `, ${inst.name}` : ''}</p>
+            <p className="text-sm text-gray-500">Institution ID: {inst?.institutionId || 'N/A'}</p>
+          </div>
+          <button onClick={loadData} className="text-sm px-4 py-2 border rounded bg-white hover:bg-gray-50" disabled={loading}>
+            {loading ? 'Refreshing...' : 'Refresh data'}
+          </button>
+        </header>
+
+        {error && <div className="bg-red-100 border border-red-300 text-red-700 px-4 py-2 rounded">{error}</div>}
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <StatCard title="Faculties" value={faculties.length} action={{ label: 'Manage faculties', href: '/institution/faculties' }} />
+          <StatCard title="Students" value={students.length} action={{ label: 'Manage students', href: '/institution/students' }} />
+          <StatCard title="Batches" value={batches.length} action={{ label: 'Manage batches', href: '/institution/batches' }} />
+          <StatCard title="Tests" value={tests.length} action={{ label: 'Manage tests', href: '/institution/tests' }} />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <ListCard title="Recent Faculties" items={recentFaculties} empty="No faculties yet." href="/institution/faculties" />
+          <ListCard title="Recent Students" items={recentStudents} empty="No students yet." href="/institution/students" />
+          <ListCard title="Recent Batches" items={recentBatches} empty="No batches yet." href="/institution/batches" />
+          <ListCard title="Recent Tests" items={recentTests} empty="No tests yet." href="/institution/tests" />
         </div>
       </div>
     </div>
