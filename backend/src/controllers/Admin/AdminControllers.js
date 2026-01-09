@@ -64,8 +64,8 @@ const createInstitution = async (req, res) => {
     const adminUser = req.admin && req.admin.username;
     console.log('[Admin.createInstitution] called by', adminUser);
     
-    const { name, institutionId, password, location, contactNo, email } = req.body || {};
-    console.log('[Admin.createInstitution] payload: { name:', name, ', institutionId:', institutionId, ', location:', location, '}');
+    const { name, institutionId, password, location, contactNo, email, facultyLimit, studentLimit, batchLimit, testLimit } = req.body || {};
+    console.log('[Admin.createInstitution] payload: { name:', name, ', institutionId:', institutionId, ', location:', location, ', limits:', { facultyLimit, studentLimit, batchLimit, testLimit }, '}');
     
     if (!name || !institutionId || !password) {
       console.log('[Admin.createInstitution] ✗ missing required fields');
@@ -89,9 +89,22 @@ const createInstitution = async (req, res) => {
     }
 
     const hash = await bcrypt.hash(password, 10);
-    const created = await Institution.create({ name, institutionId, passwordHash: hash, location, contactNo, email, createdBy: adminId });
+    const parsed = (v) => (v === undefined || v === null || v === '') ? null : Number(v);
+    const created = await Institution.create({
+      name,
+      institutionId,
+      passwordHash: hash,
+      location,
+      contactNo,
+      email,
+      createdBy: adminId,
+      facultyLimit: parsed(facultyLimit),
+      studentLimit: parsed(studentLimit),
+      batchLimit: parsed(batchLimit),
+      testLimit: parsed(testLimit),
+    });
     console.log('[Admin.createInstitution] ✓ created - id:', created._id.toString(), 'name:', created.name, 'institutionId:', created.institutionId);
-    res.json({ success: true, data: { id: created._id, name: created.name, institutionId: created.institutionId } });
+    res.json({ success: true, data: { id: created._id, name: created.name, institutionId: created.institutionId, facultyLimit: created.facultyLimit ?? null, studentLimit: created.studentLimit ?? null, batchLimit: created.batchLimit ?? null, testLimit: created.testLimit ?? null } });
   } catch (err) {
     console.error('[Admin.createInstitution] ✗ error:', err.message);
     res.status(500).json({ success: false, message: err.message });
@@ -111,7 +124,7 @@ const updateInstitution = async (req, res) => {
       return res.status(401).json({ success: false, message: 'unauthorized' });
     }
     
-    const { name, password, location, contactNo, email } = req.body || {};
+    const { name, password, location, contactNo, email, facultyLimit, studentLimit, batchLimit, testLimit } = req.body || {};
     console.log('[Admin.updateInstitution] payload: { name:', name, ', location:', location, ', contactNo:', contactNo, '}');
     
     const update = {};
@@ -120,6 +133,11 @@ const updateInstitution = async (req, res) => {
     if (contactNo) update.contactNo = contactNo;
     if (email) update.email = email;
     if (password) update.passwordHash = await bcrypt.hash(password, 10);
+    const parsed = (v) => (v === undefined || v === null || v === '') ? null : Number(v);
+    if (facultyLimit !== undefined) update.facultyLimit = parsed(facultyLimit);
+    if (studentLimit !== undefined) update.studentLimit = parsed(studentLimit);
+    if (batchLimit !== undefined) update.batchLimit = parsed(batchLimit);
+    if (testLimit !== undefined) update.testLimit = parsed(testLimit);
 
     const updated = await Institution.findOneAndUpdate({ _id: id, createdBy: adminId }, update, { new: true }).lean();
     if (!updated) {
@@ -128,7 +146,7 @@ const updateInstitution = async (req, res) => {
     }
     
     console.log('[Admin.updateInstitution] ✓ updated institution - id:', updated._id, 'name:', updated.name);
-    res.json({ success: true, data: { id: updated._id, name: updated.name } });
+    res.json({ success: true, data: { id: updated._id, name: updated.name, facultyLimit: updated.facultyLimit ?? null, studentLimit: updated.studentLimit ?? null, batchLimit: updated.batchLimit ?? null, testLimit: updated.testLimit ?? null } });
   } catch (err) {
     console.error('[Admin.updateInstitution] ✗ error:', err.message);
     res.status(500).json({ success: false, message: err.message });

@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const path = require('path');
+const fs = require('fs');
 
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
@@ -51,9 +52,28 @@ app.use('/admin', adminRoutes);
 const institutionRoutes = require('./routes/Institution/InstitutionRoutes');
 app.use('/institution', institutionRoutes);
 
-app.get('/', (req, res) => {
-  res.json({ message: 'GradEdgeDev backend running' });
-});
+// default root handler will be registered below depending on whether a frontend build exists
+
+// If a built frontend exists, serve it as static files (single-step deploy)
+try {
+  const frontendDist = path.resolve(__dirname, '../../frontend/dist');
+  if (fs.existsSync(frontendDist)) {
+    console.log('[SERVER] Found frontend build at', frontendDist, '- serving static files');
+    app.use(express.static(frontendDist));
+    // Use a regex route to avoid path-to-regexp parameter parsing issues
+    app.get(/.*/, (req, res) => {
+      res.sendFile(path.join(frontendDist, 'index.html'));
+    });
+  } else {
+    console.log('[SERVER] No frontend build found at', frontendDist);
+    // expose a simple JSON root when frontend not present
+    app.get('/', (req, res) => {
+      res.json({ message: 'GradEdgeDev backend running' });
+    });
+  }
+} catch (e) {
+  console.warn('[SERVER] Error while checking frontend build:', e && e.message);
+}
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

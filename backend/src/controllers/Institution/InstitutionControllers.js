@@ -36,9 +36,19 @@ const login = async (req, res) => {
       return res.status(500).json({ success: false, message: 'server jwt secret not configured' });
     }
 
-    const token = jwt.sign({ role: 'institution', id: inst._id, institutionId: inst.institutionId, name: inst.name }, secret, { expiresIn: '4h' });
+    const tokenPayload = {
+      role: 'institution',
+      id: inst._id,
+      institutionId: inst.institutionId,
+      name: inst.name,
+      facultyLimit: inst.facultyLimit ?? null,
+      studentLimit: inst.studentLimit ?? null,
+      batchLimit: inst.batchLimit ?? null,
+      testLimit: inst.testLimit ?? null,
+    };
+    const token = jwt.sign(tokenPayload, secret, { expiresIn: '4h' });
     console.log('[Institution.login] authenticated', institutionId);
-    return res.json({ success: true, role: 'institution', token, data: { id: inst._id, institutionId: inst.institutionId, name: inst.name } });
+    return res.json({ success: true, role: 'institution', token, data: { id: inst._id, institutionId: inst.institutionId, name: inst.name, facultyLimit: inst.facultyLimit ?? null, studentLimit: inst.studentLimit ?? null, batchLimit: inst.batchLimit ?? null, testLimit: inst.testLimit ?? null } });
   } catch (err) {
     console.error('[Institution.login] error', err);
     return res.status(500).json({ success: false, message: err.message });
@@ -156,6 +166,15 @@ const createFaculty = async (req, res) => {
       console.log('[Institution.createFaculty] ✗ username already taken:', username);
       return res.status(400).json({ success: false, message: 'username taken' });
     }
+    // enforce faculty limit if configured
+    const instDoc = await Institution.findById(instId).select('facultyLimit');
+    if (instDoc && typeof instDoc.facultyLimit === 'number' && instDoc.facultyLimit >= 0) {
+      const current = await Faculty.countDocuments({ createdBy: instId });
+      if (current >= instDoc.facultyLimit) {
+        console.log('[Institution.createFaculty] ✗ faculty limit reached -', current, '/', instDoc.facultyLimit);
+        return res.status(403).json({ success: false, message: 'faculty create limit reached' });
+      }
+    }
     
     const hash = await bcrypt.hash(password, 10);
     const f = await Faculty.create({ username, passwordHash: hash, role, createdBy: instId });
@@ -253,6 +272,15 @@ const createStudent = async (req, res) => {
       console.log('[Institution.createStudent] ✗ username already taken:', username);
       return res.status(400).json({ success: false, message: 'username taken' });
     }
+    // enforce student limit if configured
+    const instDoc = await Institution.findById(instId).select('studentLimit');
+    if (instDoc && typeof instDoc.studentLimit === 'number' && instDoc.studentLimit >= 0) {
+      const current = await Student.countDocuments({ createdBy: instId });
+      if (current >= instDoc.studentLimit) {
+        console.log('[Institution.createStudent] ✗ student limit reached -', current, '/', instDoc.studentLimit);
+        return res.status(403).json({ success: false, message: 'student create limit reached' });
+      }
+    }
     
     const hash = await bcrypt.hash(password, 10);
     const s = await Student.create({ username, passwordHash: hash, name, email, dept, regno, createdBy: instId });
@@ -342,6 +370,15 @@ const createBatch = async (req, res) => {
     if (!name) {
       console.log('[Institution.createBatch] ✗ missing name');
       return res.status(400).json({ success: false, message: 'name required' });
+    }
+    // enforce batch limit if configured
+    const instDoc = await Institution.findById(instId).select('batchLimit');
+    if (instDoc && typeof instDoc.batchLimit === 'number' && instDoc.batchLimit >= 0) {
+      const current = await Batch.countDocuments({ createdBy: instId });
+      if (current >= instDoc.batchLimit) {
+        console.log('[Institution.createBatch] ✗ batch limit reached -', current, '/', instDoc.batchLimit);
+        return res.status(403).json({ success: false, message: 'batch create limit reached' });
+      }
     }
     
     const b = await Batch.create({ name, faculty: facultyId || null, students: Array.isArray(studentIds) ? studentIds : [], createdBy: instId });
@@ -581,6 +618,16 @@ const createTest = async (req, res) => {
     if (embeddedQuestions.length === 0) {
       console.log('[Institution.createTest] ✗ no questions provided');
       return res.status(400).json({ success: false, message: 'no questions provided' });
+    }
+    // enforce test limit if configured
+    const instId = req.institution?.id;
+    const instDoc = instId ? await Institution.findById(instId).select('testLimit') : null;
+    if (instDoc && typeof instDoc.testLimit === 'number' && instDoc.testLimit >= 0) {
+      const current = await Test.countDocuments({ createdBy: instId });
+      if (current >= instDoc.testLimit) {
+        console.log('[Institution.createTest] ✗ test limit reached -', current, '/', instDoc.testLimit);
+        return res.status(403).json({ success: false, message: 'test create limit reached' });
+      }
     }
     
     const t = await Test.create({
@@ -836,7 +883,12 @@ const submitTestAttempt = async (req, res) => {
       const sel = responses[i];
       const isCorrect = Number(sel) === Number(q.correctIndex);
       if (isCorrect) correctCount++;
-      respRecords.push({ qIdx: i, selected: sel, correct: isCorrect });
+      // Build response objects that match TestAttempt ResponseSchema
+      respRecords.push({
+        questionId: q.questionId || undefined,
+        selectedIndex: Number(sel),
+        correct: isCorrect,
+      });
     }
     const score = Math.round((correctCount / t.questions.length) * 100);
     

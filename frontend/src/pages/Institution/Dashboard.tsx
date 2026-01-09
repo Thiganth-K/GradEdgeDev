@@ -150,10 +150,33 @@ const InstitutionDashboard: React.FC = () => {
         {error && <div className="bg-red-100 border border-red-300 text-red-700 px-4 py-2 rounded">{error}</div>}
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard title="Faculties" value={faculties.length} action={{ label: 'Manage faculties', href: '/institution/faculties' }} />
-          <StatCard title="Students" value={students.length} action={{ label: 'Manage students', href: '/institution/students' }} />
-          <StatCard title="Batches" value={batches.length} action={{ label: 'Manage batches', href: '/institution/batches' }} />
-          <StatCard title="Tests" value={tests.length} action={{ label: 'Manage tests', href: '/institution/tests' }} />
+          <div className="bg-white rounded shadow p-4">
+            <div className="text-sm text-gray-500">Faculties</div>
+            <div className="text-3xl font-bold text-red-700 mt-1">{faculties.length}</div>
+            <div className="text-sm text-gray-600 mt-2">Limit: {inst?.facultyLimit ?? 'Unlimited'} • Remaining: {inst?.facultyLimit != null ? Math.max(0, (inst.facultyLimit as number) - faculties.length) : 'Unlimited'}</div>
+            <a href="/institution/faculties" className="mt-3 inline-flex items-center text-sm text-red-700 font-semibold">Manage <span className="ml-1">→</span></a>
+          </div>
+
+          <div className="bg-white rounded shadow p-4">
+            <div className="text-sm text-gray-500">Students</div>
+            <div className="text-3xl font-bold text-red-700 mt-1">{students.length}</div>
+            <div className="text-sm text-gray-600 mt-2">Limit: {inst?.studentLimit ?? 'Unlimited'} • Remaining: {inst?.studentLimit != null ? Math.max(0, (inst.studentLimit as number) - students.length) : 'Unlimited'}</div>
+            <a href="/institution/students" className="mt-3 inline-flex items-center text-sm text-red-700 font-semibold">Manage <span className="ml-1">→</span></a>
+          </div>
+
+          <div className="bg-white rounded shadow p-4">
+            <div className="text-sm text-gray-500">Batches</div>
+            <div className="text-3xl font-bold text-red-700 mt-1">{batches.length}</div>
+            <div className="text-sm text-gray-600 mt-2">Limit: {inst?.batchLimit ?? 'Unlimited'} • Remaining: {inst?.batchLimit != null ? Math.max(0, (inst.batchLimit as number) - batches.length) : 'Unlimited'}</div>
+            <a href="/institution/batches" className="mt-3 inline-flex items-center text-sm text-red-700 font-semibold">Manage <span className="ml-1">→</span></a>
+          </div>
+
+          <div className="bg-white rounded shadow p-4">
+            <div className="text-sm text-gray-500">Tests</div>
+            <div className="text-3xl font-bold text-red-700 mt-1">{tests.length}</div>
+            <div className="text-sm text-gray-600 mt-2">Limit: {inst?.testLimit ?? 'Unlimited'} • Remaining: {inst?.testLimit != null ? Math.max(0, (inst.testLimit as number) - tests.length) : 'Unlimited'}</div>
+            <a href="/institution/tests" className="mt-3 inline-flex items-center text-sm text-red-700 font-semibold">Manage <span className="ml-1">→</span></a>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
