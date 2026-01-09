@@ -7,6 +7,7 @@ const Batch = require('../../models/Batch');
 const Test = require('../../models/Test');
 const Question = require('../../models/Question');
 const TestAttempt = require('../../models/TestAttempt');
+const Announcement = require('../../models/Announcement');
 
 // =====================
 // AUTH
@@ -1060,6 +1061,190 @@ const welcome = (req, res) => {
   res.json({ success: true, message: `Welcome to the institution dashboard` });
 };
 
+// =====================
+// ANNOUNCEMENTS
+// =====================
+
+const listInstitutionAnnouncements = async (req, res) => {
+  try {
+    const instId = req.institution && req.institution.id;
+    const instName = req.institution && req.institution.name;
+    console.log('[Institution.listAnnouncements] called by institution:', instName);
+    
+    if (!instId) {
+      console.log('[Institution.listAnnouncements] ✗ unauthorized');
+      return res.status(401).json({ success: false, message: 'unauthorized' });
+    }
+    
+    const announcements = await Announcement.find({ targetInstitutions: instId })
+      .populate('createdBy', 'username')
+      .sort({ createdAt: -1 });
+    
+    // Add isRead flag for each announcement
+    const data = announcements.map((a) => ({
+      _id: a._id,
+      message: a.message,
+      createdBy: a.createdBy,
+      createdAt: a.createdAt,
+      isRead: a.readBy.some((id) => String(id) === String(instId)),
+    }));
+    
+    console.log('[Institution.listAnnouncements] ✓ found', announcements.length, 'announcements');
+    return res.json({ success: true, data });
+  } catch (err) {
+    console.error('[Institution.listAnnouncements] ✗ error:', err.message);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+const markAnnouncementAsRead = async (req, res) => {
+  try {
+    const instId = req.institution && req.institution.id;
+    const instName = req.institution && req.institution.name;
+    const { id } = req.params;
+    console.log('[Institution.markAnnouncementAsRead] called by institution:', instName);
+    console.log('[Institution.markAnnouncementAsRead] announcement id:', id);
+    
+    if (!instId) {
+      console.log('[Institution.markAnnouncementAsRead] ✗ unauthorized');
+      return res.status(401).json({ success: false, message: 'unauthorized' });
+    }
+    
+    const announcement = await Announcement.findOne({ _id: id, targetInstitutions: instId });
+    if (!announcement) {
+      console.log('[Institution.markAnnouncementAsRead] ✗ announcement not found or not targeted:', id);
+      return res.status(404).json({ success: false, message: 'announcement not found' });
+    }
+    
+    // Add institution to readBy if not already present
+    if (!announcement.readBy.some((rid) => String(rid) === String(instId))) {
+      announcement.readBy.push(instId);
+      await announcement.save();
+      console.log('[Institution.markAnnouncementAsRead] ✓ marked as read - id:', id);
+    } else {
+      console.log('[Institution.markAnnouncementAsRead] already read - id:', id);
+    }
+    
+    return res.json({ success: true, message: 'marked as read' });
+  } catch (err) {
+    console.error('[Institution.markAnnouncementAsRead] ✗ error:', err.message);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+const createInstitutionAnnouncement = async (req, res) => {
+  try {
+    const instId = req.institution && req.institution.id;
+    const instName = req.institution && req.institution.name;
+    console.log('[Institution.createAnnouncement] called by institution:', instName);
+
+    if (!instId) return res.status(401).json({ success: false, message: 'unauthorized' });
+
+    const { message, targetFacultyIds, targetStudentIds, targetBatchIds, sendToAllFaculty, sendToAllStudents, sendToAllBatches } = req.body || {};
+    console.log('[Institution.createAnnouncement] payload: targets(faculty:', (targetFacultyIds||[]).length, ' students:', (targetStudentIds||[]).length, ' batches:', (targetBatchIds||[]).length, ')');
+
+    if (!message || !message.trim()) {
+      console.log('[Institution.createAnnouncement] ✗ empty message');
+      return res.status(400).json({ success: false, message: 'message required' });
+    }
+
+    // Resolve send-to-all flags into explicit ids
+    let facultyTargets = Array.isArray(targetFacultyIds) ? targetFacultyIds : [];
+    let studentTargets = Array.isArray(targetStudentIds) ? targetStudentIds : [];
+    let batchTargets = Array.isArray(targetBatchIds) ? targetBatchIds : [];
+
+    if (sendToAllFaculty) {
+      const faculty = await Faculty.find({ createdBy: instId }).select('_id');
+      facultyTargets = faculty.map((f) => f._id);
+    }
+    if (sendToAllStudents) {
+      const students = await Student.find({ createdBy: instId }).select('_id');
+      studentTargets = students.map((s) => s._id);
+    }
+    if (sendToAllBatches) {
+      const batches = await Batch.find({ createdBy: instId }).select('_id');
+      batchTargets = batches.map((b) => b._id);
+    }
+
+    // If no granular targets provided, treat as institution-wide announcement
+    const instTargets = [instId];
+
+    const announcement = await Announcement.create({
+      message: message.trim(),
+      createdByRef: instId,
+      createdByRole: 'institution',
+      targetInstitutions: instTargets,
+      targetFaculty: facultyTargets,
+      targetStudents: studentTargets,
+      targetBatches: batchTargets,
+      readBy: [],
+    });
+
+    console.log('[Institution.createAnnouncement] ✓ created announcement - id:', announcement._id.toString());
+    return res.status(201).json({ success: true, data: announcement });
+  } catch (err) {
+    console.error('[Institution.createAnnouncement] ✗ error:', err && err.message);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// announcements visible to a faculty member (institution-scoped)
+const listAnnouncementsForFaculty = async (req, res) => {
+  try {
+    const facultyId = req.faculty && req.faculty.id;
+    console.log('[Institution.listAnnouncementsForFaculty] called by faculty:', facultyId);
+    if (!facultyId) return res.status(401).json({ success: false, message: 'unauthorized' });
+
+    const facultyDoc = await Faculty.findById(facultyId).select('createdBy');
+    const instId = facultyDoc ? facultyDoc.createdBy : null;
+
+    // batches taught by faculty
+    const batches = await Batch.find({ faculty: facultyId }).select('_id');
+    const batchIds = batches.map((b) => b._id);
+
+    const anns = await Announcement.find({
+      $or: [
+        { targetInstitutions: instId },
+        { targetFaculty: facultyId },
+        { targetBatches: { $in: batchIds } },
+      ],
+    }).sort({ createdAt: -1 });
+
+    return res.json({ success: true, data: anns });
+  } catch (err) {
+    console.error('[Institution.listAnnouncementsForFaculty] ✗ error:', err && err.message);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// announcements visible to a student
+const listAnnouncementsForStudent = async (req, res) => {
+  try {
+    const studentId = req.student && req.student.id;
+    console.log('[Institution.listAnnouncementsForStudent] called by student:', studentId);
+    if (!studentId) return res.status(401).json({ success: false, message: 'unauthorized' });
+
+    const studentDoc = await Student.findById(studentId).select('createdBy');
+    const instId = studentDoc ? studentDoc.createdBy : null;
+
+    const batches = await Batch.find({ students: studentId }).select('_id');
+    const batchIds = batches.map((b) => b._id);
+
+    const anns = await Announcement.find({
+      $or: [
+        { targetInstitutions: instId },
+        { targetStudents: studentId },
+        { targetBatches: { $in: batchIds } },
+      ],
+    }).sort({ createdAt: -1 });
+
+    return res.json({ success: true, data: anns });
+  } catch (err) {
+    console.error('[Institution.listAnnouncementsForStudent] ✗ error:', err && err.message);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 module.exports = {
   // Auth & basic
   login,
@@ -1112,4 +1297,11 @@ module.exports = {
   // Faculty self-service
   listFacultyAnnouncements,
   listFacultyBatches,
+  
+  // Institution announcements
+  listInstitutionAnnouncements,
+  markAnnouncementAsRead,
+  createInstitutionAnnouncement,
+  listAnnouncementsForFaculty,
+  listAnnouncementsForStudent,
 };

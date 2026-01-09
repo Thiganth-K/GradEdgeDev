@@ -22,6 +22,9 @@ const StudentDashboard: React.FC = () => {
         <h1 className="text-2xl font-bold">Student Dashboard</h1>
         <p className="mt-2">Username: {s?.username}</p>
         <p className="mt-2">Name: {s?.name}</p>
+        <div className="mt-3">
+          <a href="/student/announcements" className="text-sm text-red-700 font-semibold">View announcements</a>
+        </div>
         <div className="mt-6">
           <h2 className="text-xl font-semibold">Assigned Tests</h2>
           <div className="space-y-2 mt-2">

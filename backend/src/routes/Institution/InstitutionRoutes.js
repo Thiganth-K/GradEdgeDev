@@ -117,4 +117,34 @@ router.get('/faculty/tests', verifyFaculty, InstitutionControllers.listAssignedT
 console.log('[InstitutionRoutes] GET /faculty/tests/:id/results - Get test results (faculty)');
 router.get('/faculty/tests/:id/results', verifyFaculty, InstitutionControllers.getTestResultsForFaculty);
 
+// Institution Announcements (institution-protected)
+console.log('[InstitutionRoutes] GET /announcements - List announcements (institution)');
+router.get('/announcements', verifyInstitution, InstitutionControllers.listInstitutionAnnouncements);
+
+console.log('[InstitutionRoutes] POST /announcements/:id/read - Mark announcement as read (institution)');
+router.post('/announcements/:id/read', verifyInstitution, InstitutionControllers.markAnnouncementAsRead);
+
+console.log('[InstitutionRoutes] POST /announcements - Create announcement (institution)');
+router.post('/announcements', verifyInstitution, InstitutionControllers.createInstitutionAnnouncement);
+
+console.log('[InstitutionRoutes] GET /faculty/announcements/list - List announcements for faculty (faculty)');
+router.get('/faculty/announcements/list', verifyFaculty, InstitutionControllers.listAnnouncementsForFaculty);
+
+console.log('[InstitutionRoutes] GET /student/announcements - List announcements for student (student)');
+router.get('/student/announcements', verifyStudent, InstitutionControllers.listAnnouncementsForStudent);
+
+// Chat between institution and admin
+const chatControllers = require('../../controllers/Chat/ChatControllers');
+console.log('[InstitutionRoutes] POST /chat - Send chat message (institution)');
+router.post('/chat', verifyInstitution, chatControllers.sendMessageByInstitution);
+
+console.log('[InstitutionRoutes] GET /chat - List chat messages (institution)');
+router.get('/chat', verifyInstitution, chatControllers.listMessagesForInstitution);
+
+console.log('[InstitutionRoutes] POST /faculty/chat - Send chat message (faculty)');
+router.post('/faculty/chat', verifyFaculty, chatControllers.sendMessageByFaculty);
+
+console.log('[InstitutionRoutes] GET /faculty/chat - List chat messages (faculty)');
+router.get('/faculty/chat', verifyFaculty, chatControllers.listMessagesForFaculty);
+
 module.exports = router;

@@ -52,6 +52,15 @@ app.use('/admin', adminRoutes);
 const institutionRoutes = require('./routes/Institution/InstitutionRoutes');
 app.use('/institution', institutionRoutes);
 
+// Contributor routes
+try {
+  const contributorRoutes = require('./routes/Contributor/ContributorRoutes');
+  app.use('/contributor', contributorRoutes);
+  console.log('[SERVER] Contributor routes registered at /contributor');
+} catch (e) {
+  console.log('[SERVER] No contributor routes registered:', e && e.message);
+}
+
 // default root handler will be registered below depending on whether a frontend build exists
 
 // If a built frontend exists, serve it as static files (single-step deploy)

@@ -80,6 +80,11 @@ const FacultyDashboard: React.FC = () => {
           <BatchList batches={batches} />
         </div>
 
+        <div className="mt-2">
+          <a href="/faculty/announcements" className="text-sm text-red-700 font-semibold mr-4">View all announcements</a>
+          <a href="/faculty/chat" className="text-sm text-red-700 font-semibold">Chat with Institution Admin</a>
+        </div>
+
         <section className="bg-white rounded shadow p-5">
           <h2 className="text-xl font-semibold mb-2">Assigned Tests</h2>
           <div className="space-y-2">

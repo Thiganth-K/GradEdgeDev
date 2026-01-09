@@ -27,4 +27,34 @@ router.get('/sample-institutions', AdminControllers.getInstitutions);
 console.log('[AdminRoutes] GET /logs - Get admin logs');
 router.get('/logs', verifyAdmin, AdminControllers.getLogs);
 
+console.log('[AdminRoutes] POST /contributors - Create contributor (admin)');
+router.post('/contributors', verifyAdmin, AdminControllers.createContributor);
+
+console.log('[AdminRoutes] GET /contributors - List contributors (admin)');
+router.get('/contributors', verifyAdmin, AdminControllers.listContributors);
+
+console.log('[AdminRoutes] GET /contributors/:id - Get contributor (admin)');
+router.get('/contributors/:id', verifyAdmin, AdminControllers.getContributor);
+
+console.log('[AdminRoutes] PUT /contributors/:id - Update contributor (admin)');
+router.put('/contributors/:id', verifyAdmin, AdminControllers.updateContributor);
+
+console.log('[AdminRoutes] DELETE /contributors/:id - Delete contributor (admin)');
+router.delete('/contributors/:id', verifyAdmin, AdminControllers.deleteContributor);
+
+// Chat endpoints for admin to view/send messages to an institution
+const chatControllers = require('../../controllers/Chat/ChatControllers');
+console.log('[AdminRoutes] GET /institution/:id/chat - List chat messages for institution (admin)');
+router.get('/institution/:id/chat', verifyAdmin, chatControllers.listMessagesForAdminByInstitution);
+
+console.log('[AdminRoutes] POST /institution/:id/chat - Send chat message to institution (admin)');
+router.post('/institution/:id/chat', verifyAdmin, chatControllers.sendMessageByAdmin);
+
+// Announcements (admin-protected)
+console.log('[AdminRoutes] POST /announcements - Create announcement (admin)');
+router.post('/announcements', verifyAdmin, AdminControllers.createAnnouncement);
+
+console.log('[AdminRoutes] GET /announcements - List announcements (admin)');
+router.get('/announcements', verifyAdmin, AdminControllers.listAnnouncements);
+
 module.exports = router;

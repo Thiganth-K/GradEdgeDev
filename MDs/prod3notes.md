@@ -5,23 +5,23 @@
 **Admin**
 - The admin can able to create the instituion id that includes the CRUD operations. [done]
 - View logs of the institution id their actions that include all the controllers. [not done]
-- can send announcements to the institutions. [not done]
-- Admins can limit the  institution id to perform CRUD for the institution faculty, student, batch and the test. [not done]
-- can create the contributor id CRUD. [not done]
+- can send announcements to the institutions. [done]
+- Admins can limit the  institution id to perform CRUD for the institution faculty, student, batch and the test. [done]
+- can create the contributor id CRUD. [done]
 - con overview accept/decline the contributor request.  [not done]
 
 **Institution Admin**
 - Institution admin can have a dashboard.
-- CRUD operation for the faculty. (role based)
-- CRUD operation for the students.
-- CRUD operation for the batchs.
-- CRUD operation for the tests.
-- Institution Admin can send announcements to that institution faculty/ student/ batch. [not done]
+- CRUD operation for the faculty. (role based) [done]
+- CRUD operation for the students. [done]
+- CRUD operation for the batchs. [done]
+- CRUD operation for the tests. [done]
+- Institution Admin can send announcements to that institution faculty/ student/ batch. [done]
 - need to design the dashboard with the graphical analysis [not done]
 - institution admin can able to contact the admin a simple lms. [not done]
 - faculty to assign the batch need to visible based on the batch role type. [not done]
 - faculty assign to the tets need to be visible based on the faculty role type. [not done]
-- communication to the faculty like a chat platform. [not done]
+- communication to the faculty like a chat platform. [done]
 
 
 
@@ -51,7 +51,7 @@
 
 **Students**
 - can have a dashboard [not done]
-- the students can able to attend the tests.
+- the students can able to attend the tests. [done]
 - communicate with the faculty. [not done]
 - have a anouncements from the institution. [not done]
 - have the announcements from the faculty. [not done]

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import InstitutionAnnouncements from '../../components/Institution/Announcements';
 
 const BACKEND = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -142,9 +143,12 @@ const InstitutionDashboard: React.FC = () => {
             <p className="text-gray-700">Welcome{inst?.name ? `, ${inst.name}` : ''}</p>
             <p className="text-sm text-gray-500">Institution ID: {inst?.institutionId || 'N/A'}</p>
           </div>
-          <button onClick={loadData} className="text-sm px-4 py-2 border rounded bg-white hover:bg-gray-50" disabled={loading}>
-            {loading ? 'Refreshing...' : 'Refresh data'}
-          </button>
+          <div className="space-x-2">
+            <button onClick={loadData} className="text-sm px-4 py-2 border rounded bg-white hover:bg-gray-50" disabled={loading}>
+              {loading ? 'Refreshing...' : 'Refresh data'}
+            </button>
+            <a href="/institution/chat" className="text-sm px-4 py-2 border rounded bg-white hover:bg-gray-50">Faculty Chat</a>
+          </div>
         </header>
 
         {error && <div className="bg-red-100 border border-red-300 text-red-700 px-4 py-2 rounded">{error}</div>}
@@ -184,6 +188,18 @@ const InstitutionDashboard: React.FC = () => {
           <ListCard title="Recent Students" items={recentStudents} empty="No students yet." href="/institution/students" />
           <ListCard title="Recent Batches" items={recentBatches} empty="No batches yet." href="/institution/batches" />
           <ListCard title="Recent Tests" items={recentTests} empty="No tests yet." href="/institution/tests" />
+        </div>
+
+        {/* Announcements Section */}
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-lg font-semibold">Announcements</h3>
+            <div className="space-x-2">
+              <a href="/institution/announcements/create" className="text-sm text-red-700 font-semibold">Create</a>
+              <a href="/institution/announcements" className="text-sm text-gray-600">View all</a>
+            </div>
+          </div>
+          <InstitutionAnnouncements />
         </div>
       </div>
     </div>

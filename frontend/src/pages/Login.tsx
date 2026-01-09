@@ -58,6 +58,22 @@ const Login: React.FC = () => {
         return;
       }
 
+      // If not institution, try contributor login
+      console.log('[Login] attempting contributor login for', username);
+      res = await fetch(`${BACKEND}/contributor/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      });
+      body = await res.json().catch(() => ({}));
+      if (res.ok && body.success) {
+        localStorage.setItem('gradedge_role', 'contributor');
+        localStorage.setItem('contributor_data', JSON.stringify(body.data || {}));
+        if (body.token) localStorage.setItem('contributor_token', body.token);
+        window.location.href = '/contributor/dashboard';
+        return;
+      }
+
       // If not institution, try faculty login
       res = await fetch(`${BACKEND}/institution/faculty/login`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password }),

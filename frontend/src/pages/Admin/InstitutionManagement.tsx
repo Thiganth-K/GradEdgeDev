@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 
 const BACKEND = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -139,6 +140,7 @@ const InstitutionItem: React.FC<{ item: any; onDelete: (id: string) => void; onU
           </>
         ) : (
           <>
+            <Link to={`/admin/institution/${item.id}/chat`} className="px-3 py-1 bg-indigo-600 text-white rounded">Chat</Link>
             <button onClick={() => setEditing(true)} className="px-3 py-1 bg-blue-600 text-white rounded">Edit</button>
             <button onClick={() => onDelete(item.id)} className="px-3 py-1 bg-red-600 text-white rounded">Delete</button>
           </>

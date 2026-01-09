@@ -1,0 +1,6 @@
+- can send announcements to the institutions. [done]
+- Admins can limit the  institution id to perform CRUD for the institution faculty, student, batch and the test. [done]
+- can create the contributor id CRUD. [done]
+- Institution Admin can send announcements to that institution faculty/ student/ batch. [done]
+- communication to the faculty like a chat platform. [done]
+- the students can able to attend the tests. [done]
