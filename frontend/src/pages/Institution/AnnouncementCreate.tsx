@@ -17,13 +17,20 @@ const AnnouncementCreate: React.FC = () => {
 
   const token = localStorage.getItem('institution_token') || '';
 
+  const makeHeaders = (contentType = false) => {
+    const h: Record<string, string> = {};
+    if (contentType) h['Content-Type'] = 'application/json';
+    if (token) h.Authorization = `Bearer ${token}`;
+    return h;
+  };
+
   useEffect(() => {
     const load = async () => {
       try {
         const [fRes, sRes, bRes] = await Promise.all([
-          fetch(`${BACKEND}/institution/faculties`, { headers: token ? { Authorization: `Bearer ${token}` } : {} }),
-          fetch(`${BACKEND}/institution/students`, { headers: token ? { Authorization: `Bearer ${token}` } : {} }),
-          fetch(`${BACKEND}/institution/batches`, { headers: token ? { Authorization: `Bearer ${token}` } : {} }),
+          fetch(`${BACKEND}/institution/faculties`, { headers: makeHeaders() }),
+          fetch(`${BACKEND}/institution/students`, { headers: makeHeaders() }),
+          fetch(`${BACKEND}/institution/batches`, { headers: makeHeaders() }),
         ]);
         const fBody = await fRes.json().catch(() => ({}));
         const sBody = await sRes.json().catch(() => ({}));
@@ -44,7 +51,7 @@ const AnnouncementCreate: React.FC = () => {
     try {
       const res = await fetch(`${BACKEND}/institution/announcements`, {
         method: 'POST',
-        headers: Object.assign({ 'Content-Type': 'application/json' }, token ? { Authorization: `Bearer ${token}` } : {}),
+        headers: makeHeaders(true),
         body: JSON.stringify({
           message,
           targetFacultyIds: selectedFac,

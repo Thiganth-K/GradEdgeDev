@@ -147,4 +147,12 @@ router.post('/faculty/chat', verifyFaculty, chatControllers.sendMessageByFaculty
 console.log('[InstitutionRoutes] GET /faculty/chat - List chat messages (faculty)');
 router.get('/faculty/chat', verifyFaculty, chatControllers.listMessagesForFaculty);
 
+// Admin-Institution private chat (separate collection)
+const adminInstChat = require('../../controllers/Chat/AdminInstitutionChatControllers');
+console.log('[InstitutionRoutes] POST /admin-chat - Send admin-chat message (institution)');
+router.post('/admin-chat', verifyInstitution, adminInstChat.sendByInstitution);
+
+console.log('[InstitutionRoutes] GET /admin-chat - List admin-chat messages (institution)');
+router.get('/admin-chat', verifyInstitution, adminInstChat.listForInstitution);
+
 module.exports = router;

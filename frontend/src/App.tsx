@@ -11,6 +11,7 @@ import AdminAnnouncementManagement from './pages/Admin/AnnouncementManagement'
 import AdminContributorManagement from './pages/Admin/ContributorManagement'
 import InstitutionChatAdmin from './pages/Admin/InstitutionChat'
 import InstitutionChat from './pages/Institution/Chat'
+import ChatWithAdmin from './pages/Institution/ChatWithAdmin'
 import InstitutionDashboard from './pages/Institution/Dashboard'
 import InstitutionAnnouncementCreate from './pages/Institution/AnnouncementCreate'
 import FacultyManagement from './pages/Institution/FacultyManagement'
@@ -53,6 +54,7 @@ const App: React.FC = () => {
         <Route path="/admin/contributors" element={<AdminContributorManagement />} />
         <Route path="/admin/institution/:id/chat" element={<InstitutionChatAdmin />} />
         <Route path="/institution/chat" element={<InstitutionChat />} />
+        <Route path="/institution/admin-chat" element={<ChatWithAdmin />} />
         <Route path="/institution/dashboard" element={<InstitutionDashboard />} />
         <Route path="/institution/announcements/create" element={<InstitutionAnnouncementCreate />} />
         <Route path="/institution/faculties" element={<FacultyManagement />} />

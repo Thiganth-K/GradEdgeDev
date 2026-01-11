@@ -4,3 +4,4 @@
 - Institution Admin can send announcements to that institution faculty/ student/ batch. [done]
 - communication to the faculty like a chat platform. [done]
 - the students can able to attend the tests. [done]
+- institution admin can able to contact the admin a simple lms. [done]

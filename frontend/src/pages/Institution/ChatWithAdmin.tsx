@@ -1,43 +1,43 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { useParams } from 'react-router-dom';
 
 const BACKEND = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
-const InstitutionChatAdmin: React.FC = () => {
-  const { id } = useParams();
+const ChatWithAdmin: React.FC = () => {
   const [msgs, setMsgs] = useState<any[]>([]);
   const [text, setText] = useState('');
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
-  const token = typeof window !== 'undefined' ? localStorage.getItem('admin_token') : null;
+  const token = typeof window !== 'undefined' ? localStorage.getItem('institution_token') : null;
   const ref = useRef<HTMLDivElement | null>(null);
 
   const load = async (p = 1) => {
-    if (!token || !id) return;
+    if (!token) return;
     try {
-      const res = await fetch(`${BACKEND}/admin/institution/${id}/admin-chat?page=${p}&limit=20`, { headers: { Authorization: `Bearer ${token}` } });
+      const res = await fetch(`${BACKEND}/institution/admin-chat?page=${p}&limit=20`, { headers: { Authorization: `Bearer ${token}` } });
       const body = await res.json().catch(() => ({}));
       if (res.ok && body.success) {
-        if (p === 1) setMsgs(body.data || []);
-        else setMsgs((cur) => [...(body.data || []), ...cur]);
+        if (p === 1) {
+          setMsgs(body.data || []);
+        } else {
+          // older messages: prepend
+          setMsgs((cur) => [...(body.data || []), ...cur]);
+        }
         setPage(body.page || p);
         setHasMore(((body.page || p) * (body.limit || 20)) < (body.total || 0));
       }
     } catch (err) { console.error(err); }
   };
 
-  useEffect(() => { load(1); let idt: any = null; if (page === 1) idt = setInterval(()=>load(1), 5000); return () => { if (idt) clearInterval(idt); }; }, [id, page]);
+  useEffect(() => { load(1); let id: any = null; if (page === 1) id = setInterval(()=>load(1), 5000); return () => { if (id) clearInterval(id); }; }, [page]);
   useEffect(()=>{ if (ref.current) ref.current.scrollTop = ref.current.scrollHeight; }, [msgs]);
 
   const send = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!text.trim() || !token || !id) return;
-    const trimmed = text.trim();
-    if (trimmed.length > 2000) { alert('Message too long (max 2000 characters)'); return; }
+    if (!text.trim() || !token) return;
     try {
-      const res = await fetch(`${BACKEND}/admin/institution/${id}/admin-chat`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ message: trimmed }) });
+      const res = await fetch(`${BACKEND}/institution/admin-chat`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ message: text }) });
       const body = await res.json().catch(()=>({}));
-      if (res.ok && body.success) { setText(''); load(1); }
+      if (res.ok && body.success) { setText(''); load(); }
     } catch (err) { console.error(err); }
   };
 
@@ -48,7 +48,7 @@ const InstitutionChatAdmin: React.FC = () => {
 
   return (
     <div className="p-6">
-      <h2 className="text-2xl font-bold mb-3">Chat with Institution</h2>
+      <h2 className="text-2xl font-bold mb-3">Chat with Admin</h2>
       <div className="bg-white rounded shadow p-4 max-w-3xl">
         <div ref={ref} className="max-h-80 overflow-y-auto space-y-2 mb-3">
           {hasMore && (
@@ -57,14 +57,14 @@ const InstitutionChatAdmin: React.FC = () => {
             </div>
           )}
           {msgs.map((m:any) => (
-            <div key={m._id} className={`p-2 rounded ${m.fromRole === 'admin' ? 'bg-green-50' : 'bg-gray-100'}`}>
+            <div key={m._id} className={`p-2 rounded ${m.fromRole === 'institution' ? 'bg-red-50 self-end' : 'bg-gray-100'}`}>
               <div className="text-xs text-gray-500">{m.fromRole} • {new Date(m.createdAt).toLocaleString()}</div>
               <div className="mt-1">{m.message}</div>
             </div>
           ))}
         </div>
         <form onSubmit={send} className="flex gap-2">
-          <input value={text} onChange={(e)=>setText(e.target.value)} className="flex-1 border p-2 rounded" placeholder="Type a message to institution" />
+          <input value={text} onChange={(e)=>setText(e.target.value)} className="flex-1 border p-2 rounded" placeholder="Type a message to admin" />
           <button type="submit" className="px-3 py-2 bg-red-600 text-white rounded">Send</button>
         </form>
       </div>
@@ -72,4 +72,4 @@ const InstitutionChatAdmin: React.FC = () => {
   );
 };
 
-export default InstitutionChatAdmin;
+export default ChatWithAdmin;

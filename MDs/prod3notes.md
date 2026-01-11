@@ -18,7 +18,7 @@
 - CRUD operation for the tests. [done]
 - Institution Admin can send announcements to that institution faculty/ student/ batch. [done]
 - need to design the dashboard with the graphical analysis [not done]
-- institution admin can able to contact the admin a simple lms. [not done]
+- institution admin can able to contact the admin a simple lms. [done]
 - faculty to assign the batch need to visible based on the batch role type. [not done]
 - faculty assign to the tets need to be visible based on the faculty role type. [not done]
 - communication to the faculty like a chat platform. [done]

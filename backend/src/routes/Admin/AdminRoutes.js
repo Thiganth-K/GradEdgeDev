@@ -50,6 +50,14 @@ router.get('/institution/:id/chat', verifyAdmin, chatControllers.listMessagesFor
 console.log('[AdminRoutes] POST /institution/:id/chat - Send chat message to institution (admin)');
 router.post('/institution/:id/chat', verifyAdmin, chatControllers.sendMessageByAdmin);
 
+// Admin-Institution private chat (separate collection)
+const adminInstChat = require('../../controllers/Chat/AdminInstitutionChatControllers');
+console.log('[AdminRoutes] GET /institution/:id/admin-chat - List admin-chat (admin)');
+router.get('/institution/:id/admin-chat', verifyAdmin, adminInstChat.listForAdminByInstitution);
+
+console.log('[AdminRoutes] POST /institution/:id/admin-chat - Send admin-chat message (admin)');
+router.post('/institution/:id/admin-chat', verifyAdmin, adminInstChat.sendByAdmin);
+
 // Announcements (admin-protected)
 console.log('[AdminRoutes] POST /announcements - Create announcement (admin)');
 router.post('/announcements', verifyAdmin, AdminControllers.createAnnouncement);

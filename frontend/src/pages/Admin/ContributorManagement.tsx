@@ -17,11 +17,18 @@ const ContributorManagement: React.FC = () => {
 
   const token = localStorage.getItem('admin_token') || '';
 
+  const makeHeaders = (contentType = false) => {
+    const h: Record<string, string> = {};
+    if (contentType) h['Content-Type'] = 'application/json';
+    if (token) h.Authorization = `Bearer ${token}`;
+    return h;
+  };
+
   const fetchList = async () => {
     setMsg(null);
     try {
       const res = await fetch(`${BACKEND}/admin/contributors`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        headers: makeHeaders(),
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -44,13 +51,13 @@ const ContributorManagement: React.FC = () => {
       if (editingId) {
         res = await fetch(`${BACKEND}/admin/contributors/${editingId}`, {
           method: 'PUT',
-          headers: Object.assign({ 'Content-Type': 'application/json' }, token ? { Authorization: `Bearer ${token}` } : {}),
+          headers: makeHeaders(true),
           body: JSON.stringify({ fname, lname, contact, email, password: password || undefined }),
         });
       } else {
         res = await fetch(`${BACKEND}/admin/contributors`, {
           method: 'POST',
-          headers: Object.assign({ 'Content-Type': 'application/json' }, token ? { Authorization: `Bearer ${token}` } : {}),
+          headers: makeHeaders(true),
           body: JSON.stringify({ username, password, fname, lname, contact, email }),
         });
       }
@@ -82,7 +89,7 @@ const ContributorManagement: React.FC = () => {
   const onDelete = async (id: string) => {
     if (!confirm('Delete this contributor?')) return;
     try {
-      const res = await fetch(`${BACKEND}/admin/contributors/${id}`, { method: 'DELETE', headers: token ? { Authorization: `Bearer ${token}` } : {} });
+      const res = await fetch(`${BACKEND}/admin/contributors/${id}`, { method: 'DELETE', headers: makeHeaders() });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) { setMsg(body.message || 'Delete failed'); return; }
       setMsg('Deleted'); fetchList();
