@@ -5,7 +5,9 @@ const Institution = require('../../models/Institution');
 const sendByInstitution = async (req, res) => {
   try {
     const instId = req.institution && req.institution.id;
+    const instName = req.institution && req.institution.name;
     const { message } = req.body || {};
+    console.log('[AdminInstitutionChat.sendByInstitution] called by institution:', instName);
     if (!instId) return res.status(401).json({ success: false, message: 'unauthorized' });
     if (!message || !message.trim()) return res.status(400).json({ success: false, message: 'message required' });
     const trimmed = message.trim();
@@ -30,6 +32,8 @@ const sendByInstitution = async (req, res) => {
 const listForInstitution = async (req, res) => {
   try {
     const instId = req.institution && req.institution.id;
+    const instName = req.institution && req.institution.name;
+    console.log('[AdminInstitutionChat.listForInstitution] called by institution:', instName);
     if (!instId) return res.status(401).json({ success: false, message: 'unauthorized' });
     const page = Math.max(1, parseInt(String(req.query.page || '1'), 10));
     const limit = Math.min(200, Math.max(1, parseInt(String(req.query.limit || '50'), 10)));

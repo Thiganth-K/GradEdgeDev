@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 
 const BACKEND = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+import { makeHeaders } from '../../lib/makeHeaders';
 
 const InstitutionChatAdmin: React.FC = () => {
   const { id } = useParams();
@@ -13,9 +14,9 @@ const InstitutionChatAdmin: React.FC = () => {
   const ref = useRef<HTMLDivElement | null>(null);
 
   const load = async (p = 1) => {
-    if (!token || !id) return;
+    if (!id) return;
     try {
-      const res = await fetch(`${BACKEND}/admin/institution/${id}/admin-chat?page=${p}&limit=20`, { headers: { Authorization: `Bearer ${token}` } });
+      const res = await fetch(`${BACKEND}/admin/institution/${id}/admin-chat?page=${p}&limit=20`, { headers: makeHeaders('admin_token') });
       const body = await res.json().catch(() => ({}));
       if (res.ok && body.success) {
         if (p === 1) setMsgs(body.data || []);
@@ -35,7 +36,7 @@ const InstitutionChatAdmin: React.FC = () => {
     const trimmed = text.trim();
     if (trimmed.length > 2000) { alert('Message too long (max 2000 characters)'); return; }
     try {
-      const res = await fetch(`${BACKEND}/admin/institution/${id}/admin-chat`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ message: trimmed }) });
+      const res = await fetch(`${BACKEND}/admin/institution/${id}/admin-chat`, { method: 'POST', headers: makeHeaders('admin_token', 'application/json'), body: JSON.stringify({ message: trimmed }) });
       const body = await res.json().catch(()=>({}));
       if (res.ok && body.success) { setText(''); load(1); }
     } catch (err) { console.error(err); }

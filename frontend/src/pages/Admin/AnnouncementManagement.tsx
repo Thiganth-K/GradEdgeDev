@@ -36,6 +36,7 @@ const AnnouncementManagement: React.FC = () => {
 
   const loadData = async () => {
     try {
+      console.log('[AnnouncementManagement] admin_token localStorage:', token);
       const headers: Record<string, string> = {};
       if (token) headers.Authorization = `Bearer ${token}`;
       const [announcementsRes, institutionsRes] = await Promise.all([
@@ -70,7 +71,7 @@ const AnnouncementManagement: React.FC = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: token ? `Bearer ${token}` : '',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify(payload),
       });

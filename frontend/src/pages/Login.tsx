@@ -39,6 +39,7 @@ const Login: React.FC = () => {
         localStorage.setItem('gradedge_role', 'admin');
         localStorage.setItem('admin_data', JSON.stringify(body.data || {}));
         if (body.token) localStorage.setItem('admin_token', body.token);
+        console.log('[Login] stored admin_token:', body.token);
         window.location.href = '/admin/dashboard';
         return;
       }

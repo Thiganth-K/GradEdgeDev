@@ -26,6 +26,8 @@ app.use(express.json());
 app.use((req, res, next) => {
   console.log(`[REQ] ${new Date().toISOString()} ${req.method} ${req.originalUrl}`);
   if (Object.keys(req.body || {}).length) console.log('[REQ BODY]', req.body);
+  // DEBUG: log relevant headers to help trace missing Authorization
+  console.log('[REQ HEADERS]', { authorization: req.headers.authorization, cookie: req.headers.cookie, origin: req.headers.origin, host: req.headers.host });
   next();
 });
 
@@ -40,6 +42,43 @@ if (mongoUri) {
   console.warn('MONGO_URI not set; MongoDB features will be disabled');
 }
 
+// Serve static files first
+const frontendDist = path.resolve(__dirname, '../../frontend/dist');
+if (fs.existsSync(frontendDist)) {
+  console.log('[SERVER] Found frontend build at', frontendDist, '- serving static files');
+  app.use(express.static(frontendDist));
+}
+
+// SPA routing middleware - intercept requests that prefer HTML and serve SPA
+app.use((req, res, next) => {
+  // Skip if not a GET request
+  if (req.method !== 'GET') {
+    return next();
+  }
+  
+  // Skip if this is an XHR/fetch request (has these headers)
+  if (req.xhr || req.headers['x-requested-with'] === 'XMLHttpRequest') {
+    return next();
+  }
+  
+  // Check Accept header - only serve HTML if client explicitly lists text/html
+  const acceptHeader = req.headers.accept || '';
+  const wantsHtml = acceptHeader.includes('text/html');
+  const wantsJson = acceptHeader.includes('application/json');
+  
+  // If client wants HTML but NOT JSON, it's browser navigation
+  // (Browsers send: Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8)
+  // (Fetch sends: Accept: */* or Accept: application/json)
+  if (wantsHtml && !wantsJson && fs.existsSync(frontendDist)) {
+    console.log('[SPA] Serving index.html for browser navigation:', req.path);
+    return res.sendFile(path.join(frontendDist, 'index.html'));
+  }
+  
+  // Otherwise, continue to API routes
+  next();
+});
+
+// API Routes registered AFTER SPA middleware
 // SuperAdmin routes
 const superAdminRoutes = require('./routes/SuperAdmin/SuperAdminRoutes');
 app.use('/superadmin', superAdminRoutes);
@@ -59,29 +98,6 @@ try {
   console.log('[SERVER] Contributor routes registered at /contributor');
 } catch (e) {
   console.log('[SERVER] No contributor routes registered:', e && e.message);
-}
-
-// default root handler will be registered below depending on whether a frontend build exists
-
-// If a built frontend exists, serve it as static files (single-step deploy)
-try {
-  const frontendDist = path.resolve(__dirname, '../../frontend/dist');
-  if (fs.existsSync(frontendDist)) {
-    console.log('[SERVER] Found frontend build at', frontendDist, '- serving static files');
-    app.use(express.static(frontendDist));
-    // Use a regex route to avoid path-to-regexp parameter parsing issues
-    app.get(/.*/, (req, res) => {
-      res.sendFile(path.join(frontendDist, 'index.html'));
-    });
-  } else {
-    console.log('[SERVER] No frontend build found at', frontendDist);
-    // expose a simple JSON root when frontend not present
-    app.get('/', (req, res) => {
-      res.json({ message: 'GradEdgeDev backend running' });
-    });
-  }
-} catch (e) {
-  console.warn('[SERVER] Error while checking frontend build:', e && e.message);
 }
 
 app.listen(PORT, () => {

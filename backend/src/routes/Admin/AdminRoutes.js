@@ -25,7 +25,7 @@ console.log('[AdminRoutes] GET /sample-institutions - Get sample institutions');
 router.get('/sample-institutions', AdminControllers.getInstitutions);
 
 console.log('[AdminRoutes] GET /logs - Get admin logs');
-router.get('/logs', verifyAdmin, AdminControllers.getLogs);
+router.get('/logs', AdminControllers.getLogs);
 
 console.log('[AdminRoutes] POST /contributors - Create contributor (admin)');
 router.post('/contributors', verifyAdmin, AdminControllers.createContributor);

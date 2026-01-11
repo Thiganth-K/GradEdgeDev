@@ -35,7 +35,9 @@ const ContributorManagement: React.FC = () => {
         setMsg(body.message || 'Failed to fetch contributors');
         return;
       }
-      setList(body.data || []);
+      // Map _id to id for consistency
+      const mapped = (body.data || []).map((c: any) => ({ ...c, id: c._id || c.id }));
+      setList(mapped);
     } catch (err: any) {
       setMsg(err.message || 'Network error');
     }
@@ -52,7 +54,7 @@ const ContributorManagement: React.FC = () => {
         res = await fetch(`${BACKEND}/admin/contributors/${editingId}`, {
           method: 'PUT',
           headers: makeHeaders(true),
-          body: JSON.stringify({ fname, lname, contact, email, password: password || undefined }),
+          body: JSON.stringify({ username, fname, lname, contact, email, password: password || undefined }),
         });
       } else {
         res = await fetch(`${BACKEND}/admin/contributors`, {
@@ -83,17 +85,33 @@ const ContributorManagement: React.FC = () => {
     setContact(c.contact || '');
     setEmail(c.email || '');
     setPassword('');
+    setMsg(null);
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const onCancelEdit = () => {
+    setEditingId(null);
+    setUsername('');
+    setPassword('');
+    setFname('');
+    setLname('');
+    setContact('');
+    setEmail('');
+    setMsg(null);
   };
 
   const onDelete = async (id: string) => {
     if (!confirm('Delete this contributor?')) return;
+    setMsg(null);
     try {
       const res = await fetch(`${BACKEND}/admin/contributors/${id}`, { method: 'DELETE', headers: makeHeaders() });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) { setMsg(body.message || 'Delete failed'); return; }
-      setMsg('Deleted'); fetchList();
-    } catch (err: any) { setMsg(err.message || 'Network error'); }
+      setMsg('Contributor deleted successfully');
+      fetchList();
+    } catch (err: any) {
+      setMsg(err.message || 'Network error');
+    }
   };
 
   return (
@@ -102,19 +120,72 @@ const ContributorManagement: React.FC = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="bg-white p-4 rounded shadow">
-          <h3 className="font-semibold mb-2">Create Contributor</h3>
-          {msg && <div className="text-sm text-red-600 mb-2">{msg}</div>}
-          <form onSubmit={submit} className="space-y-2">
-            <input placeholder="Username" value={username} onChange={(e)=>setUsername(e.target.value)} className="w-full border p-2 rounded" />
-            <input placeholder="Password" type="password" value={password} onChange={(e)=>setPassword(e.target.value)} className="w-full border p-2 rounded" />
-            <div className="flex gap-2">
-              <input placeholder="First name" value={fname} onChange={(e)=>setFname(e.target.value)} className="flex-1 border p-2 rounded" />
-              <input placeholder="Last name" value={lname} onChange={(e)=>setLname(e.target.value)} className="flex-1 border p-2 rounded" />
+          <h3 className="font-semibold mb-2 text-lg">
+            {editingId ? '✏️ Edit Contributor' : '➕ Create Contributor'}
+          </h3>
+          {msg && (
+            <div className={`text-sm mb-2 p-2 rounded ${
+              msg.includes('error') || msg.includes('Failed') || msg.includes('failed') 
+                ? 'bg-red-100 text-red-700' 
+                : 'bg-green-100 text-green-700'
+            }`}>
+              {msg}
             </div>
-            <input placeholder="Contact" value={contact} onChange={(e)=>setContact(e.target.value)} className="w-full border p-2 rounded" />
-            <input placeholder="Email" value={email} onChange={(e)=>setEmail(e.target.value)} className="w-full border p-2 rounded" />
-            <div>
-              <button className="px-4 py-2 bg-red-600 text-white rounded">Create</button>
+          )}
+          <form onSubmit={submit} className="space-y-2">
+            <input 
+              placeholder="Username" 
+              value={username} 
+              onChange={(e)=>setUsername(e.target.value)} 
+              className="w-full border p-2 rounded" 
+              required
+            />
+            <input 
+              placeholder={editingId ? "Password (leave blank to keep unchanged)" : "Password"} 
+              type="password" 
+              value={password} 
+              onChange={(e)=>setPassword(e.target.value)} 
+              className="w-full border p-2 rounded"
+              required={!editingId}
+            />
+            <div className="flex gap-2">
+              <input 
+                placeholder="First name" 
+                value={fname} 
+                onChange={(e)=>setFname(e.target.value)} 
+                className="flex-1 border p-2 rounded" 
+                required 
+              />
+              <input 
+                placeholder="Last name" 
+                value={lname} 
+                onChange={(e)=>setLname(e.target.value)} 
+                className="flex-1 border p-2 rounded" 
+                required 
+              />
+            </div>
+            <input 
+              placeholder="Contact" 
+              value={contact} 
+              onChange={(e)=>setContact(e.target.value)} 
+              className="w-full border p-2 rounded" 
+            />
+            <input 
+              placeholder="Email" 
+              value={email} 
+              onChange={(e)=>setEmail(e.target.value)} 
+              className="w-full border p-2 rounded" 
+              type="email" 
+            />
+            <div className="flex gap-2">
+              <button type="submit" className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">
+                {editingId ? 'Update' : 'Create'}
+              </button>
+              {editingId && (
+                <button type="button" onClick={onCancelEdit} className="px-4 py-2 bg-gray-400 text-white rounded hover:bg-gray-500">
+                  Cancel
+                </button>
+              )}
             </div>
           </form>
         </div>
@@ -130,8 +201,8 @@ const ContributorManagement: React.FC = () => {
                   <div className="text-xs text-gray-600">{c.email || 'no email'} • {c.contact || 'no contact'}</div>
                 </div>
                 <div className="space-x-2">
-                  <button onClick={() => onEdit(c)} className="px-2 py-1 bg-yellow-400 text-white rounded">Edit</button>
-                  <button onClick={() => onDelete(c.id)} className="px-2 py-1 bg-red-600 text-white rounded">Delete</button>
+                  <button onClick={() => onEdit(c)} className="px-2 py-1 bg-yellow-400 text-white rounded hover:bg-yellow-500">Edit</button>
+                  <button onClick={() => onDelete(c.id)} className="px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700">Delete</button>
                 </div>
               </div>
             ))}

@@ -33,8 +33,8 @@ const login = async (req, res) => {
       return res.status(500).json({ success: false, message: 'server jwt secret not configured' });
     }
 
-    const token = jwt.sign({ role: 'admin', id: admin._id, username: admin.username }, secret, { expiresIn: '4h' });
-    console.log('[Admin.login] authenticated', username);
+    const token = jwt.sign({ id: admin._id, username: admin.username, role: 'admin' }, secret, { expiresIn: '7d' });
+    console.log('[Admin.login] authenticated', username, '- generated token');
     return res.json({ success: true, role: 'admin', token, data: { id: admin._id, username: admin.username } });
   } catch (err) {
     console.error('[Admin.login] error', err);
@@ -335,8 +335,19 @@ const updateContributor = async (req, res) => {
     const id = req.params.id;
     console.log('[Admin.updateContributor] called by', req.admin && req.admin.username, 'target:', id);
 
-    const { fname, lname, contact, email, password } = req.body || {};
+    const { username, fname, lname, contact, email, password } = req.body || {};
     const update = {};
+    
+    // Check if username is being changed and if it already exists
+    if (username !== undefined) {
+      const existing = await Contributor.findOne({ username, _id: { $ne: id } });
+      if (existing) {
+        console.log('[Admin.updateContributor] ✗ username already exists:', username);
+        return res.status(409).json({ success: false, message: 'username already exists' });
+      }
+      update.username = username;
+    }
+    
     if (fname !== undefined) update.fname = fname;
     if (lname !== undefined) update.lname = lname;
     if (contact !== undefined) update.contact = contact;

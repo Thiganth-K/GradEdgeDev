@@ -5,18 +5,45 @@ const BACKEND = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const InstitutionManagement: React.FC = () => {
   const [items, setItems] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    console.log('[InstitutionManagement] COMPONENT MOUNTED');
     const role = localStorage.getItem('gradedge_role');
+    console.log('[InstitutionManagement] role from localStorage:', role);
+    
     if (role !== 'admin') {
+      console.log('[InstitutionManagement] role is not admin, redirecting to login');
       window.location.href = '/login';
       return;
     }
 
+    console.log('[InstitutionManagement] role check passed, fetching institutions...');
     const token = localStorage.getItem('admin_token');
-    fetch(`${BACKEND}/admin/institutions`, { headers: { Authorization: token ? `Bearer ${token}` : '' } }).then((r) => r.json()).then((b) => {
-      if (b.success) setItems((b.data || []).map((x: any) => ({ id: x._id || x.id || x._id, ...x })));
-    }).catch(() => {});
+    console.log('[InstitutionManagement] admin_token localStorage:', token);
+    const headers: Record<string, string> = {};
+    if (token) headers.Authorization = `Bearer ${token}`;
+    fetch(`${BACKEND}/admin/institutions`, { headers })
+      .then((r) => {
+        console.log('[InstitutionManagement] fetch response status:', r.status);
+        return r.json();
+      })
+      .then((b) => {
+        console.log('[InstitutionManagement] fetch response body:', b);
+        if (b.success) {
+          setItems((b.data || []).map((x: any) => ({ id: x._id || x.id || x._id, ...x })));
+          setLoading(false);
+        } else {
+          setError(b.message || 'Failed to load institutions');
+          setLoading(false);
+        }
+      })
+      .catch((err) => {
+        console.error('[InstitutionManagement] fetch error:', err);
+        setError(err.message || 'Network error');
+        setLoading(false);
+      });
   }, []);
 
   const [form, setForm] = React.useState({ name: '', institutionId: '', password: '', location: '', contactNo: '', email: '', facultyLimit: '', studentLimit: '', batchLimit: '', testLimit: '' });
@@ -27,9 +54,12 @@ const InstitutionManagement: React.FC = () => {
     const payload: any = { ...form };
     ['facultyLimit','studentLimit','batchLimit','testLimit'].forEach((k) => { if (payload[k] === '') delete payload[k]; });
 
+    const postHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (token) postHeaders.Authorization = `Bearer ${token}`;
+
     const res = await fetch(`${BACKEND}/admin/institutions`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: token ? `Bearer ${token}` : '' },
+      headers: postHeaders,
       body: JSON.stringify(payload),
     });
     const b = await res.json().catch(() => ({}));
@@ -43,7 +73,33 @@ const InstitutionManagement: React.FC = () => {
 
   const remove = async (id: string) => {
     const token = localStorage.getItem('admin_token');
-    const res = await fetch(`${BACKEND}/admin/institutions/${id}`, { method: 'DELETE', headers: { Authorization: token ? `Bearer ${token}` : '' } });
+  console.log('[InstitutionManagement] RENDERING - items:', items.length, 'loading:', loading, 'error:', error);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-red-50 p-6">
+        <div className="max-w-4xl mx-auto">
+          <h2 className="text-2xl font-bold text-red-700 mb-4">Institution Management</h2>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-red-50 p-6">
+        <div className="max-w-4xl mx-auto">
+          <h2 className="text-2xl font-bold text-red-700 mb-4">Institution Management</h2>
+          <p className="text-red-600">Error: {error}</p>
+        </div>
+      </div>
+    );
+  }
+
+    const delHeaders: Record<string, string> = {};
+    if (token) delHeaders.Authorization = `Bearer ${token}`;
+    const res = await fetch(`${BACKEND}/admin/institutions/${id}`, { method: 'DELETE', headers: delHeaders });
     const b = await res.json().catch(() => ({}));
     if (res.ok && b.success) setItems((s) => s.filter((it) => it.id !== id));
     else alert(b.message || 'Could not delete');
@@ -101,7 +157,9 @@ const InstitutionItem: React.FC<{ item: any; onDelete: (id: string) => void; onU
       const v = f[k];
       payload[k] = (v !== '' && v !== null && v !== undefined) ? v : null;
     });
-    const res = await fetch(`${BACKEND}/admin/institutions/${item.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: token ? `Bearer ${token}` : '' }, body: JSON.stringify(payload) });
+    const putHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (token) putHeaders.Authorization = `Bearer ${token}`;
+    const res = await fetch(`${BACKEND}/admin/institutions/${item.id}`, { method: 'PUT', headers: putHeaders, body: JSON.stringify(payload) });
     const b = await res.json().catch(() => ({}));
     if (res.ok && b.success) {
       onUpdated(b.data || {});

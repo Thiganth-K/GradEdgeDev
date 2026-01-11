@@ -31,24 +31,14 @@ const login = async (req, res) => {
       return res.status(401).json({ success: false, message: 'invalid credentials' });
     }
 
-    const secret = process.env.INSTITUTION_JWT_SECRET || process.env.ADMIN_JWT_SECRET || process.env.SUPERADMIN_JWT_SECRET;
+    const secret = process.env.INSTITUTION_JWT_SECRET || process.env.ADMIN_JWT_SECRET;
     if (!secret) {
-      console.error('[Institution.login] JWT secret not configured');
+      console.error('[Institution.login] INSTITUTION_JWT_SECRET not configured');
       return res.status(500).json({ success: false, message: 'server jwt secret not configured' });
     }
 
-    const tokenPayload = {
-      role: 'institution',
-      id: inst._id,
-      institutionId: inst.institutionId,
-      name: inst.name,
-      facultyLimit: inst.facultyLimit ?? null,
-      studentLimit: inst.studentLimit ?? null,
-      batchLimit: inst.batchLimit ?? null,
-      testLimit: inst.testLimit ?? null,
-    };
-    const token = jwt.sign(tokenPayload, secret, { expiresIn: '4h' });
-    console.log('[Institution.login] authenticated', institutionId);
+    const token = jwt.sign({ id: inst._id, institutionId: inst.institutionId, name: inst.name, role: 'institution' }, secret, { expiresIn: '7d' });
+    console.log('[Institution.login] authenticated', institutionId, '- generated token');
     return res.json({ success: true, role: 'institution', token, data: { id: inst._id, institutionId: inst.institutionId, name: inst.name, facultyLimit: inst.facultyLimit ?? null, studentLimit: inst.studentLimit ?? null, batchLimit: inst.batchLimit ?? null, testLimit: inst.testLimit ?? null } });
   } catch (err) {
     console.error('[Institution.login] error', err);
@@ -78,14 +68,14 @@ const facultyLogin = async (req, res) => {
       return res.status(401).json({ success: false, message: 'invalid credentials' });
     }
     
-    const secret = process.env.INSTITUTION_JWT_SECRET || process.env.ADMIN_JWT_SECRET || process.env.SUPERADMIN_JWT_SECRET;
+    const secret = process.env.INSTITUTION_JWT_SECRET || process.env.ADMIN_JWT_SECRET;
     if (!secret) {
-      console.error('[Institution.facultyLogin] ✗ JWT secret not configured');
+      console.error('[Institution.facultyLogin] ✗ jwt secret not configured');
       return res.status(500).json({ success: false, message: 'server jwt secret not configured' });
     }
-    
-    const token = jwt.sign({ role: 'faculty', id: f._id, username: f.username, facultyRole: f.role }, secret, { expiresIn: '4h' });
-    console.log('[Institution.facultyLogin] ✓ authenticated faculty:', username, 'role:', f.role);
+
+    const token = jwt.sign({ id: f._id, username: f.username, role: 'faculty' }, secret, { expiresIn: '7d' });
+    console.log('[Institution.facultyLogin] ✓ authenticated faculty:', username, 'role:', f.role, '- generated token');
     return res.json({ success: true, role: 'faculty', token, data: { id: f._id, username: f.username, role: f.role } });
   } catch (err) {
     console.error('[Institution.facultyLogin] ✗ error:', err.message);
@@ -115,14 +105,14 @@ const studentLogin = async (req, res) => {
       return res.status(401).json({ success: false, message: 'invalid credentials' });
     }
     
-    const secret = process.env.INSTITUTION_JWT_SECRET || process.env.ADMIN_JWT_SECRET || process.env.SUPERADMIN_JWT_SECRET;
+    const secret = process.env.INSTITUTION_JWT_SECRET || process.env.ADMIN_JWT_SECRET;
     if (!secret) {
-      console.error('[Institution.studentLogin] ✗ JWT secret not configured');
+      console.error('[Institution.studentLogin] ✗ jwt secret not configured');
       return res.status(500).json({ success: false, message: 'server jwt secret not configured' });
     }
-    
-    const token = jwt.sign({ role: 'student', id: s._id, username: s.username }, secret, { expiresIn: '4h' });
-    console.log('[Institution.studentLogin] ✓ authenticated student:', username);
+
+    const token = jwt.sign({ id: s._id, username: s.username, role: 'student' }, secret, { expiresIn: '7d' });
+    console.log('[Institution.studentLogin] ✓ authenticated student:', username, '- generated token');
     return res.json({ success: true, role: 'student', token, data: { id: s._id, username: s.username, name: s.name } });
   } catch (err) {
     console.error('[Institution.studentLogin] ✗ error:', err.message);
@@ -1077,17 +1067,20 @@ const listInstitutionAnnouncements = async (req, res) => {
     }
     
     const announcements = await Announcement.find({ targetInstitutions: instId })
-      .populate('createdBy', 'username')
+      .populate({ path: 'createdByRef', select: 'username name' })
       .sort({ createdAt: -1 });
     
     // Add isRead flag for each announcement
-    const data = announcements.map((a) => ({
-      _id: a._id,
-      message: a.message,
-      createdBy: a.createdBy,
-      createdAt: a.createdAt,
-      isRead: a.readBy.some((id) => String(id) === String(instId)),
-    }));
+    const data = announcements.map((a) => {
+      const creator = a.createdByRef && (a.createdByRef.username || a.createdByRef.name || null);
+      return {
+        _id: a._id,
+        message: a.message,
+        createdBy: { role: a.createdByRole || null, id: a.createdByRef ? a.createdByRef._id : null, name: creator },
+        createdAt: a.createdAt,
+        isRead: Array.isArray(a.readBy) && a.readBy.some((id) => String(id) === String(instId)),
+      };
+    });
     
     console.log('[Institution.listAnnouncements] ✓ found', announcements.length, 'announcements');
     return res.json({ success: true, data });

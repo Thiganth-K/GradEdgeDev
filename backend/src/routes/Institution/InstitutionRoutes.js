@@ -17,9 +17,9 @@ console.log('[InstitutionRoutes] POST /student/login - Student login');
 router.post('/student/login', InstitutionControllers.studentLogin);
 
 console.log('[InstitutionRoutes] GET /welcome - Welcome (institution)');
-router.get('/welcome', verifyInstitution, InstitutionControllers.welcome);
+router.get('/welcome', InstitutionControllers.welcome);
 
-// Faculty self-service
+// Faculty self-service (faculty-protected)
 console.log('[InstitutionRoutes] GET /faculty/announcements - List faculty announcements');
 router.get('/faculty/announcements', verifyFaculty, InstitutionControllers.listFacultyAnnouncements);
 
@@ -133,7 +133,7 @@ router.get('/faculty/announcements/list', verifyFaculty, InstitutionControllers.
 console.log('[InstitutionRoutes] GET /student/announcements - List announcements for student (student)');
 router.get('/student/announcements', verifyStudent, InstitutionControllers.listAnnouncementsForStudent);
 
-// Chat between institution and admin
+// Chat between institution and admin (institution-protected)
 const chatControllers = require('../../controllers/Chat/ChatControllers');
 console.log('[InstitutionRoutes] POST /chat - Send chat message (institution)');
 router.post('/chat', verifyInstitution, chatControllers.sendMessageByInstitution);
@@ -147,7 +147,7 @@ router.post('/faculty/chat', verifyFaculty, chatControllers.sendMessageByFaculty
 console.log('[InstitutionRoutes] GET /faculty/chat - List chat messages (faculty)');
 router.get('/faculty/chat', verifyFaculty, chatControllers.listMessagesForFaculty);
 
-// Admin-Institution private chat (separate collection)
+// Admin-Institution private chat (institution-protected)
 const adminInstChat = require('../../controllers/Chat/AdminInstitutionChatControllers');
 console.log('[InstitutionRoutes] POST /admin-chat - Send admin-chat message (institution)');
 router.post('/admin-chat', verifyInstitution, adminInstChat.sendByInstitution);
