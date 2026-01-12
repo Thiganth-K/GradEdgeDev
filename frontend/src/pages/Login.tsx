@@ -39,6 +39,7 @@ const Login: React.FC = () => {
         localStorage.setItem('gradedge_role', 'admin');
         localStorage.setItem('admin_data', JSON.stringify(body.data || {}));
         if (body.token) localStorage.setItem('admin_token', body.token);
+        console.log('[Login] stored admin_token:', body.token);
         window.location.href = '/admin/dashboard';
         return;
       }
@@ -55,6 +56,22 @@ const Login: React.FC = () => {
         localStorage.setItem('institution_data', JSON.stringify(body.data || {}));
         if (body.token) localStorage.setItem('institution_token', body.token);
         window.location.href = '/institution/dashboard';
+        return;
+      }
+
+      // If not institution, try contributor login
+      console.log('[Login] attempting contributor login for', username);
+      res = await fetch(`${BACKEND}/contributor/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      });
+      body = await res.json().catch(() => ({}));
+      if (res.ok && body.success) {
+        localStorage.setItem('gradedge_role', 'contributor');
+        localStorage.setItem('contributor_data', JSON.stringify(body.data || {}));
+        if (body.token) localStorage.setItem('contributor_token', body.token);
+        window.location.href = '/contributor/dashboard';
         return;
       }
 

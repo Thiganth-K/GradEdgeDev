@@ -2,6 +2,8 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const Admin = require('../../models/Admin');
 const Institution = require('../../models/Institution');
+const Announcement = require('../../models/Announcement');
+const Contributor = require('../../models/Contributor');
 
 const login = async (req, res) => {
   const { username, password } = req.body || {};
@@ -31,8 +33,8 @@ const login = async (req, res) => {
       return res.status(500).json({ success: false, message: 'server jwt secret not configured' });
     }
 
-    const token = jwt.sign({ role: 'admin', id: admin._id, username: admin.username }, secret, { expiresIn: '4h' });
-    console.log('[Admin.login] authenticated', username);
+    const token = jwt.sign({ id: admin._id, username: admin.username, role: 'admin' }, secret, { expiresIn: '7d' });
+    console.log('[Admin.login] authenticated', username, '- generated token');
     return res.json({ success: true, role: 'admin', token, data: { id: admin._id, username: admin.username } });
   } catch (err) {
     console.error('[Admin.login] error', err);
@@ -64,8 +66,8 @@ const createInstitution = async (req, res) => {
     const adminUser = req.admin && req.admin.username;
     console.log('[Admin.createInstitution] called by', adminUser);
     
-    const { name, institutionId, password, location, contactNo, email } = req.body || {};
-    console.log('[Admin.createInstitution] payload: { name:', name, ', institutionId:', institutionId, ', location:', location, '}');
+    const { name, institutionId, password, location, contactNo, email, facultyLimit, studentLimit, batchLimit, testLimit } = req.body || {};
+    console.log('[Admin.createInstitution] payload: { name:', name, ', institutionId:', institutionId, ', location:', location, ', limits:', { facultyLimit, studentLimit, batchLimit, testLimit }, '}');
     
     if (!name || !institutionId || !password) {
       console.log('[Admin.createInstitution] ✗ missing required fields');
@@ -89,9 +91,22 @@ const createInstitution = async (req, res) => {
     }
 
     const hash = await bcrypt.hash(password, 10);
-    const created = await Institution.create({ name, institutionId, passwordHash: hash, location, contactNo, email, createdBy: adminId });
+    const parsed = (v) => (v === undefined || v === null || v === '') ? null : Number(v);
+    const created = await Institution.create({
+      name,
+      institutionId,
+      passwordHash: hash,
+      location,
+      contactNo,
+      email,
+      createdBy: adminId,
+      facultyLimit: parsed(facultyLimit),
+      studentLimit: parsed(studentLimit),
+      batchLimit: parsed(batchLimit),
+      testLimit: parsed(testLimit),
+    });
     console.log('[Admin.createInstitution] ✓ created - id:', created._id.toString(), 'name:', created.name, 'institutionId:', created.institutionId);
-    res.json({ success: true, data: { id: created._id, name: created.name, institutionId: created.institutionId } });
+    res.json({ success: true, data: { id: created._id, name: created.name, institutionId: created.institutionId, facultyLimit: created.facultyLimit ?? null, studentLimit: created.studentLimit ?? null, batchLimit: created.batchLimit ?? null, testLimit: created.testLimit ?? null } });
   } catch (err) {
     console.error('[Admin.createInstitution] ✗ error:', err.message);
     res.status(500).json({ success: false, message: err.message });
@@ -111,7 +126,7 @@ const updateInstitution = async (req, res) => {
       return res.status(401).json({ success: false, message: 'unauthorized' });
     }
     
-    const { name, password, location, contactNo, email } = req.body || {};
+    const { name, password, location, contactNo, email, facultyLimit, studentLimit, batchLimit, testLimit } = req.body || {};
     console.log('[Admin.updateInstitution] payload: { name:', name, ', location:', location, ', contactNo:', contactNo, '}');
     
     const update = {};
@@ -120,6 +135,11 @@ const updateInstitution = async (req, res) => {
     if (contactNo) update.contactNo = contactNo;
     if (email) update.email = email;
     if (password) update.passwordHash = await bcrypt.hash(password, 10);
+    const parsed = (v) => (v === undefined || v === null || v === '') ? null : Number(v);
+    if (facultyLimit !== undefined) update.facultyLimit = parsed(facultyLimit);
+    if (studentLimit !== undefined) update.studentLimit = parsed(studentLimit);
+    if (batchLimit !== undefined) update.batchLimit = parsed(batchLimit);
+    if (testLimit !== undefined) update.testLimit = parsed(testLimit);
 
     const updated = await Institution.findOneAndUpdate({ _id: id, createdBy: adminId }, update, { new: true }).lean();
     if (!updated) {
@@ -128,7 +148,7 @@ const updateInstitution = async (req, res) => {
     }
     
     console.log('[Admin.updateInstitution] ✓ updated institution - id:', updated._id, 'name:', updated.name);
-    res.json({ success: true, data: { id: updated._id, name: updated.name } });
+    res.json({ success: true, data: { id: updated._id, name: updated.name, facultyLimit: updated.facultyLimit ?? null, studentLimit: updated.studentLimit ?? null, batchLimit: updated.batchLimit ?? null, testLimit: updated.testLimit ?? null } });
   } catch (err) {
     console.error('[Admin.updateInstitution] ✗ error:', err.message);
     res.status(500).json({ success: false, message: err.message });
@@ -178,4 +198,193 @@ const getLogs = (req, res) => {
   res.json({ success: true, data: sample });
 };
 
-module.exports = { login, listInstitutions, createInstitution, updateInstitution, deleteInstitution, getInstitutions, getLogs };
+// =====================
+// ANNOUNCEMENTS
+// =====================
+
+const createAnnouncement = async (req, res) => {
+  try {
+    const adminId = req.admin && req.admin.id;
+    const adminUsername = req.admin && req.admin.username;
+    const { message, targetInstitutionIds } = req.body || {};
+    console.log('[Admin.createAnnouncement] called by admin:', adminUsername);
+    console.log('[Admin.createAnnouncement] target institutions:', targetInstitutionIds?.length || 0);
+    
+    if (!message || !message.trim()) {
+      console.log('[Admin.createAnnouncement] ✗ empty message');
+      return res.status(400).json({ success: false, message: 'message required' });
+    }
+    
+    // If targetInstitutionIds not provided or empty, send to all institutions created by this admin
+    let targets = [];
+    if (Array.isArray(targetInstitutionIds) && targetInstitutionIds.length > 0) {
+      targets = targetInstitutionIds;
+    } else {
+      const institutions = await Institution.find({ createdBy: adminId }).select('_id');
+      targets = institutions.map((i) => i._id);
+    }
+    
+    if (targets.length === 0) {
+      console.log('[Admin.createAnnouncement] ✗ no target institutions found');
+      return res.status(400).json({ success: false, message: 'no institutions to send announcement to' });
+    }
+    
+    const announcement = await Announcement.create({
+      message: message.trim(),
+      createdBy: adminId,
+      targetInstitutions: targets,
+      readBy: [],
+    });
+    
+    console.log('[Admin.createAnnouncement] ✓ created announcement - id:', announcement._id.toString(), 'targets:', targets.length);
+    return res.status(201).json({ success: true, data: announcement });
+  } catch (err) {
+    console.error('[Admin.createAnnouncement] ✗ error:', err.message);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+const listAnnouncements = async (req, res) => {
+  try {
+    const adminId = req.admin && req.admin.id;
+    const adminUsername = req.admin && req.admin.username;
+    console.log('[Admin.listAnnouncements] called by admin:', adminUsername);
+    
+    const announcements = await Announcement.find({ createdBy: adminId })
+      .populate('targetInstitutions', 'name institutionId')
+      .populate('readBy', 'name institutionId')
+      .sort({ createdAt: -1 });
+    
+    console.log('[Admin.listAnnouncements] ✓ found', announcements.length, 'announcements');
+    return res.json({ success: true, data: announcements });
+  } catch (err) {
+    console.error('[Admin.listAnnouncements] ✗ error:', err.message);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// =====================
+// CONTRIBUTORS (admin-protected)
+// =====================
+
+const createContributor = async (req, res) => {
+  try {
+    const adminId = req.admin && req.admin.id;
+    const adminUsername = req.admin && req.admin.username;
+    console.log('[Admin.createContributor] called by admin:', adminUsername);
+
+    const { username, password, fname, lname, contact, email } = req.body || {};
+    console.log('[Admin.createContributor] payload:', { username, fname, lname, contact, email: !!email });
+
+    if (!username || !password || !fname || !lname) {
+      console.log('[Admin.createContributor] ✗ missing required fields');
+      return res.status(400).json({ success: false, message: 'username, password, fname and lname are required' });
+    }
+
+    const exists = await Contributor.findOne({ username });
+    if (exists) {
+      console.log('[Admin.createContributor] ✗ username already exists:', username);
+      return res.status(409).json({ success: false, message: 'username already exists' });
+    }
+
+    const hash = await require('bcrypt').hash(password, 10);
+    const created = await Contributor.create({ username, passwordHash: hash, fname, lname, contact, email, createdBy: adminId });
+    console.log('[Admin.createContributor] ✓ created contributor - id:', created._id.toString(), 'username:', created.username);
+    return res.status(201).json({ success: true, data: { id: created._id, username: created.username, fname: created.fname, lname: created.lname } });
+  } catch (err) {
+    console.error('[Admin.createContributor] ✗ error:', err && err.message);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+const listContributors = async (req, res) => {
+  try {
+    const adminId = req.admin && req.admin.id;
+    console.log('[Admin.listContributors] called by admin:', req.admin && req.admin.username);
+    const query = adminId ? { createdBy: adminId } : {};
+    const list = await Contributor.find(query, { passwordHash: 0 }).lean();
+    console.log('[Admin.listContributors] ✓ found', list.length, 'contributors');
+    return res.json({ success: true, data: list });
+  } catch (err) {
+    console.error('[Admin.listContributors] ✗ error:', err && err.message);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+const getContributor = async (req, res) => {
+  try {
+    const adminId = req.admin && req.admin.id;
+    const id = req.params.id;
+    console.log('[Admin.getContributor] called by', req.admin && req.admin.username, 'target:', id);
+    const found = await Contributor.findOne({ _id: id, createdBy: adminId }, { passwordHash: 0 }).lean();
+    if (!found) {
+      console.log('[Admin.getContributor] ✗ not found or unauthorized:', id);
+      return res.status(404).json({ success: false, message: 'contributor not found' });
+    }
+    console.log('[Admin.getContributor] ✓ found contributor', found.username);
+    return res.json({ success: true, data: found });
+  } catch (err) {
+    console.error('[Admin.getContributor] ✗ error:', err && err.message);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+const updateContributor = async (req, res) => {
+  try {
+    const adminId = req.admin && req.admin.id;
+    const id = req.params.id;
+    console.log('[Admin.updateContributor] called by', req.admin && req.admin.username, 'target:', id);
+
+    const { username, fname, lname, contact, email, password } = req.body || {};
+    const update = {};
+    
+    // Check if username is being changed and if it already exists
+    if (username !== undefined) {
+      const existing = await Contributor.findOne({ username, _id: { $ne: id } });
+      if (existing) {
+        console.log('[Admin.updateContributor] ✗ username already exists:', username);
+        return res.status(409).json({ success: false, message: 'username already exists' });
+      }
+      update.username = username;
+    }
+    
+    if (fname !== undefined) update.fname = fname;
+    if (lname !== undefined) update.lname = lname;
+    if (contact !== undefined) update.contact = contact;
+    if (email !== undefined) update.email = email;
+    if (password) update.passwordHash = await require('bcrypt').hash(password, 10);
+
+    const updated = await Contributor.findOneAndUpdate({ _id: id, createdBy: adminId }, update, { new: true }).lean();
+    if (!updated) {
+      console.log('[Admin.updateContributor] ✗ not found or unauthorized:', id);
+      return res.status(404).json({ success: false, message: 'contributor not found' });
+    }
+    console.log('[Admin.updateContributor] ✓ updated contributor', updated.username);
+    updated.passwordHash = undefined;
+    return res.json({ success: true, data: updated });
+  } catch (err) {
+    console.error('[Admin.updateContributor] ✗ error:', err && err.message);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+const deleteContributor = async (req, res) => {
+  try {
+    const adminId = req.admin && req.admin.id;
+    const id = req.params.id;
+    console.log('[Admin.deleteContributor] called by', req.admin && req.admin.username, 'target:', id);
+    const del = await Contributor.findOneAndDelete({ _id: id, createdBy: adminId }).lean();
+    if (!del) {
+      console.log('[Admin.deleteContributor] ✗ not found or unauthorized:', id);
+      return res.status(404).json({ success: false, message: 'contributor not found' });
+    }
+    console.log('[Admin.deleteContributor] ✓ deleted contributor', del.username);
+    return res.json({ success: true, data: { id: del._id } });
+  } catch (err) {
+    console.error('[Admin.deleteContributor] ✗ error:', err && err.message);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+module.exports = { login, listInstitutions, createInstitution, updateInstitution, deleteInstitution, getInstitutions, getLogs, createAnnouncement, listAnnouncements, createContributor, listContributors, getContributor, updateContributor, deleteContributor };
+

@@ -15,14 +15,15 @@ const login = (req, res) => {
   }
 
   if (username === envUser && password === envPass) {
-    const secret = process.env.SUPERADMIN_JWT_SECRET;
+    const secret = process.env.SUPERADMIN_JWT_SECRET || process.env.ADMIN_JWT_SECRET;
     if (!secret) {
       console.error('[SuperAdmin.login] SUPERADMIN_JWT_SECRET not configured');
       return res.status(500).json({ success: false, message: 'server jwt secret not configured' });
     }
-    const token = jwt.sign({ role: 'SuperAdmin', username }, secret, { expiresIn: '4h' });
-    console.log('[SuperAdmin.login] superadmin authenticated, issuing token');
-    return res.json({ success: true, role: 'SuperAdmin', token });
+
+    const token = jwt.sign({ username, role: 'SuperAdmin' }, secret, { expiresIn: '7d' });
+    console.log('[SuperAdmin.login] superadmin authenticated - generated token');
+    return res.json({ success: true, role: 'SuperAdmin', token, username });
   }
 
   console.log('[SuperAdmin.login] invalid credentials');

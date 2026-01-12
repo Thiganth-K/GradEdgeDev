@@ -7,6 +7,7 @@ const Batch = require('../../models/Batch');
 const Test = require('../../models/Test');
 const Question = require('../../models/Question');
 const TestAttempt = require('../../models/TestAttempt');
+const Announcement = require('../../models/Announcement');
 
 // =====================
 // AUTH
@@ -30,15 +31,15 @@ const login = async (req, res) => {
       return res.status(401).json({ success: false, message: 'invalid credentials' });
     }
 
-    const secret = process.env.INSTITUTION_JWT_SECRET || process.env.ADMIN_JWT_SECRET || process.env.SUPERADMIN_JWT_SECRET;
+    const secret = process.env.INSTITUTION_JWT_SECRET || process.env.ADMIN_JWT_SECRET;
     if (!secret) {
-      console.error('[Institution.login] JWT secret not configured');
+      console.error('[Institution.login] INSTITUTION_JWT_SECRET not configured');
       return res.status(500).json({ success: false, message: 'server jwt secret not configured' });
     }
 
-    const token = jwt.sign({ role: 'institution', id: inst._id, institutionId: inst.institutionId, name: inst.name }, secret, { expiresIn: '4h' });
-    console.log('[Institution.login] authenticated', institutionId);
-    return res.json({ success: true, role: 'institution', token, data: { id: inst._id, institutionId: inst.institutionId, name: inst.name } });
+    const token = jwt.sign({ id: inst._id, institutionId: inst.institutionId, name: inst.name, role: 'institution' }, secret, { expiresIn: '7d' });
+    console.log('[Institution.login] authenticated', institutionId, '- generated token');
+    return res.json({ success: true, role: 'institution', token, data: { id: inst._id, institutionId: inst.institutionId, name: inst.name, facultyLimit: inst.facultyLimit ?? null, studentLimit: inst.studentLimit ?? null, batchLimit: inst.batchLimit ?? null, testLimit: inst.testLimit ?? null } });
   } catch (err) {
     console.error('[Institution.login] error', err);
     return res.status(500).json({ success: false, message: err.message });
@@ -67,14 +68,14 @@ const facultyLogin = async (req, res) => {
       return res.status(401).json({ success: false, message: 'invalid credentials' });
     }
     
-    const secret = process.env.INSTITUTION_JWT_SECRET || process.env.ADMIN_JWT_SECRET || process.env.SUPERADMIN_JWT_SECRET;
+    const secret = process.env.INSTITUTION_JWT_SECRET || process.env.ADMIN_JWT_SECRET;
     if (!secret) {
-      console.error('[Institution.facultyLogin] ✗ JWT secret not configured');
+      console.error('[Institution.facultyLogin] ✗ jwt secret not configured');
       return res.status(500).json({ success: false, message: 'server jwt secret not configured' });
     }
-    
-    const token = jwt.sign({ role: 'faculty', id: f._id, username: f.username, facultyRole: f.role }, secret, { expiresIn: '4h' });
-    console.log('[Institution.facultyLogin] ✓ authenticated faculty:', username, 'role:', f.role);
+
+    const token = jwt.sign({ id: f._id, username: f.username, role: 'faculty' }, secret, { expiresIn: '7d' });
+    console.log('[Institution.facultyLogin] ✓ authenticated faculty:', username, 'role:', f.role, '- generated token');
     return res.json({ success: true, role: 'faculty', token, data: { id: f._id, username: f.username, role: f.role } });
   } catch (err) {
     console.error('[Institution.facultyLogin] ✗ error:', err.message);
@@ -104,14 +105,14 @@ const studentLogin = async (req, res) => {
       return res.status(401).json({ success: false, message: 'invalid credentials' });
     }
     
-    const secret = process.env.INSTITUTION_JWT_SECRET || process.env.ADMIN_JWT_SECRET || process.env.SUPERADMIN_JWT_SECRET;
+    const secret = process.env.INSTITUTION_JWT_SECRET || process.env.ADMIN_JWT_SECRET;
     if (!secret) {
-      console.error('[Institution.studentLogin] ✗ JWT secret not configured');
+      console.error('[Institution.studentLogin] ✗ jwt secret not configured');
       return res.status(500).json({ success: false, message: 'server jwt secret not configured' });
     }
-    
-    const token = jwt.sign({ role: 'student', id: s._id, username: s.username }, secret, { expiresIn: '4h' });
-    console.log('[Institution.studentLogin] ✓ authenticated student:', username);
+
+    const token = jwt.sign({ id: s._id, username: s.username, role: 'student' }, secret, { expiresIn: '7d' });
+    console.log('[Institution.studentLogin] ✓ authenticated student:', username, '- generated token');
     return res.json({ success: true, role: 'student', token, data: { id: s._id, username: s.username, name: s.name } });
   } catch (err) {
     console.error('[Institution.studentLogin] ✗ error:', err.message);
@@ -155,6 +156,15 @@ const createFaculty = async (req, res) => {
     if (existing) {
       console.log('[Institution.createFaculty] ✗ username already taken:', username);
       return res.status(400).json({ success: false, message: 'username taken' });
+    }
+    // enforce faculty limit if configured
+    const instDoc = await Institution.findById(instId).select('facultyLimit');
+    if (instDoc && typeof instDoc.facultyLimit === 'number' && instDoc.facultyLimit >= 0) {
+      const current = await Faculty.countDocuments({ createdBy: instId });
+      if (current >= instDoc.facultyLimit) {
+        console.log('[Institution.createFaculty] ✗ faculty limit reached -', current, '/', instDoc.facultyLimit);
+        return res.status(403).json({ success: false, message: 'faculty create limit reached' });
+      }
     }
     
     const hash = await bcrypt.hash(password, 10);
@@ -253,6 +263,15 @@ const createStudent = async (req, res) => {
       console.log('[Institution.createStudent] ✗ username already taken:', username);
       return res.status(400).json({ success: false, message: 'username taken' });
     }
+    // enforce student limit if configured
+    const instDoc = await Institution.findById(instId).select('studentLimit');
+    if (instDoc && typeof instDoc.studentLimit === 'number' && instDoc.studentLimit >= 0) {
+      const current = await Student.countDocuments({ createdBy: instId });
+      if (current >= instDoc.studentLimit) {
+        console.log('[Institution.createStudent] ✗ student limit reached -', current, '/', instDoc.studentLimit);
+        return res.status(403).json({ success: false, message: 'student create limit reached' });
+      }
+    }
     
     const hash = await bcrypt.hash(password, 10);
     const s = await Student.create({ username, passwordHash: hash, name, email, dept, regno, createdBy: instId });
@@ -342,6 +361,15 @@ const createBatch = async (req, res) => {
     if (!name) {
       console.log('[Institution.createBatch] ✗ missing name');
       return res.status(400).json({ success: false, message: 'name required' });
+    }
+    // enforce batch limit if configured
+    const instDoc = await Institution.findById(instId).select('batchLimit');
+    if (instDoc && typeof instDoc.batchLimit === 'number' && instDoc.batchLimit >= 0) {
+      const current = await Batch.countDocuments({ createdBy: instId });
+      if (current >= instDoc.batchLimit) {
+        console.log('[Institution.createBatch] ✗ batch limit reached -', current, '/', instDoc.batchLimit);
+        return res.status(403).json({ success: false, message: 'batch create limit reached' });
+      }
     }
     
     const b = await Batch.create({ name, faculty: facultyId || null, students: Array.isArray(studentIds) ? studentIds : [], createdBy: instId });
@@ -581,6 +609,16 @@ const createTest = async (req, res) => {
     if (embeddedQuestions.length === 0) {
       console.log('[Institution.createTest] ✗ no questions provided');
       return res.status(400).json({ success: false, message: 'no questions provided' });
+    }
+    // enforce test limit if configured
+    const instId = req.institution?.id;
+    const instDoc = instId ? await Institution.findById(instId).select('testLimit') : null;
+    if (instDoc && typeof instDoc.testLimit === 'number' && instDoc.testLimit >= 0) {
+      const current = await Test.countDocuments({ createdBy: instId });
+      if (current >= instDoc.testLimit) {
+        console.log('[Institution.createTest] ✗ test limit reached -', current, '/', instDoc.testLimit);
+        return res.status(403).json({ success: false, message: 'test create limit reached' });
+      }
     }
     
     const t = await Test.create({
@@ -836,7 +874,12 @@ const submitTestAttempt = async (req, res) => {
       const sel = responses[i];
       const isCorrect = Number(sel) === Number(q.correctIndex);
       if (isCorrect) correctCount++;
-      respRecords.push({ qIdx: i, selected: sel, correct: isCorrect });
+      // Build response objects that match TestAttempt ResponseSchema
+      respRecords.push({
+        questionId: q.questionId || undefined,
+        selectedIndex: Number(sel),
+        correct: isCorrect,
+      });
     }
     const score = Math.round((correctCount / t.questions.length) * 100);
     
@@ -1008,6 +1051,193 @@ const welcome = (req, res) => {
   res.json({ success: true, message: `Welcome to the institution dashboard` });
 };
 
+// =====================
+// ANNOUNCEMENTS
+// =====================
+
+const listInstitutionAnnouncements = async (req, res) => {
+  try {
+    const instId = req.institution && req.institution.id;
+    const instName = req.institution && req.institution.name;
+    console.log('[Institution.listAnnouncements] called by institution:', instName);
+    
+    if (!instId) {
+      console.log('[Institution.listAnnouncements] ✗ unauthorized');
+      return res.status(401).json({ success: false, message: 'unauthorized' });
+    }
+    
+    const announcements = await Announcement.find({ targetInstitutions: instId })
+      .populate({ path: 'createdByRef', select: 'username name' })
+      .sort({ createdAt: -1 });
+    
+    // Add isRead flag for each announcement
+    const data = announcements.map((a) => {
+      const creator = a.createdByRef && (a.createdByRef.username || a.createdByRef.name || null);
+      return {
+        _id: a._id,
+        message: a.message,
+        createdBy: { role: a.createdByRole || null, id: a.createdByRef ? a.createdByRef._id : null, name: creator },
+        createdAt: a.createdAt,
+        isRead: Array.isArray(a.readBy) && a.readBy.some((id) => String(id) === String(instId)),
+      };
+    });
+    
+    console.log('[Institution.listAnnouncements] ✓ found', announcements.length, 'announcements');
+    return res.json({ success: true, data });
+  } catch (err) {
+    console.error('[Institution.listAnnouncements] ✗ error:', err.message);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+const markAnnouncementAsRead = async (req, res) => {
+  try {
+    const instId = req.institution && req.institution.id;
+    const instName = req.institution && req.institution.name;
+    const { id } = req.params;
+    console.log('[Institution.markAnnouncementAsRead] called by institution:', instName);
+    console.log('[Institution.markAnnouncementAsRead] announcement id:', id);
+    
+    if (!instId) {
+      console.log('[Institution.markAnnouncementAsRead] ✗ unauthorized');
+      return res.status(401).json({ success: false, message: 'unauthorized' });
+    }
+    
+    const announcement = await Announcement.findOne({ _id: id, targetInstitutions: instId });
+    if (!announcement) {
+      console.log('[Institution.markAnnouncementAsRead] ✗ announcement not found or not targeted:', id);
+      return res.status(404).json({ success: false, message: 'announcement not found' });
+    }
+    
+    // Add institution to readBy if not already present
+    if (!announcement.readBy.some((rid) => String(rid) === String(instId))) {
+      announcement.readBy.push(instId);
+      await announcement.save();
+      console.log('[Institution.markAnnouncementAsRead] ✓ marked as read - id:', id);
+    } else {
+      console.log('[Institution.markAnnouncementAsRead] already read - id:', id);
+    }
+    
+    return res.json({ success: true, message: 'marked as read' });
+  } catch (err) {
+    console.error('[Institution.markAnnouncementAsRead] ✗ error:', err.message);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+const createInstitutionAnnouncement = async (req, res) => {
+  try {
+    const instId = req.institution && req.institution.id;
+    const instName = req.institution && req.institution.name;
+    console.log('[Institution.createAnnouncement] called by institution:', instName);
+
+    if (!instId) return res.status(401).json({ success: false, message: 'unauthorized' });
+
+    const { message, targetFacultyIds, targetStudentIds, targetBatchIds, sendToAllFaculty, sendToAllStudents, sendToAllBatches } = req.body || {};
+    console.log('[Institution.createAnnouncement] payload: targets(faculty:', (targetFacultyIds||[]).length, ' students:', (targetStudentIds||[]).length, ' batches:', (targetBatchIds||[]).length, ')');
+
+    if (!message || !message.trim()) {
+      console.log('[Institution.createAnnouncement] ✗ empty message');
+      return res.status(400).json({ success: false, message: 'message required' });
+    }
+
+    // Resolve send-to-all flags into explicit ids
+    let facultyTargets = Array.isArray(targetFacultyIds) ? targetFacultyIds : [];
+    let studentTargets = Array.isArray(targetStudentIds) ? targetStudentIds : [];
+    let batchTargets = Array.isArray(targetBatchIds) ? targetBatchIds : [];
+
+    if (sendToAllFaculty) {
+      const faculty = await Faculty.find({ createdBy: instId }).select('_id');
+      facultyTargets = faculty.map((f) => f._id);
+    }
+    if (sendToAllStudents) {
+      const students = await Student.find({ createdBy: instId }).select('_id');
+      studentTargets = students.map((s) => s._id);
+    }
+    if (sendToAllBatches) {
+      const batches = await Batch.find({ createdBy: instId }).select('_id');
+      batchTargets = batches.map((b) => b._id);
+    }
+
+    // If no granular targets provided, treat as institution-wide announcement
+    const instTargets = [instId];
+
+    const announcement = await Announcement.create({
+      message: message.trim(),
+      createdByRef: instId,
+      createdByRole: 'institution',
+      targetInstitutions: instTargets,
+      targetFaculty: facultyTargets,
+      targetStudents: studentTargets,
+      targetBatches: batchTargets,
+      readBy: [],
+    });
+
+    console.log('[Institution.createAnnouncement] ✓ created announcement - id:', announcement._id.toString());
+    return res.status(201).json({ success: true, data: announcement });
+  } catch (err) {
+    console.error('[Institution.createAnnouncement] ✗ error:', err && err.message);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// announcements visible to a faculty member (institution-scoped)
+const listAnnouncementsForFaculty = async (req, res) => {
+  try {
+    const facultyId = req.faculty && req.faculty.id;
+    console.log('[Institution.listAnnouncementsForFaculty] called by faculty:', facultyId);
+    if (!facultyId) return res.status(401).json({ success: false, message: 'unauthorized' });
+
+    const facultyDoc = await Faculty.findById(facultyId).select('createdBy');
+    const instId = facultyDoc ? facultyDoc.createdBy : null;
+
+    // batches taught by faculty
+    const batches = await Batch.find({ faculty: facultyId }).select('_id');
+    const batchIds = batches.map((b) => b._id);
+
+    const anns = await Announcement.find({
+      $or: [
+        { targetInstitutions: instId },
+        { targetFaculty: facultyId },
+        { targetBatches: { $in: batchIds } },
+      ],
+    }).sort({ createdAt: -1 });
+
+    return res.json({ success: true, data: anns });
+  } catch (err) {
+    console.error('[Institution.listAnnouncementsForFaculty] ✗ error:', err && err.message);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// announcements visible to a student
+const listAnnouncementsForStudent = async (req, res) => {
+  try {
+    const studentId = req.student && req.student.id;
+    console.log('[Institution.listAnnouncementsForStudent] called by student:', studentId);
+    if (!studentId) return res.status(401).json({ success: false, message: 'unauthorized' });
+
+    const studentDoc = await Student.findById(studentId).select('createdBy');
+    const instId = studentDoc ? studentDoc.createdBy : null;
+
+    const batches = await Batch.find({ students: studentId }).select('_id');
+    const batchIds = batches.map((b) => b._id);
+
+    const anns = await Announcement.find({
+      $or: [
+        { targetInstitutions: instId },
+        { targetStudents: studentId },
+        { targetBatches: { $in: batchIds } },
+      ],
+    }).sort({ createdAt: -1 });
+
+    return res.json({ success: true, data: anns });
+  } catch (err) {
+    console.error('[Institution.listAnnouncementsForStudent] ✗ error:', err && err.message);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 module.exports = {
   // Auth & basic
   login,
@@ -1060,4 +1290,11 @@ module.exports = {
   // Faculty self-service
   listFacultyAnnouncements,
   listFacultyBatches,
+  
+  // Institution announcements
+  listInstitutionAnnouncements,
+  markAnnouncementAsRead,
+  createInstitutionAnnouncement,
+  listAnnouncementsForFaculty,
+  listAnnouncementsForStudent,
 };

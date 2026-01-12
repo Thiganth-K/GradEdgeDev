@@ -14,17 +14,17 @@ router.get('/institutions', SuperAdminControllers.getInstitutions);
 console.log('[SuperAdminRoutes] GET /logs - Get system logs');
 router.get('/logs', SuperAdminControllers.getLogs);
 
-// Admin management CRUD (protected)
+// Admin management CRUD (no auth)
 console.log('[SuperAdminRoutes] GET /admins - List all admins (superadmin)');
-router.get('/admins', verifySuperAdmin, SuperAdminControllers.listAdmins);
+router.get('/admins', SuperAdminControllers.listAdmins);
 
 console.log('[SuperAdminRoutes] POST /admins - Create admin (superadmin)');
-router.post('/admins', verifySuperAdmin, SuperAdminControllers.createAdmin);
+router.post('/admins', SuperAdminControllers.createAdmin);
 
 console.log('[SuperAdminRoutes] PUT /admins/:id - Update admin (superadmin)');
-router.put('/admins/:id', verifySuperAdmin, SuperAdminControllers.updateAdmin);
+router.put('/admins/:id', SuperAdminControllers.updateAdmin);
 
 console.log('[SuperAdminRoutes] DELETE /admins/:id - Delete admin (superadmin)');
-router.delete('/admins/:id', verifySuperAdmin, SuperAdminControllers.deleteAdmin);
+router.delete('/admins/:id', SuperAdminControllers.deleteAdmin);
 
 module.exports = router;
