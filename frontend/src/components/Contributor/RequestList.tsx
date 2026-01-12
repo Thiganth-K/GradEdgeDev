@@ -10,6 +10,7 @@ interface Request {
   }>;
   status: 'pending' | 'in-progress' | 'completed' | 'rejected';
   notes?: string;
+  rejectionReason?: string;
   submittedAt: string;
   updatedAt: string;
 }
@@ -88,6 +89,11 @@ const RequestList: React.FC<RequestListProps> = ({ requests, onSelectRequest }) 
           {request.notes && (
             <div className="mt-3 text-sm text-gray-600 italic">
               "{request.notes}"
+            </div>
+          )}
+          {request.status === 'rejected' && (request.rejectionReason) && (
+            <div className="mt-3 text-sm text-red-700 font-semibold">
+              Rejection reason: {request.rejectionReason}
             </div>
           )}
         </div>

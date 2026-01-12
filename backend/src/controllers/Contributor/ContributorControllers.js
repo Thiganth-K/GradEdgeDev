@@ -91,14 +91,18 @@ const createRequest = async (req, res) => {
     }
 
     // Validate drafted questions if provided
+    const topics = Array.isArray(questionRequests) ? questionRequests.map(qr => qr.topic) : [];
     if (Array.isArray(draftedQuestions) && draftedQuestions.length > 0) {
       for (const q of draftedQuestions) {
-        if (!q.text || !q.options || q.options.length < 2 || q.correctIndex === undefined || !q.category || !q.difficulty) {
+          if (!q.text || !q.options || q.options.length < 2 || q.correctIndex === undefined || !q.topic || !q.difficulty) {
           return res.status(400).json({ 
             success: false, 
             message: 'Each drafted question must have text, at least 2 options, correctIndex, category, and difficulty' 
           });
         }
+          if (!topics.includes(q.topic)) {
+            return res.status(400).json({ success: false, message: `Drafted question topic '${q.topic}' does not match any request topic` });
+          }
       }
     }
 
@@ -106,7 +110,7 @@ const createRequest = async (req, res) => {
       contributorId: contributor.id,
       contributorName: contributor.username,
       questionRequests,
-      draftedQuestions: draftedQuestions || [],
+        draftedQuestions: draftedQuestions || [],
       notes
     });
 

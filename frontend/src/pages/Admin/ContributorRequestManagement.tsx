@@ -431,7 +431,7 @@ const ContributorRequestManagement: React.FC = () => {
                   <textarea
                     value={updateNotes}
                     onChange={(e) => setUpdateNotes(e.target.value)}
-                    placeholder="Add notes about this status change..."
+                    placeholder="Add notes about this status change (use this to provide a rejection reason when rejecting)..."
                     rows={3}
                     className="w-full px-3 py-2 border-2 border-gray-300 rounded-md focus:outline-none focus:border-red-600"
                   />

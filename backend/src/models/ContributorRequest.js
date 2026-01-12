@@ -20,11 +20,8 @@ const DraftedQuestionSchema = new mongoose.Schema({
     text: { type: String, required: true }
   }],
   correctIndex: { type: Number, required: true },
-  category: { 
-    type: String, 
-    enum: ['aptitude', 'technical', 'psychometric'], 
-    required: true 
-  },
+  // Each drafted question is linked to a request topic; category comes from the parent questionRequest
+  topic: { type: String, required: true },
   difficulty: { 
     type: String, 
     enum: ['easy', 'medium', 'hard'], 
@@ -53,6 +50,7 @@ const ContributorRequestSchema = new mongoose.Schema({
     type: [DraftedQuestionSchema],
     default: []
   },
+  rejectionReason: { type: String },
   status: { 
     type: String, 
     enum: ['pending', 'in-progress', 'completed', 'rejected'], 

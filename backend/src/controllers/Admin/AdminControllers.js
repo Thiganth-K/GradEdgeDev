@@ -454,7 +454,15 @@ const updateContributorRequestStatus = async (req, res) => {
     const previousStatus = request.status;
     request.status = status;
     if (notes !== undefined) {
+      // Save general notes; if rejecting, treat this as a rejection reason
       request.notes = notes;
+    }
+    // Handle rejection reason separately for clarity
+    if (status === 'rejected') {
+      request.rejectionReason = notes || '';
+    } else if (request.rejectionReason) {
+      // Clear previous rejection reason if status moved away from rejected
+      request.rejectionReason = undefined;
     }
     request.reviewedBy = adminId;
     request.reviewedAt = new Date();
@@ -464,18 +472,23 @@ const updateContributorRequestStatus = async (req, res) => {
     // If status changed to 'completed', save drafted questions to Question collection
     if (status === 'completed' && previousStatus !== 'completed' && request.draftedQuestions && request.draftedQuestions.length > 0) {
       console.log('[Admin.updateContributorRequestStatus] saving', request.draftedQuestions.length, 'drafted questions to database');
-      
-      const questionsToSave = request.draftedQuestions.map(dq => ({
-        text: dq.text,
-        options: dq.options,
-        correctIndex: dq.correctIndex,
-        category: dq.category,
-        difficulty: dq.difficulty,
-        tags: dq.tags || [],
-        details: dq.details,
-        createdByContributor: request.contributorId,
-        createdAt: new Date()
-      }));
+      // Map each drafted question to include category from the parent questionRequest (matched by topic)
+      const questionsToSave = request.draftedQuestions.map(dq => {
+        // find matching questionRequest by topic
+        const match = Array.isArray(request.questionRequests) ? request.questionRequests.find(qr => qr.topic === dq.topic) : null;
+        const category = match ? match.category : (request.questionRequests && request.questionRequests[0] ? request.questionRequests[0].category : 'aptitude');
+        return {
+          text: dq.text,
+          options: dq.options,
+          correctIndex: dq.correctIndex,
+          category,
+          difficulty: dq.difficulty,
+          tags: dq.tags || [],
+          details: dq.details,
+          createdByContributor: request.contributorId,
+          createdAt: new Date()
+        };
+      });
 
       try {
         const savedQuestions = await Question.insertMany(questionsToSave);

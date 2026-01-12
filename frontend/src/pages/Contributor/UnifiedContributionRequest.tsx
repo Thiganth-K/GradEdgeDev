@@ -14,7 +14,7 @@ interface DraftedQuestion {
   text: string;
   options: string[];
   correctIndex: number;
-  category: 'aptitude' | 'technical' | 'psychometric';
+  topic: string;
   difficulty: 'easy' | 'medium' | 'hard';
   tags: string;
   details: string;
@@ -38,7 +38,7 @@ const UnifiedContributionRequest: React.FC = () => {
     text: '',
     options: ['', '', '', ''],
     correctIndex: 0,
-    category: 'aptitude',
+    topic: '',
     difficulty: 'medium',
     tags: '',
     details: ''
@@ -98,6 +98,10 @@ const UnifiedContributionRequest: React.FC = () => {
       setError('Question text is required');
       return;
     }
+    if (!newQuestion.topic || !newQuestion.topic.trim()) {
+      setError('Please select a topic for the question');
+      return;
+    }
     if (filteredOptions.length < 2) {
       setError('At least 2 options are required');
       return;
@@ -118,7 +122,7 @@ const UnifiedContributionRequest: React.FC = () => {
       text: '',
       options: ['', '', '', ''],
       correctIndex: 0,
-      category: 'aptitude',
+      topic: '',
       difficulty: 'medium',
       tags: '',
       details: ''
@@ -144,11 +148,7 @@ const UnifiedContributionRequest: React.FC = () => {
         setLoading(false);
         return;
       }
-      if (req.count < 1) {
-        setError('Question count must be at least 1');
-        setLoading(false);
-        return;
-      }
+      // count is computed automatically from drafted questions
     }
 
     try {
@@ -159,7 +159,7 @@ const UnifiedContributionRequest: React.FC = () => {
           text: q.text,
           options: q.options.map(o => ({ text: o })),
           correctIndex: q.correctIndex,
-          category: q.category,
+          topic: q.topic,
           difficulty: q.difficulty,
           tags: q.tags ? q.tags.split(',').map(t => t.trim()).filter(Boolean) : [],
           details: q.details || undefined
@@ -286,14 +286,15 @@ const UnifiedContributionRequest: React.FC = () => {
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-black mb-1">Count *</label>
+                        <label className="block text-sm font-medium text-black mb-1">Count</label>
                         <input
                           type="number"
-                          min="1"
-                          value={request.count}
-                          onChange={(e) => updateQuestionRequest(index, 'count', parseInt(e.target.value) || 1)}
-                          className="w-full px-3 py-2 border-2 border-gray-300 rounded-md focus:outline-none focus:border-red-600"
+                          min="0"
+                          value={draftedQuestions.filter(dq => dq.topic === request.topic).length}
+                          readOnly
+                          className="w-full px-3 py-2 border-2 border-gray-300 rounded-md bg-gray-50 cursor-not-allowed"
                         />
+                        <div className="text-xs text-gray-500 mt-1">Automatically updated from drafted questions</div>
                       </div>
                     </div>
                   </div>
@@ -358,15 +359,16 @@ const UnifiedContributionRequest: React.FC = () => {
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-black mb-1">Category *</label>
+                      <label className="block text-sm font-medium text-black mb-1">Topic *</label>
                       <select
-                        value={newQuestion.category}
-                        onChange={(e) => setNewQuestion({ ...newQuestion, category: e.target.value as any })}
+                        value={newQuestion.topic}
+                        onChange={(e) => setNewQuestion({ ...newQuestion, topic: e.target.value })}
                         className="w-full px-3 py-2 border-2 border-gray-300 rounded-md focus:outline-none focus:border-red-600 bg-white"
                       >
-                        <option value="aptitude">Aptitude</option>
-                        <option value="technical">Technical</option>
-                        <option value="psychometric">Psychometric</option>
+                        <option value="">-- select topic --</option>
+                        {questionRequests.map((qr, i) => (
+                          <option key={i} value={qr.topic}>{qr.topic || `Set ${i+1}`}</option>
+                        ))}
                       </select>
                     </div>
 
@@ -482,9 +484,15 @@ const UnifiedContributionRequest: React.FC = () => {
                       <div className="flex justify-between items-start mb-3">
                         <div className="flex items-center space-x-2">
                           <span className="font-semibold text-black">Q{index + 1}</span>
-                          <span className={`px-2 py-1 rounded text-xs font-semibold ${getCategoryColor(question.category)}`}>
-                            {question.category.toUpperCase()}
-                          </span>
+                          {(() => {
+                            const qr = questionRequests.find(r => r.topic === question.topic);
+                            if (qr) return (
+                              <span className={`px-2 py-1 rounded text-xs font-semibold ${getCategoryColor(qr.category)}`}>
+                                {qr.category.toUpperCase()}
+                              </span>
+                            );
+                            return null;
+                          })()}
                           <span className={`px-2 py-1 rounded text-xs font-semibold ${getDifficultyColor(question.difficulty)}`}>
                             {question.difficulty.toUpperCase()}
                           </span>

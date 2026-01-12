@@ -154,6 +154,18 @@ const ContributorDashboard: React.FC = () => {
               >
                 + New Request
               </button>
+              <button
+                onClick={() => {
+                  // Clear all contributor tokens and redirect to login
+                  localStorage.removeItem('contributor_token');
+                  localStorage.removeItem('contributor_data');
+                  localStorage.removeItem('gradedge_role');
+                  navigate('/login');
+                }}
+                className="px-6 py-3 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 font-semibold"
+              >
+                Logout
+              </button>
             </div>
           </div>
         </div>
@@ -282,6 +294,15 @@ const ContributorDashboard: React.FC = () => {
                   <h3 className="font-semibold text-lg mb-2">Notes:</h3>
                   <p className="text-gray-700 bg-gray-50 border border-gray-300 rounded-lg p-3">
                     {selectedRequest.notes}
+                  </p>
+                </div>
+              )}
+
+              {selectedRequest.status === 'rejected' && selectedRequest.rejectionReason && (
+                <div>
+                  <h3 className="font-semibold text-lg mb-2 text-red-700">Rejection Reason:</h3>
+                  <p className="text-red-800 bg-red-50 border border-red-200 rounded-lg p-3">
+                    {selectedRequest.rejectionReason}
                   </p>
                 </div>
               )}

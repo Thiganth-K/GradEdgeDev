@@ -28,7 +28,7 @@ dist-ssr
 /backend-node/.env
 /frontend/.env
 /frontend/.env.local
-/frontend/.env.development.local
-/frontend/.env.production.local
+/frontend/.env.development
+/frontend/.env.production
 .env
 .env.local
