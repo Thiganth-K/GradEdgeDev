@@ -33,7 +33,6 @@
 - The faculty to have a neat dashboard -> *Najila*
 - The faculty to have a sidde panel to have the list of teh components - *Neha*
 - the side bar to have the components [ notiications, announcements, assigned tests, my batches, chat with the ionstitution admin] -> *Neha*
-
 - the faculty can able to access the library to to create a test by faculty for the assigned students for that faculty need to maintain a separate datamodel - *Aathi*
 - to see the student analysis of the faculty student - *Neha*
 

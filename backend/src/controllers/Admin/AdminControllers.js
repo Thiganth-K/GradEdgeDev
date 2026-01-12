@@ -4,6 +4,9 @@ const Admin = require('../../models/Admin');
 const Institution = require('../../models/Institution');
 const Announcement = require('../../models/Announcement');
 const Contributor = require('../../models/Contributor');
+const ContributorRequest = require('../../models/ContributorRequest');
+const AdminContributorChat = require('../../models/AdminContributorChat');
+const Question = require('../../models/Question');
 
 const login = async (req, res) => {
   const { username, password } = req.body || {};
@@ -386,5 +389,286 @@ const deleteContributor = async (req, res) => {
   }
 };
 
-module.exports = { login, listInstitutions, createInstitution, updateInstitution, deleteInstitution, getInstitutions, getLogs, createAnnouncement, listAnnouncements, createContributor, listContributors, getContributor, updateContributor, deleteContributor };
+// Get all contributor requests
+const listContributorRequests = async (req, res) => {
+  try {
+    const adminUser = req.admin && req.admin.username;
+    console.log('[Admin.listContributorRequests] called by', adminUser);
+
+    const requests = await ContributorRequest.find({})
+      .sort({ submittedAt: -1 })
+      .lean();
+
+    console.log('[Admin.listContributorRequests] ✓ found', requests.length, 'requests');
+    return res.json({ success: true, data: requests });
+  } catch (err) {
+    console.error('[Admin.listContributorRequests] ✗ error:', err.message);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// Get a specific contributor request
+const getContributorRequest = async (req, res) => {
+  try {
+    const adminUser = req.admin && req.admin.username;
+    const { id } = req.params;
+    console.log('[Admin.getContributorRequest] called by', adminUser, 'for request', id);
+
+    const request = await ContributorRequest.findById(id).lean();
+
+    if (!request) {
+      return res.status(404).json({ success: false, message: 'Request not found' });
+    }
+
+    console.log('[Admin.getContributorRequest] ✓ found request');
+    return res.json({ success: true, data: request });
+  } catch (err) {
+    console.error('[Admin.getContributorRequest] ✗ error:', err.message);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// Update contributor request status
+const updateContributorRequestStatus = async (req, res) => {
+  try {
+    const adminUser = req.admin && req.admin.username;
+    const adminId = req.admin && req.admin.id;
+    const { id } = req.params;
+    const { status, notes } = req.body;
+
+    console.log('[Admin.updateContributorRequestStatus] called by', adminUser, 'for request', id);
+
+    if (!status || !['pending', 'in-progress', 'completed', 'rejected'].includes(status)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid status. Must be pending, in-progress, completed, or rejected' 
+      });
+    }
+
+    const request = await ContributorRequest.findById(id);
+
+    if (!request) {
+      return res.status(404).json({ success: false, message: 'Request not found' });
+    }
+
+    const previousStatus = request.status;
+    request.status = status;
+    if (notes !== undefined) {
+      request.notes = notes;
+    }
+    request.reviewedBy = adminId;
+    request.reviewedAt = new Date();
+
+    await request.save();
+
+    // If status changed to 'completed', save drafted questions to Question collection
+    if (status === 'completed' && previousStatus !== 'completed' && request.draftedQuestions && request.draftedQuestions.length > 0) {
+      console.log('[Admin.updateContributorRequestStatus] saving', request.draftedQuestions.length, 'drafted questions to database');
+      
+      const questionsToSave = request.draftedQuestions.map(dq => ({
+        text: dq.text,
+        options: dq.options,
+        correctIndex: dq.correctIndex,
+        category: dq.category,
+        difficulty: dq.difficulty,
+        tags: dq.tags || [],
+        details: dq.details,
+        createdByContributor: request.contributorId,
+        createdAt: new Date()
+      }));
+
+      try {
+        const savedQuestions = await Question.insertMany(questionsToSave);
+        console.log('[Admin.updateContributorRequestStatus] ✓ saved', savedQuestions.length, 'questions to database');
+      } catch (qErr) {
+        console.error('[Admin.updateContributorRequestStatus] ✗ error saving questions:', qErr.message);
+        // Continue with request update even if question save fails
+      }
+    }
+
+    console.log('[Admin.updateContributorRequestStatus] ✓ updated request to', status);
+    return res.json({ success: true, data: request });
+  } catch (err) {
+    console.error('[Admin.updateContributorRequestStatus] ✗ error:', err.message);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// Get all admin-contributor chats
+const listContributorChats = async (req, res) => {
+  try {
+    const adminUser = req.admin && req.admin.username;
+    console.log('[Admin.listContributorChats] called by', adminUser);
+
+    const chats = await AdminContributorChat.find({})
+      .sort({ lastMessageAt: -1 })
+      .lean();
+
+    console.log('[Admin.listContributorChats] ✓ found', chats.length, 'chats');
+    return res.json({ success: true, data: chats });
+  } catch (err) {
+    console.error('[Admin.listContributorChats] ✗ error:', err.message);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// Get a specific contributor chat
+const getContributorChat = async (req, res) => {
+  try {
+    const adminUser = req.admin && req.admin.username;
+    const { contributorId } = req.params;
+    console.log('[Admin.getContributorChat] called by', adminUser, 'for contributor', contributorId);
+
+    const chat = await AdminContributorChat.findOne({ contributorId }).lean();
+
+    if (!chat) {
+      return res.status(404).json({ success: false, message: 'Chat not found' });
+    }
+
+    console.log('[Admin.getContributorChat] ✓ found chat');
+    return res.json({ success: true, data: chat });
+  } catch (err) {
+    console.error('[Admin.getContributorChat] ✗ error:', err.message);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// Send message to contributor
+const sendMessageToContributor = async (req, res) => {
+  try {
+    const adminUser = req.admin && req.admin.username;
+    const adminId = req.admin && req.admin.id;
+    const { contributorId } = req.params;
+    const { message } = req.body;
+
+    console.log('[Admin.sendMessageToContributor] called by', adminUser, 'to contributor', contributorId);
+
+    if (!message || message.trim() === '') {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Message cannot be empty' 
+      });
+    }
+
+    let chat = await AdminContributorChat.findOne({ contributorId });
+
+    if (!chat) {
+      const contributor = await Contributor.findById(contributorId);
+      if (!contributor) {
+        return res.status(404).json({ success: false, message: 'Contributor not found' });
+      }
+
+      chat = new AdminContributorChat({
+        contributorId: contributorId,
+        contributorName: contributor.username,
+        adminId: adminId,
+        adminName: adminUser,
+        messages: []
+      });
+    }
+
+    if (!chat.adminId) {
+      chat.adminId = adminId;
+      chat.adminName = adminUser;
+    }
+
+    chat.messages.push({
+      senderRole: 'admin',
+      senderId: adminId,
+      senderModel: 'Admin',
+      senderName: adminUser,
+      message: message.trim(),
+      timestamp: new Date(),
+      read: false
+    });
+
+    chat.unreadCountContributor += 1;
+    chat.lastMessageAt = new Date();
+
+    await chat.save();
+
+    console.log('[Admin.sendMessageToContributor] ✓ message sent');
+    return res.json({ success: true, data: chat });
+  } catch (err) {
+    console.error('[Admin.sendMessageToContributor] ✗ error:', err.message);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// Mark messages as read by admin
+const markContributorMessagesAsRead = async (req, res) => {
+  try {
+    const adminUser = req.admin && req.admin.username;
+    const { contributorId } = req.params;
+    console.log('[Admin.markContributorMessagesAsRead] called by', adminUser, 'for contributor', contributorId);
+
+    const chat = await AdminContributorChat.findOne({ contributorId });
+
+    if (!chat) {
+      return res.status(404).json({ success: false, message: 'Chat not found' });
+    }
+
+    // Mark all contributor messages as read
+    let updated = false;
+    chat.messages.forEach(msg => {
+      if (msg.senderRole === 'contributor' && !msg.read) {
+        msg.read = true;
+        updated = true;
+      }
+    });
+
+    if (updated) {
+      chat.unreadCountAdmin = 0;
+      await chat.save();
+    }
+
+    console.log('[Admin.markContributorMessagesAsRead] ✓ messages marked as read');
+    return res.json({ success: true, data: chat });
+  } catch (err) {
+    console.error('[Admin.markContributorMessagesAsRead] ✗ error:', err.message);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// Get total unread messages count across all chats
+const getUnreadMessagesCount = async (req, res) => {
+  try {
+    const adminUser = req.admin && req.admin.username;
+    console.log('[Admin.getUnreadMessagesCount] called by', adminUser);
+
+    const chats = await AdminContributorChat.find({});
+    const totalUnread = chats.reduce((sum, chat) => sum + (chat.unreadCountAdmin || 0), 0);
+
+    console.log('[Admin.getUnreadMessagesCount] ✓ total unread:', totalUnread);
+    return res.json({ success: true, data: { unreadCount: totalUnread } });
+  } catch (err) {
+    console.error('[Admin.getUnreadMessagesCount] ✗ error:', err.message);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+module.exports = { 
+  login, 
+  listInstitutions, 
+  createInstitution, 
+  updateInstitution, 
+  deleteInstitution, 
+  getInstitutions, 
+  getLogs, 
+  createAnnouncement, 
+  listAnnouncements, 
+  createContributor, 
+  listContributors, 
+  getContributor, 
+  updateContributor, 
+  deleteContributor,
+  listContributorRequests,
+  getContributorRequest,
+  updateContributorRequestStatus,
+  listContributorChats,
+  getContributorChat,
+  sendMessageToContributor,
+  markContributorMessagesAsRead,
+  getUnreadMessagesCount
+};
 
