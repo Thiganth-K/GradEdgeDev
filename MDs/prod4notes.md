@@ -1,0 +1,3 @@
+- Safe Browser need to be integrated 
+- ui need to be alligned 
+- AWS hosting
