@@ -26,6 +26,10 @@ import StudentDashboard from './pages/Student/Dashboard'
 import StudentTest from './pages/Student/Test'
 import StudentAnnouncements from './pages/Student/Announcements'
 import ContributorDashboard from './pages/Contributor/Dashboard'
+import UnifiedContributionRequest from './pages/Contributor/UnifiedContributionRequest'
+import ContributorChat from './pages/Contributor/Chat'
+import AdminContributorRequestManagement from './pages/Admin/ContributorRequestManagement'
+import AdminContributorChatManagement from './pages/Admin/ContributorChatManagement'
 import './App.css'
 
 const App: React.FC = () => {
@@ -69,6 +73,10 @@ const App: React.FC = () => {
         <Route path="/student/test/:id" element={<StudentTest />} />
         <Route path="/student/announcements" element={<StudentAnnouncements />} />
         <Route path="/contributor/dashboard" element={<ContributorDashboard />} />
+        <Route path="/contributor/create-request" element={<UnifiedContributionRequest />} />
+        <Route path="/contributor/chat" element={<ContributorChat />} />
+        <Route path="/admin/contributor-requests" element={<AdminContributorRequestManagement />} />
+        <Route path="/admin/contributor-chats" element={<AdminContributorChatManagement />} />
         <Route path="*" element={<div className="p-8">Page not found</div>} />
       </Routes>
     </div>

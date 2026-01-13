@@ -22,4 +22,13 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Environment variables
 /backend/.env
+/backend-node/.env
+/frontend/.env
+/frontend/.env.local
+/frontend/.env.development
+/frontend/.env.production
+.env
+.env.local

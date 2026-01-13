@@ -65,4 +65,30 @@ router.post('/announcements', verifyAdmin, AdminControllers.createAnnouncement);
 console.log('[AdminRoutes] GET /announcements - List announcements (admin)');
 router.get('/announcements', verifyAdmin, AdminControllers.listAnnouncements);
 
+// Contributor Request Management
+console.log('[AdminRoutes] GET /contributor-requests - List all contributor requests (admin)');
+router.get('/contributor-requests', verifyAdmin, AdminControllers.listContributorRequests);
+
+console.log('[AdminRoutes] GET /contributor-requests/:id - Get contributor request by ID (admin)');
+router.get('/contributor-requests/:id', verifyAdmin, AdminControllers.getContributorRequest);
+
+console.log('[AdminRoutes] PUT /contributor-requests/:id/status - Update request status (admin)');
+router.put('/contributor-requests/:id/status', verifyAdmin, AdminControllers.updateContributorRequestStatus);
+
+// Admin-Contributor Chat
+console.log('[AdminRoutes] GET /contributor-chats - List all contributor chats (admin)');
+router.get('/contributor-chats', verifyAdmin, AdminControllers.listContributorChats);
+
+console.log('[AdminRoutes] GET /contributor-chats/:contributorId - Get chat with contributor (admin)');
+router.get('/contributor-chats/:contributorId', verifyAdmin, AdminControllers.getContributorChat);
+
+console.log('[AdminRoutes] POST /contributor-chats/:contributorId/message - Send message to contributor (admin)');
+router.post('/contributor-chats/:contributorId/message', verifyAdmin, AdminControllers.sendMessageToContributor);
+
+console.log('[AdminRoutes] POST /contributor-chats/:contributorId/read - Mark messages as read (admin)');
+router.post('/contributor-chats/:contributorId/read', verifyAdmin, AdminControllers.markContributorMessagesAsRead);
+
+console.log('[AdminRoutes] GET /contributor-chats/unread/count - Get unread messages count (admin)');
+router.get('/contributor-chats/unread/count', verifyAdmin, AdminControllers.getUnreadMessagesCount);
+
 module.exports = router;
