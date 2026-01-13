@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { makeHeaders } from '../../lib/makeHeaders';
-
-const BASE = import.meta.env.VITE_API_URL || '';
+import { apiFetch } from '../../lib/api';
 
 interface Message {
   _id: string;
@@ -33,7 +32,7 @@ const ContributorChat: React.FC = () => {
 
   const loadChat = async () => {
     try {
-      const response = await fetch(`${BASE}/contributor/chat`, {
+      const response = await apiFetch('/contributor/chat', {
         headers: makeHeaders('contributor_token')
       });
 
@@ -79,7 +78,7 @@ const ContributorChat: React.FC = () => {
 
   const markAsRead = async () => {
     try {
-      await fetch(`${BASE}/contributor/chat/read`, {
+      await apiFetch('/contributor/chat/read', {
         method: 'POST',
         headers: makeHeaders('contributor_token')
       });
@@ -106,7 +105,7 @@ const ContributorChat: React.FC = () => {
     setError('');
 
     try {
-      const response = await fetch(`${BASE}/contributor/chat/message`, {
+      const response = await apiFetch('/contributor/chat/message', {
         method: 'POST',
         headers: makeHeaders('contributor_token', 'application/json'),
         body: JSON.stringify({ message: message.trim() })

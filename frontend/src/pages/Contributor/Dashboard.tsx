@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { makeHeaders } from '../../lib/makeHeaders';
-const BASE = import.meta.env.VITE_API_URL || '';
+import { apiFetch } from '../../lib/api';
 import RequestList from '../../components/Contributor/RequestList';
 import ContributionsList from '../../components/Contributor/ContributionsList';
 
@@ -17,6 +17,7 @@ interface Request {
   questionRequests: QuestionRequest[];
   status: 'pending' | 'in-progress' | 'completed' | 'rejected';
   notes?: string;
+  rejectionReason?: string;
   submittedAt: string;
   updatedAt: string;
 }
@@ -46,7 +47,7 @@ const ContributorDashboard: React.FC = () => {
   // Fetch requests
   const fetchRequests = async () => {
     try {
-      const response = await fetch(`${BASE}/contributor/requests`, {
+      const response = await apiFetch('/contributor/requests', {
         headers: makeHeaders('contributor_token')
       });
 
@@ -66,7 +67,7 @@ const ContributorDashboard: React.FC = () => {
   // Fetch contributions
   const fetchContributions = async () => {
     try {
-      const response = await fetch(`${BASE}/contributor/contributions`, {
+      const response = await apiFetch('/contributor/contributions', {
         headers: makeHeaders('contributor_token')
       });
 
@@ -86,7 +87,7 @@ const ContributorDashboard: React.FC = () => {
   // Fetch unread count
   const fetchUnreadCount = async () => {
     try {
-      const response = await fetch(`${BASE}/contributor/chat/unread`, {
+      const response = await apiFetch('/contributor/chat/unread', {
         headers: makeHeaders('contributor_token')
       });
 

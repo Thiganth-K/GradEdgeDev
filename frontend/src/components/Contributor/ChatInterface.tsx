@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { makeHeaders } from '../../lib/makeHeaders';
-const BASE = import.meta.env.VITE_API_URL || '';
+import { apiFetch } from '../../lib/api';
 
 interface Message {
   senderRole: 'admin' | 'contributor';
@@ -38,7 +38,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onClose }) => {
 
   const fetchChat = async () => {
     try {
-      const response = await fetch(`${BASE}/contributor/chat`, {
+      const response = await apiFetch('/contributor/chat', {
         headers: makeHeaders('contributor_token')
       });
 
@@ -52,7 +52,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onClose }) => {
         
         // Mark messages as read
         if (data.data.unreadCountContributor > 0) {
-          await fetch(`${BASE}/contributor/chat/read`, {
+          await apiFetch('/contributor/chat/read', {
             method: 'POST',
             headers: makeHeaders('contributor_token')
           });
@@ -70,7 +70,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onClose }) => {
     setError('');
 
     try {
-      const response = await fetch(`${BASE}/contributor/chat/message`, {
+      const response = await apiFetch('/contributor/chat/message', {
         method: 'POST',
         headers: makeHeaders('contributor_token'),
         body: JSON.stringify({ message })

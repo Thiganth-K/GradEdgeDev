@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { makeHeaders } from '../../lib/makeHeaders';
-
-const BASE = import.meta.env.VITE_API_URL || '';
+import { apiFetch } from '../../lib/api';
 
 interface QuestionRequest {
   topic: string;
@@ -166,7 +165,7 @@ const UnifiedContributionRequest: React.FC = () => {
         }))
       };
 
-      const response = await fetch(`${BASE}/contributor/requests`, {
+      const response = await apiFetch('/contributor/requests', {
         method: 'POST',
         headers: makeHeaders('contributor_token', 'application/json'),
         body: JSON.stringify(payload)

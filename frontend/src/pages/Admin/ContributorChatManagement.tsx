@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { makeHeaders } from '../../lib/makeHeaders';
-const BASE = import.meta.env.VITE_API_URL || '';
+import { apiFetch } from '../../lib/api';
 
 interface Message {
   senderRole: 'admin' | 'contributor';
@@ -37,7 +37,7 @@ const ContributorChatManagement: React.FC = () => {
 
   const fetchChats = async () => {
     try {
-      const response = await fetch(`${BASE}/admin/contributor-chats`, {
+      const response = await apiFetch('/admin/contributor-chats', {
         headers: makeHeaders('admin_token')
       });
 
@@ -56,7 +56,7 @@ const ContributorChatManagement: React.FC = () => {
 
   const fetchChatDetails = async (contributorId: string) => {
     try {
-      const response = await fetch(`${BASE}/admin/contributor-chats/${contributorId}`, {
+      const response = await apiFetch(`/admin/contributor-chats/${contributorId}`, {
         headers: makeHeaders('admin_token')
       });
 
@@ -70,7 +70,7 @@ const ContributorChatManagement: React.FC = () => {
 
         // Mark messages as read
         if (data.data.unreadCountAdmin > 0) {
-          await fetch(`${BASE}/admin/contributor-chats/${contributorId}/read`, {
+          await apiFetch(`/admin/contributor-chats/${contributorId}/read`, {
             method: 'POST',
             headers: makeHeaders('admin_token')
           });
@@ -89,7 +89,7 @@ const ContributorChatManagement: React.FC = () => {
     setError('');
 
     try {
-      const response = await fetch(`${BASE}/admin/contributor-chats/${selectedChat.contributorId}/message`, {
+      const response = await apiFetch(`/admin/contributor-chats/${selectedChat.contributorId}/message`, {
         method: 'POST',
         headers: makeHeaders('admin_token', 'application/json'),
         body: JSON.stringify({ message })

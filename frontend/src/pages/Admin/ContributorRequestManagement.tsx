@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { makeHeaders } from '../../lib/makeHeaders';
-const BASE = import.meta.env.VITE_API_URL || '';
+import { apiFetch } from '../../lib/api';
 
 interface QuestionRequest {
   topic: string;
@@ -47,7 +47,7 @@ const ContributorRequestManagement: React.FC = () => {
     setError('');
 
     try {
-      const response = await fetch(`${BASE}/admin/contributor-requests`, {
+      const response = await apiFetch('/admin/contributor-requests', {
         headers: makeHeaders('admin_token')
       });
 
@@ -72,7 +72,7 @@ const ContributorRequestManagement: React.FC = () => {
     setSuccessMessage('');
 
     try {
-      const response = await fetch(`${BASE}/admin/contributor-requests/${requestId}/status`, {
+      const response = await apiFetch(`/admin/contributor-requests/${requestId}/status`, {
         method: 'PUT',
         headers: makeHeaders('admin_token', 'application/json'),
         body: JSON.stringify({ status: newStatus, notes: updateNotes })

@@ -4,8 +4,8 @@ interface Request {
   _id: string;
   questionRequests: Array<{
     topic: string;
-    category: string;
-    difficulty: string;
+    category: 'aptitude' | 'technical' | 'psychometric';
+    difficulty: 'easy' | 'medium' | 'hard';
     count: number;
   }>;
   status: 'pending' | 'in-progress' | 'completed' | 'rejected';
@@ -17,7 +17,8 @@ interface Request {
 
 interface RequestListProps {
   requests: Request[];
-  onSelectRequest: (request: Request) => void;
+  // Accept a generic callback so callers can pass React state setters directly
+  onSelectRequest: (request: any) => void;
 }
 
 const RequestList: React.FC<RequestListProps> = ({ requests, onSelectRequest }) => {

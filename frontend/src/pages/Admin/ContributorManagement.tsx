@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
-
-const BACKEND = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+import { apiFetch } from '../../lib/api';
 
 type Contributor = { id: string; username: string; fname: string; lname: string; contact?: string; email?: string };
 
@@ -27,7 +26,7 @@ const ContributorManagement: React.FC = () => {
   const fetchList = async () => {
     setMsg(null);
     try {
-      const res = await fetch(`${BACKEND}/admin/contributors`, {
+      const res = await apiFetch('/admin/contributors', {
         headers: makeHeaders(),
       });
       const body = await res.json().catch(() => ({}));
@@ -51,13 +50,13 @@ const ContributorManagement: React.FC = () => {
     try {
       let res;
       if (editingId) {
-        res = await fetch(`${BACKEND}/admin/contributors/${editingId}`, {
+        res = await apiFetch(`/admin/contributors/${editingId}`, {
           method: 'PUT',
           headers: makeHeaders(true),
           body: JSON.stringify({ username, fname, lname, contact, email, password: password || undefined }),
         });
       } else {
-        res = await fetch(`${BACKEND}/admin/contributors`, {
+        res = await apiFetch('/admin/contributors', {
           method: 'POST',
           headers: makeHeaders(true),
           body: JSON.stringify({ username, password, fname, lname, contact, email }),
@@ -104,7 +103,7 @@ const ContributorManagement: React.FC = () => {
     if (!confirm('Delete this contributor?')) return;
     setMsg(null);
     try {
-      const res = await fetch(`${BACKEND}/admin/contributors/${id}`, { method: 'DELETE', headers: makeHeaders() });
+      const res = await apiFetch(`/admin/contributors/${id}`, { method: 'DELETE', headers: makeHeaders() });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) { setMsg(body.message || 'Delete failed'); return; }
       setMsg('Contributor deleted successfully');
