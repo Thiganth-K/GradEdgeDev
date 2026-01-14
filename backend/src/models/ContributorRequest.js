@@ -17,11 +17,14 @@ const QuestionRequestSchema = new mongoose.Schema({
 const DraftedQuestionSchema = new mongoose.Schema({
   text: { type: String, required: true },
   options: [{ 
-    text: { type: String, required: true }
+    text: { type: String, required: true },
+    isCorrect: { type: Boolean, default: false } // Support for multiple correct answers
   }],
-  correctIndex: { type: Number, required: true },
+  correctIndex: { type: Number }, // Legacy support
   // Each drafted question is linked to a request topic; category comes from the parent questionRequest
   topic: { type: String, required: true },
+  // New field: subtopic for organizing questions
+  subtopic: { type: String, required: true },
   difficulty: { 
     type: String, 
     enum: ['easy', 'medium', 'hard'], 

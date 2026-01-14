@@ -3,13 +3,13 @@
 // - If `VITE_API_URL` is set, use it for deployments.
 // - If not set and building for production, default to same-origin ('') so the backend
 //   served alongside the frontend will handle API requests.
-// - Otherwise (development), default to `http://localhost:5000`.
+// - Otherwise (development), default to `http://localhost:5001`.
 // Additionally: when running the production build locally (localhost), prefer same-origin
 // so a locally-served backend receives requests even if VITE_API_URL was set to a remote host.
 let API_BASE_URL = import.meta.env.VITE_API_URL ?? (import.meta.env.PROD ? '' : 'http://localhost:5001');
 
 // If we have a runtime `window` and we're on localhost, prefer local backend for production
-// builds so local production testing hits `http://localhost:5000` instead of a remote API.
+// builds so local production testing hits `http://localhost:5001` instead of a remote API.
 try {
   if (typeof window !== 'undefined' && window.location && window.location.hostname) {
     const hostname = window.location.hostname;
@@ -23,7 +23,7 @@ try {
   // ignore any runtime inspection errors
 }
 
-// Smart fetch wrapper with automatic fallback to localhost:5000
+// Smart fetch wrapper with automatic fallback to localhost:5001
 let workingBaseUrl: string | null = null; // Cache the working URL to avoid repeated retries
 
 /**
@@ -107,6 +107,8 @@ export const API_ENDPOINTS = {
     chatMessage: '/contributor/chat/message',
     chatRead: '/contributor/chat/read',
     chatUnread: '/contributor/chat/unread',
+    libraryMyQuestions: '/contributor/library/my-questions',
+    libraryStructure: '/contributor/library/structure',
   },
   
   // Admin endpoints
@@ -120,6 +122,11 @@ export const API_ENDPOINTS = {
     contributorChatMessage: (contributorId: string) => `/admin/contributor-chats/${contributorId}/message`,
     contributorChatRead: (contributorId: string) => `/admin/contributor-chats/${contributorId}/read`,
     contributorChatsUnreadCount: '/admin/contributor-chats/unread/count',
+    libraryQuestionsByContributor: '/admin/library/questions-by-contributor',
+    libraryQuestionsByContributorId: (contributorId: string) => `/admin/library/contributor/${contributorId}`,
+    addQuestionToLibrary: (questionId: string) => `/admin/library/questions/${questionId}`,
+    removeQuestionFromLibrary: (questionId: string) => `/admin/library/questions/${questionId}`,
+    libraryStructure: '/admin/library/structure',
   },
 };
 

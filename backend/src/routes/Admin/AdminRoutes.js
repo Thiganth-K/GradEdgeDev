@@ -91,4 +91,20 @@ router.post('/contributor-chats/:contributorId/read', verifyAdmin, AdminControll
 console.log('[AdminRoutes] GET /contributor-chats/unread/count - Get unread messages count (admin)');
 router.get('/contributor-chats/unread/count', verifyAdmin, AdminControllers.getUnreadMessagesCount);
 
+// Library Management
+console.log('[AdminRoutes] GET /library/questions-by-contributor - Get library questions grouped by contributor (admin)');
+router.get('/library/questions-by-contributor', verifyAdmin, AdminControllers.getLibraryQuestionsByContributor);
+
+console.log('[AdminRoutes] GET /library/contributor/:contributorId - Get library questions by contributor ID (admin)');
+router.get('/library/contributor/:contributorId', verifyAdmin, AdminControllers.getLibraryQuestionsByContributorId);
+
+console.log('[AdminRoutes] POST /library/questions/:questionId - Add question to library (admin)');
+router.post('/library/questions/:questionId', verifyAdmin, AdminControllers.addQuestionToLibrary);
+
+console.log('[AdminRoutes] DELETE /library/questions/:questionId - Remove question from library (admin)');
+router.delete('/library/questions/:questionId', verifyAdmin, AdminControllers.removeQuestionFromLibrary);
+
+console.log('[AdminRoutes] GET /library/structure - Get library structure (admin)');
+router.get('/library/structure', verifyAdmin, AdminControllers.getLibraryStructure);
+
 module.exports = router;

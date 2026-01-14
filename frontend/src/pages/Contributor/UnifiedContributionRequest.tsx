@@ -11,9 +11,9 @@ interface QuestionRequest {
 
 interface DraftedQuestion {
   text: string;
-  options: string[];
-  correctIndex: number;
+  options: { text: string; isCorrect: boolean }[];
   topic: string;
+  subtopic: string;
   difficulty: 'easy' | 'medium' | 'hard';
   tags: string;
   details: string;
@@ -31,13 +31,19 @@ const UnifiedContributionRequest: React.FC = () => {
   // Drafted questions state
   const [draftedQuestions, setDraftedQuestions] = useState<DraftedQuestion[]>([]);
   const [showQuestionForm, setShowQuestionForm] = useState(false);
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
   
   // New question form state
   const [newQuestion, setNewQuestion] = useState<DraftedQuestion>({
     text: '',
-    options: ['', '', '', ''],
-    correctIndex: 0,
+    options: [
+      { text: '', isCorrect: false },
+      { text: '', isCorrect: false },
+      { text: '', isCorrect: false },
+      { text: '', isCorrect: false }
+    ],
     topic: '',
+    subtopic: '',
     difficulty: 'medium',
     tags: '',
     details: ''
@@ -70,12 +76,21 @@ const UnifiedContributionRequest: React.FC = () => {
   // Question draft handlers
   const handleOptionChange = (index: number, value: string) => {
     const updated = [...newQuestion.options];
-    updated[index] = value;
+    updated[index] = { ...updated[index], text: value };
+    setNewQuestion({ ...newQuestion, options: updated });
+  };
+
+  const handleCorrectToggle = (index: number) => {
+    const updated = [...newQuestion.options];
+    updated[index] = { ...updated[index], isCorrect: !updated[index].isCorrect };
     setNewQuestion({ ...newQuestion, options: updated });
   };
 
   const addOption = () => {
-    setNewQuestion({ ...newQuestion, options: [...newQuestion.options, ''] });
+    setNewQuestion({ 
+      ...newQuestion, 
+      options: [...newQuestion.options, { text: '', isCorrect: false }] 
+    });
   };
 
   const removeOption = (index: number) => {
@@ -83,15 +98,15 @@ const UnifiedContributionRequest: React.FC = () => {
       const updated = newQuestion.options.filter((_, i) => i !== index);
       setNewQuestion({ 
         ...newQuestion, 
-        options: updated,
-        correctIndex: newQuestion.correctIndex >= updated.length ? 0 : newQuestion.correctIndex
+        options: updated
       });
     }
   };
 
   const handleAddQuestion = () => {
     setError('');
-    const filteredOptions = newQuestion.options.filter(o => o.trim() !== '');
+    const filteredOptions = newQuestion.options.filter(o => o.text.trim() !== '');
+    const correctCount = filteredOptions.filter(o => o.isCorrect).length;
     
     if (!newQuestion.text.trim()) {
       setError('Question text is required');
@@ -101,8 +116,16 @@ const UnifiedContributionRequest: React.FC = () => {
       setError('Please select a topic for the question');
       return;
     }
+    if (!newQuestion.subtopic || !newQuestion.subtopic.trim()) {
+      setError('Please enter a subtopic for the question');
+      return;
+    }
     if (filteredOptions.length < 2) {
       setError('At least 2 options are required');
+      return;
+    }
+    if (correctCount === 0) {
+      setError('At least one option must be marked as correct');
       return;
     }
     
@@ -113,15 +136,30 @@ const UnifiedContributionRequest: React.FC = () => {
       details: newQuestion.details.trim()
     };
     
-    setDraftedQuestions([...draftedQuestions, questionToAdd]);
-    setSuccess('Question added to draft');
+    if (editingIndex !== null) {
+      // Update existing question
+      const updated = [...draftedQuestions];
+      updated[editingIndex] = questionToAdd;
+      setDraftedQuestions(updated);
+      setSuccess('Question updated successfully');
+      setEditingIndex(null);
+    } else {
+      // Add new question
+      setDraftedQuestions([...draftedQuestions, questionToAdd]);
+      setSuccess('Question added to draft');
+    }
     
     // Reset form
     setNewQuestion({
       text: '',
-      options: ['', '', '', ''],
-      correctIndex: 0,
+      options: [
+        { text: '', isCorrect: false },
+        { text: '', isCorrect: false },
+        { text: '', isCorrect: false },
+        { text: '', isCorrect: false }
+      ],
       topic: '',
+      subtopic: '',
       difficulty: 'medium',
       tags: '',
       details: ''
@@ -129,6 +167,32 @@ const UnifiedContributionRequest: React.FC = () => {
     setShowQuestionForm(false);
     
     setTimeout(() => setSuccess(''), 3000);
+  };
+
+  const editQuestion = (index: number) => {
+    const question = draftedQuestions[index];
+    setNewQuestion(question);
+    setEditingIndex(index);
+    setShowQuestionForm(true);
+  };
+
+  const cancelEdit = () => {
+    setEditingIndex(null);
+    setNewQuestion({
+      text: '',
+      options: [
+        { text: '', isCorrect: false },
+        { text: '', isCorrect: false },
+        { text: '', isCorrect: false },
+        { text: '', isCorrect: false }
+      ],
+      topic: '',
+      subtopic: '',
+      difficulty: 'medium',
+      tags: '',
+      details: ''
+    });
+    setShowQuestionForm(false);
   };
 
   const removeQuestion = (index: number) => {
@@ -156,9 +220,9 @@ const UnifiedContributionRequest: React.FC = () => {
         notes: notes.trim() || undefined,
         draftedQuestions: draftedQuestions.map(q => ({
           text: q.text,
-          options: q.options.map(o => ({ text: o })),
-          correctIndex: q.correctIndex,
+          options: q.options, // Already includes { text, isCorrect }
           topic: q.topic,
+          subtopic: q.subtopic,
           difficulty: q.difficulty,
           tags: q.tags ? q.tags.split(',').map(t => t.trim()).filter(Boolean) : [],
           details: q.details || undefined
@@ -335,9 +399,11 @@ const UnifiedContributionRequest: React.FC = () => {
             {showQuestionForm ? (
               <div className="bg-white border-2 border-gray-300 rounded-lg shadow-lg p-6">
                 <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-xl font-bold text-black">Draft New Question</h2>
+                  <h2 className="text-xl font-bold text-black">
+                    {editingIndex !== null ? 'Edit Question' : 'Draft New Question'}
+                  </h2>
                   <button
-                    onClick={() => setShowQuestionForm(false)}
+                    onClick={cancelEdit}
                     className="text-gray-600 hover:text-gray-800"
                   >
                     ✕ Cancel
@@ -372,34 +438,46 @@ const UnifiedContributionRequest: React.FC = () => {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-black mb-1">Difficulty *</label>
-                      <select
-                        value={newQuestion.difficulty}
-                        onChange={(e) => setNewQuestion({ ...newQuestion, difficulty: e.target.value as any })}
-                        className="w-full px-3 py-2 border-2 border-gray-300 rounded-md focus:outline-none focus:border-red-600 bg-white"
-                      >
-                        <option value="easy">Easy</option>
-                        <option value="medium">Medium</option>
-                        <option value="hard">Hard</option>
-                      </select>
+                      <label className="block text-sm font-medium text-black mb-1">Subtopic *</label>
+                      <input
+                        type="text"
+                        value={newQuestion.subtopic}
+                        onChange={(e) => setNewQuestion({ ...newQuestion, subtopic: e.target.value })}
+                        className="w-full px-3 py-2 border-2 border-gray-300 rounded-md focus:outline-none focus:border-red-600"
+                        placeholder="e.g., Binary Search, Logic Gates"
+                      />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-black mb-1">Options * (minimum 2)</label>
+                    <label className="block text-sm font-medium text-black mb-1">Difficulty *</label>
+                    <select
+                      value={newQuestion.difficulty}
+                      onChange={(e) => setNewQuestion({ ...newQuestion, difficulty: e.target.value as any })}
+                      className="w-full px-3 py-2 border-2 border-gray-300 rounded-md focus:outline-none focus:border-red-600 bg-white"
+                    >
+                      <option value="easy">Easy</option>
+                      <option value="medium">Medium</option>
+                      <option value="hard">Hard</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-black mb-2">
+                      Options * (minimum 2, check all correct answers)
+                    </label>
                     <div className="space-y-2">
                       {newQuestion.options.map((option, index) => (
                         <div key={index} className="flex items-center space-x-2">
                           <input
-                            type="radio"
-                            name="correctAnswer"
-                            checked={newQuestion.correctIndex === index}
-                            onChange={() => setNewQuestion({ ...newQuestion, correctIndex: index })}
+                            type="checkbox"
+                            checked={option.isCorrect}
+                            onChange={() => handleCorrectToggle(index)}
                             className="w-4 h-4 text-red-600"
                           />
                           <input
                             type="text"
-                            value={option}
+                            value={option.text}
                             onChange={(e) => handleOptionChange(index, e.target.value)}
                             className="flex-1 px-3 py-2 border-2 border-gray-300 rounded-md focus:outline-none focus:border-red-600"
                             placeholder={`Option ${index + 1}`}
@@ -423,6 +501,9 @@ const UnifiedContributionRequest: React.FC = () => {
                     >
                       + Add Option
                     </button>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Check the box(es) next to correct answer(s). Multiple correct answers are supported.
+                    </p>
                   </div>
 
                   <div>
@@ -451,13 +532,16 @@ const UnifiedContributionRequest: React.FC = () => {
                     onClick={handleAddQuestion}
                     className="w-full py-3 bg-red-600 text-white rounded-md hover:bg-red-700 font-semibold"
                   >
-                    Add Question to Draft
+                    {editingIndex !== null ? 'Update Question' : 'Add Question to Draft'}
                   </button>
                 </div>
               </div>
             ) : (
               <button
-                onClick={() => setShowQuestionForm(true)}
+                onClick={() => {
+                  setEditingIndex(null);
+                  setShowQuestionForm(true);
+                }}
                 className="w-full py-4 bg-white border-2 border-red-600 text-red-600 rounded-lg hover:bg-red-50 font-semibold text-lg"
               >
                 + Draft a New Question
@@ -481,7 +565,7 @@ const UnifiedContributionRequest: React.FC = () => {
                   {draftedQuestions.map((question, index) => (
                     <div key={index} className="border-2 border-gray-300 rounded-lg p-4 hover:border-red-600 transition-colors">
                       <div className="flex justify-between items-start mb-3">
-                        <div className="flex items-center space-x-2">
+                        <div className="flex items-center space-x-2 flex-wrap">
                           <span className="font-semibold text-black">Q{index + 1}</span>
                           {(() => {
                             const qr = questionRequests.find(r => r.topic === question.topic);
@@ -495,13 +579,26 @@ const UnifiedContributionRequest: React.FC = () => {
                           <span className={`px-2 py-1 rounded text-xs font-semibold ${getDifficultyColor(question.difficulty)}`}>
                             {question.difficulty.toUpperCase()}
                           </span>
+                          {question.subtopic && (
+                            <span className="px-2 py-1 rounded text-xs font-semibold bg-indigo-100 text-indigo-700">
+                              {question.subtopic}
+                            </span>
+                          )}
                         </div>
-                        <button
-                          onClick={() => removeQuestion(index)}
-                          className="text-red-600 hover:text-red-800 font-semibold"
-                        >
-                          Remove
-                        </button>
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => editQuestion(index)}
+                            className="px-3 py-1 text-blue-600 hover:text-blue-800 font-semibold border border-blue-600 rounded hover:bg-blue-50"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => removeQuestion(index)}
+                            className="text-red-600 hover:text-red-800 font-semibold"
+                          >
+                            Remove
+                          </button>
+                        </div>
                       </div>
 
                       <p className="text-black font-medium mb-3">{question.text}</p>
@@ -511,7 +608,7 @@ const UnifiedContributionRequest: React.FC = () => {
                           <div
                             key={optIndex}
                             className={`px-3 py-2 rounded ${
-                              optIndex === question.correctIndex
+                              option.isCorrect
                                 ? 'bg-green-100 border-2 border-green-500 text-green-900 font-semibold'
                                 : 'bg-gray-100 border border-gray-300 text-gray-700'
                             }`}
@@ -519,8 +616,8 @@ const UnifiedContributionRequest: React.FC = () => {
                             <span className="mr-2 font-semibold">
                               {String.fromCharCode(65 + optIndex)}.
                             </span>
-                            {option}
-                            {optIndex === question.correctIndex && (
+                            {option.text}
+                            {option.isCorrect && (
                               <span className="ml-2 text-green-600">✓ Correct</span>
                             )}
                           </div>

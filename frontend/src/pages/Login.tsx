@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-const BACKEND = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const BACKEND = import.meta.env.VITE_API_URL || 'http://localhost:5001';
 
 const Login: React.FC = () => {
   const [username, setUsername] = useState('');
@@ -110,7 +110,7 @@ const Login: React.FC = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-red-50">
       <div className="w-full max-w-md bg-white p-8 rounded shadow">
-        <h1 className="text-2xl font-bold mb-6 text-red-700">GradEdgeDev — Admin Login</h1>
+        <h1 className="text-2xl font-bold mb-6 text-red-700">GradEdgeDev — Login</h1>
         <form onSubmit={submit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700">Username</label>

@@ -36,4 +36,10 @@ router.post('/chat/read', verifyContributor, ContributorControllers.markMessages
 console.log('[ContributorRoutes] GET /chat/unread - Get unread message count');
 router.get('/chat/unread', verifyContributor, ContributorControllers.getUnreadCount);
 
+console.log('[ContributorRoutes] GET /library/my-questions - Get my library questions');
+router.get('/library/my-questions', verifyContributor, ContributorControllers.getMyLibraryQuestions);
+
+console.log('[ContributorRoutes] GET /library/structure - Get library structure');
+router.get('/library/structure', verifyContributor, ContributorControllers.getLibraryStructure);
+
 module.exports = router;

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import InstitutionAnnouncements from '../../components/Institution/Announcements';
 
-const BACKEND = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const BACKEND = import.meta.env.VITE_API_URL || 'http://localhost:5001';
 
 type Faculty = { _id: string; username: string; role: string };
 type Student = { _id: string; username: string; name?: string; dept?: string };
