@@ -14,9 +14,17 @@ interface DraftedQuestion {
   options: { text: string; isCorrect: boolean }[];
   topic: string;
   subtopic: string;
+  category?: string; // Optional: category from bulk upload
   difficulty: 'easy' | 'medium' | 'hard';
   tags: string;
   details: string;
+}
+
+interface ParsedData {
+  questions: DraftedQuestion[];
+  totalRows: number;
+  validQuestions: number;
+  errors: Array<{ row: number; field?: string; message: string }>;
 }
 
 const UnifiedContributionRequest: React.FC = () => {
@@ -52,6 +60,12 @@ const UnifiedContributionRequest: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+
+  // Bulk upload state
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [isProcessingBulk, setIsProcessingBulk] = useState(false);
+  const [bulkParseErrors, setBulkParseErrors] = useState<Array<{ row: number; field?: string; message: string }>>([]);
+  const [showBulkPreview, setShowBulkPreview] = useState(false);
 
   // Request metadata handlers
   const addQuestionRequest = () => {
@@ -197,6 +211,157 @@ const UnifiedContributionRequest: React.FC = () => {
 
   const removeQuestion = (index: number) => {
     setDraftedQuestions(draftedQuestions.filter((_, i) => i !== index));
+  };
+
+  // Bulk upload handlers
+  const handleDownloadTemplate = async () => {
+    try {
+      const token = localStorage.getItem('contributor_token');
+      const response = await fetch('http://localhost:5001/contributor/bulk/template', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to download template');
+      }
+
+      // Preserve raw binary via arrayBuffer
+      const arrayBuffer = await response.arrayBuffer();
+      const blob = new Blob([arrayBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'question_template.xlsx';
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      setSuccess('Template downloaded successfully!');
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (error) {
+      console.error('Error downloading template:', error);
+      setError('Failed to download template. Please try again.');
+      setTimeout(() => setError(''), 3000);
+    }
+  };
+
+  const handleBulkFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    const validTypes = [
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'application/vnd.ms-excel',
+      'text/csv'
+    ];
+
+    if (!validTypes.includes(file.type)) {
+      setError('Please upload a valid Excel file (.xlsx, .xls, or .csv)');
+      setTimeout(() => setError(''), 3000);
+      return;
+    }
+
+    // Validate file size (10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      setError('File size must be less than 10MB');
+      setTimeout(() => setError(''), 3000);
+      return;
+    }
+
+    setUploadedFile(file);
+    setIsProcessingBulk(true);
+    setBulkParseErrors([]);
+
+    try {
+      const token = localStorage.getItem('contributor_token');
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch('http://localhost:5001/contributor/bulk/parse', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      });
+
+      const result = await response.json();
+
+      if (!result.success) {
+        throw new Error(result.message || 'Failed to parse file');
+      }
+
+      const data: ParsedData = result.data;
+      
+      // Add parsed questions to drafted questions
+      const newQuestions = data.questions.map(q => ({
+        ...q,
+        tags: Array.isArray(q.tags) ? q.tags.join(', ') : ''
+      }));
+      
+      // Extract unique topics from parsed questions and populate questionRequests
+      const topicsMap = new Map<string, { category: string; count: number }>();
+      
+      [...draftedQuestions, ...newQuestions].forEach(q => {
+        const topic = q.topic;
+        const category = (() => {
+          // Try to find category from existing questionRequests first
+          const existingReq = questionRequests.find(r => r.topic === topic);
+          if (existingReq) return existingReq.category;
+          
+          // If question has category field, use it (for bulk upload)
+          if ('category' in q && q.category) {
+            return q.category as 'aptitude' | 'technical' | 'psychometric';
+          }
+          
+          // Default to aptitude
+          return 'aptitude' as const;
+        })();
+        
+        if (topicsMap.has(topic)) {
+          const existing = topicsMap.get(topic)!;
+          existing.count++;
+        } else {
+          topicsMap.set(topic, { category, count: 1 });
+        }
+      });
+      
+      // Create new questionRequests array from topics
+      const updatedRequests: QuestionRequest[] = Array.from(topicsMap.entries()).map(([topic, data]) => ({
+        topic,
+        category: data.category as 'aptitude' | 'technical' | 'psychometric',
+        count: data.count
+      }));
+      
+      // Update state
+      setQuestionRequests(updatedRequests.length > 0 ? updatedRequests : [{ topic: '', category: 'aptitude', count: 1 }]);
+      setDraftedQuestions([...draftedQuestions, ...newQuestions]);
+      setBulkParseErrors(data.errors);
+      setShowBulkPreview(true);
+
+      if (data.errors.length > 0) {
+        setError(`File parsed with ${data.errors.length} error(s). ${data.validQuestions} questions added.`);
+      } else {
+        setSuccess(`Successfully added ${data.validQuestions} question(s) from file!`);
+      }
+      setTimeout(() => { setError(''); setSuccess(''); }, 5000);
+    } catch (error) {
+      console.error('Error parsing file:', error);
+      setError(`Error: ${error instanceof Error ? error.message : 'Failed to parse file'}`);
+      setUploadedFile(null);
+      setTimeout(() => setError(''), 5000);
+    } finally {
+      setIsProcessingBulk(false);
+    }
+  };
+
+  const handleClearBulkUpload = () => {
+    setUploadedFile(null);
+    setBulkParseErrors([]);
+    setShowBulkPreview(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -537,15 +702,99 @@ const UnifiedContributionRequest: React.FC = () => {
                 </div>
               </div>
             ) : (
-              <button
-                onClick={() => {
-                  setEditingIndex(null);
-                  setShowQuestionForm(true);
-                }}
-                className="w-full py-4 bg-white border-2 border-red-600 text-red-600 rounded-lg hover:bg-red-50 font-semibold text-lg"
-              >
-                + Draft a New Question
-              </button>
+              <>
+                {/* Bulk Upload Section */}
+                <div className="bg-white border-2 border-blue-300 rounded-lg shadow-lg p-6">
+                  <h2 className="text-xl font-bold text-black mb-3 flex items-center gap-2">
+                    <span>📊</span>
+                    <span>Bulk Question Upload</span>
+                  </h2>
+                  <p className="text-sm text-gray-600 mb-4">
+                    Upload multiple questions at once using an Excel file. Download the template, fill it with your questions, and upload it here.
+                  </p>
+
+                  <div className="space-y-3">
+                    <button
+                      type="button"
+                      onClick={handleDownloadTemplate}
+                      className="w-full py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-semibold flex items-center justify-center gap-2"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      Download Excel Template
+                    </button>
+
+                    <div>
+                      <label className="block text-sm font-medium text-black mb-2">Upload Filled Template</label>
+                      <input
+                        type="file"
+                        accept=".xlsx,.xls,.csv"
+                        onChange={handleBulkFileUpload}
+                        disabled={isProcessingBulk}
+                        className="w-full px-3 py-2 border-2 border-gray-300 rounded-md focus:outline-none focus:border-blue-600 bg-white file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                      />
+                    </div>
+
+                    {isProcessingBulk && (
+                      <div className="flex items-center justify-center py-3 text-blue-600">
+                        <svg className="animate-spin h-5 w-5 mr-3" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Processing file...
+                      </div>
+                    )}
+
+                    {uploadedFile && !isProcessingBulk && (
+                      <div className="bg-green-50 border-2 border-green-300 rounded-md p-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span className="text-sm font-medium text-gray-700">{uploadedFile.name}</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={handleClearBulkUpload}
+                            className="text-red-600 hover:text-red-800 font-semibold text-sm"
+                          >
+                            Clear
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {bulkParseErrors.length > 0 && (
+                      <div className="bg-red-50 border-2 border-red-300 rounded-md p-3 max-h-40 overflow-y-auto">
+                        <h4 className="font-semibold text-red-800 mb-2">⚠️ Parsing Errors ({bulkParseErrors.length})</h4>
+                        {bulkParseErrors.slice(0, 5).map((error, idx) => (
+                          <div key={idx} className="text-sm text-red-700 mb-1">
+                            Row {error.row}: {error.message}
+                          </div>
+                        ))}
+                        {bulkParseErrors.length > 5 && (
+                          <div className="text-sm text-red-700 font-semibold">
+                            ... and {bulkParseErrors.length - 5} more errors
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Draft New Question Button */}
+                <button
+                  onClick={() => {
+                    setEditingIndex(null);
+                    setShowQuestionForm(true);
+                  }}
+                  className="w-full py-4 bg-white border-2 border-red-600 text-red-600 rounded-lg hover:bg-red-50 font-semibold text-lg"
+                >
+                  + Draft a New Question
+                </button>
+              </>
             )}
 
             {/* Drafted Questions List */}

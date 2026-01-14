@@ -20,7 +20,9 @@
     "gradedgedev": "file:..",
     "jsonwebtoken": "^9.0.0",
     "mongoose": "^7.8.8",
+    "multer": "^2.0.2",
     "nodemon": "^3.1.11",
-    "seed": "^0.4.4"
+    "seed": "^0.4.4",
+    "xlsx": "^0.18.5"
   }
 }
