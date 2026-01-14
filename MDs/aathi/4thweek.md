@@ -8,6 +8,7 @@
 - can able to decide the dificulty level of the each qns. [done] [reviewed]
 - contributor can do CRUD operation[done] [reviewed]
 - add filtering and sub topics (Q&A)
+- Added Library module with all integrations [done]
 
 **Admin**
 - admin can able to view the institution admin/ faculty/ student / contributor actions in the audit logs -> *Aathi*
