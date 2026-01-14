@@ -6,7 +6,7 @@
 // - Otherwise (development), default to `http://localhost:5000`.
 // Additionally: when running the production build locally (localhost), prefer same-origin
 // so a locally-served backend receives requests even if VITE_API_URL was set to a remote host.
-let API_BASE_URL = import.meta.env.VITE_API_URL ?? (import.meta.env.PROD ? '' : 'http://localhost:5000');
+let API_BASE_URL = import.meta.env.VITE_API_URL ?? (import.meta.env.PROD ? '' : 'http://localhost:5001');
 
 // If we have a runtime `window` and we're on localhost, prefer local backend for production
 // builds so local production testing hits `http://localhost:5000` instead of a remote API.
@@ -14,13 +14,9 @@ try {
   if (typeof window !== 'undefined' && window.location && window.location.hostname) {
     const hostname = window.location.hostname;
     if (hostname.includes('localhost') || hostname === '127.0.0.1') {
-      // If running in production on localhost, prefer the local backend at port 5000
-      if (import.meta.env.PROD) {
-        API_BASE_URL = 'http://localhost:5000';
-      } else {
-        // development already defaults to localhost:5000; ensure we keep that behavior
-        API_BASE_URL = 'http://localhost:5000';
-      }
+      // If running locally prefer the backend at port 5001 (backend configured to use 5001)
+      // Use the same port for both PROD local testing and development to match backend
+      API_BASE_URL = 'http://localhost:5001';
     }
   }
 } catch (e) {
@@ -57,8 +53,8 @@ export const apiFetch = async (input: string | URL | Request, init?: RequestInit
     workingBaseUrl = API_BASE_URL;
     return response;
   } catch (error) {
-    // If primary fails with 404 or network error, try localhost:5000 as fallback
-    const fallbackBase = 'http://localhost:5000';
+    // If primary fails with 404 or network error, try localhost:5001 as fallback
+    const fallbackBase = 'http://localhost:5001';
     
     // Only fallback if we're not already using localhost
     if (API_BASE_URL === fallbackBase) {
