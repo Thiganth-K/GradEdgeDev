@@ -177,7 +177,7 @@ const technicalQuestions = [
   },
 ];
 
-const psycometricQuestions = [
+const psychometricQuestions = [
   {
     text: 'When working on a team project with a tight deadline, what is your approach?',
     options: [
@@ -187,7 +187,7 @@ const psycometricQuestions = [
       'Collaborate and discuss the best approach with the team',
     ],
     correctIndex: 3,
-    category: 'psycometric',
+    category: 'psychometric',
     difficulty: 'medium',
     tags: ['teamwork', 'leadership'],
   },
@@ -200,7 +200,7 @@ const psycometricQuestions = [
       'Ask for specific examples and work on addressing them',
     ],
     correctIndex: 3,
-    category: 'psycometric',
+    category: 'psychometric',
     difficulty: 'medium',
     tags: ['feedback', 'growth-mindset'],
   },
@@ -213,7 +213,7 @@ const psycometricQuestions = [
       'Do the minimum required',
     ],
     correctIndex: 1,
-    category: 'psycometric',
+    category: 'psychometric',
     difficulty: 'medium',
     tags: ['conflict-resolution', 'communication'],
   },
@@ -226,7 +226,7 @@ const psycometricQuestions = [
       'I prefer to lead and delegate tasks',
     ],
     correctIndex: 2,
-    category: 'psycometric',
+    category: 'psychometric',
     difficulty: 'easy',
     tags: ['work-style', 'personality'],
   },
@@ -239,7 +239,7 @@ const psycometricQuestions = [
       'Learning from colleagues and mentors',
     ],
     correctIndex: 1,
-    category: 'psycometric',
+    category: 'psychometric',
     difficulty: 'medium',
     tags: ['learning-style', 'growth'],
   },
@@ -252,7 +252,7 @@ const psycometricQuestions = [
       'Work on multiple tasks simultaneously',
     ],
     correctIndex: 2,
-    category: 'psycometric',
+    category: 'psychometric',
     difficulty: 'medium',
     tags: ['time-management', 'prioritization'],
   },
@@ -265,7 +265,7 @@ const psycometricQuestions = [
       'Tell the manager about their struggle',
     ],
     correctIndex: 2,
-    category: 'psycometric',
+    category: 'psychometric',
     difficulty: 'easy',
     tags: ['empathy', 'teamwork'],
   },
@@ -278,7 +278,7 @@ const psycometricQuestions = [
       'Break down problems and tackle them systematically',
     ],
     correctIndex: 3,
-    category: 'psycometric',
+    category: 'psychometric',
     difficulty: 'medium',
     tags: ['stress-management', 'resilience'],
   },
@@ -306,7 +306,7 @@ async function seedQuestions() {
     const allQuestions = [
       ...aptitudeQuestions.map(q => ({ ...q, createdBy: institutionId, options: q.options.map(text => ({ text })) })),
       ...technicalQuestions.map(q => ({ ...q, createdBy: institutionId, options: q.options.map(text => ({ text })) })),
-      ...psycometricQuestions.map(q => ({ ...q, createdBy: institutionId, options: q.options.map(text => ({ text })) })),
+      ...psychometricQuestions.map(q => ({ ...q, createdBy: institutionId, options: q.options.map(text => ({ text })) })),
     ];
 
     // Insert all questions
@@ -315,7 +315,7 @@ async function seedQuestions() {
     console.log(`✅ Successfully seeded ${inserted.length} questions:`);
     console.log(`   - ${aptitudeQuestions.length} Aptitude questions`);
     console.log(`   - ${technicalQuestions.length} Technical questions`);
-    console.log(`   - ${psycometricQuestions.length} Psycometric questions`);
+    console.log(`   - ${psychometricQuestions.length} psychometric questions`);
 
     process.exit(0);
   } catch (error) {

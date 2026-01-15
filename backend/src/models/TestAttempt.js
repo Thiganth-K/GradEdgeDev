@@ -2,7 +2,8 @@ const mongoose = require('mongoose');
 
 const ResponseSchema = new mongoose.Schema({
   questionId: { type: require('mongoose').Schema.Types.ObjectId, ref: 'Question' },
-  selectedIndex: { type: Number, required: true },
+  selectedIndex: { type: Number }, // Keep for backward compatibility
+  selectedIndices: [{ type: Number }], // NEW: Support multiple answers
   correct: { type: Boolean, required: true },
 });
 

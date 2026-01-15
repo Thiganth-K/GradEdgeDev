@@ -8,7 +8,7 @@
 - can able to contribute based on the role based [ aptitute, technical, pscometric ]. [done]
 - can able to decide the dificulty level of the each qns. [done] [reviewed]
 - contributor can do CRUD operation[done] [reviewed]
-- add filtering and sub topics (Q&A)
+- add filtering and sub topics (Q&A) [done]
 - Added Library module with all integrations [done]
 
 **Admin**
@@ -21,3 +21,6 @@
 
 **Faculty**
 - the faculty can able to access the library to to create a test by faculty for the assigned students for that faculty need to maintain a separate datamodel - *Aathi*
+
+**Extra**
+- Integrated Library Modules with institution and faculty, students [done]

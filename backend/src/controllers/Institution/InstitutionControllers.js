@@ -6,6 +6,7 @@ const Student = require('../../models/Student');
 const Batch = require('../../models/Batch');
 const Test = require('../../models/Test');
 const Question = require('../../models/Question');
+const Library = require('../../models/Library');
 const TestAttempt = require('../../models/TestAttempt');
 const Announcement = require('../../models/Announcement');
 
@@ -441,10 +442,21 @@ const listQuestions = async (req, res) => {
     console.log('[Institution.listQuestions] called by institution:', instName);
     if (category) console.log('[Institution.listQuestions] category filter:', category);
     
-    const filter = { createdBy: req.institution?.id };
-    if (category) filter.category = category;
-    const items = await Question.find(filter).sort({ createdAt: -1 });
-    console.log('[Institution.listQuestions] ✓ found', items.length, 'questions');
+    // NEW: Fetch from Library model (contributor-approved questions) instead of Question collection
+    // Library contains questions that have been reviewed and approved for use
+    const libraryEntries = await Library.find().populate('qn_id').sort({ createdAt: -1 });
+    console.log('[Institution.listQuestions] found', libraryEntries.length, 'library entries');
+    
+    // Extract actual question documents and filter by category if specified
+    let items = libraryEntries
+      .map(entry => entry.qn_id)
+      .filter(q => q !== null && q !== undefined); // Filter out any null references
+    
+    if (category) {
+      items = items.filter(q => q.category === category);
+    }
+    
+    console.log('[Institution.listQuestions] ✓ found', items.length, 'approved library questions');
     res.json({ success: true, data: items });
   } catch (err) {
     console.error('[Institution.listQuestions] ✗ error:', err.message);
@@ -463,7 +475,7 @@ const createQuestion = async (req, res) => {
       console.log('[Institution.createQuestion] ✗ invalid payload');
       return res.status(400).json({ success: false, message: 'invalid question payload' });
     }
-    if (!['aptitude', 'technical', 'psycometric'].includes(category)) {
+    if (!['aptitude', 'technical', 'psychometric'].includes(category)) {
       console.log('[Institution.createQuestion] ✗ invalid category:', category);
       return res.status(400).json({ success: false, message: 'invalid category' });
     }
@@ -498,11 +510,23 @@ const updateQuestion = async (req, res) => {
       return res.status(404).json({ success: false, message: 'question not found' });
     }
     
-    const { text, options, correctIndex, category, difficulty, tags } = req.body || {};
+    const { text, options, correctIndex, correctIndices, category, difficulty, tags } = req.body || {};
     if (text !== undefined) q.text = text;
     if (Array.isArray(options) && options.length >= 2) q.options = options.map((t) => ({ text: t }));
-    if (typeof correctIndex === 'number') q.correctIndex = correctIndex;
-    if (category && ['aptitude', 'technical', 'psycometric'].includes(category)) q.category = category;
+    
+    // Handle both single and multiple correct answers
+    if (typeof correctIndex === 'number') {
+      q.correctIndex = correctIndex;
+      // Clear correctIndices if setting single answer
+      q.correctIndices = undefined;
+    }
+    if (Array.isArray(correctIndices) && correctIndices.length > 0) {
+      q.correctIndices = correctIndices;
+      // Clear correctIndex if setting multiple answers
+      q.correctIndex = undefined;
+    }
+    
+    if (category && ['aptitude', 'technical', 'psychometric'].includes(category)) q.category = category;
     if (difficulty) q.difficulty = difficulty;
     if (tags) q.tags = tags;
     await q.save();
@@ -549,8 +573,8 @@ const listTests = async (req, res) => {
     console.log('[Institution.listTests] ✓ found', tests.length, 'tests');
     res.json({ success: true, data: tests });
   } catch (err) {
-    console.error('[Institution.listTests] ✗ error:', err.message);
-    res.status(500).json({ success: false, message: 'failed to list tests' });
+    console.error('[Institution.listTests] ✗ error:', err);
+    res.status(500).json({ success: false, message: err.message || 'failed to list tests' });
   }
 };
 
@@ -582,35 +606,94 @@ const createTest = async (req, res) => {
     console.log('[Institution.createTest] called by institution:', instName);
     console.log('[Institution.createTest] payload: { name:', name, ', type:', type, ', duration:', durationMinutes, ', batchCount:', batchIds?.length || 0, '}');
     
-    if (!name || !['aptitude', 'technical', 'psycometric'].includes(type)) {
+    if (!name || !['aptitude', 'technical', 'psychometric'].includes(type)) {
       console.log('[Institution.createTest] ✗ invalid payload');
       return res.status(400).json({ success: false, message: 'invalid test payload' });
     }
     
-    const embeddedQuestions = [];
+    // NEW: Separate handling for library questions and custom questions
+    const libraryQuestionIds = [];
+    const customQs = [];
+    const legacyQuestions = []; // For backward compatibility
+    
+    // Process Library Questions (by reference)
     if (Array.isArray(questionIds) && questionIds.length) {
-      const qs = await Question.find({ _id: { $in: questionIds }, category: type });
-      for (const q of qs) {
-        embeddedQuestions.push({
-          questionId: q._id,
-          text: q.text,
-          options: (q.options || []).map((o) => o.text),
-          correctIndex: q.correctIndex,
+      // NEW: Validate that questionIds are actually in the Library (contributor-approved)
+      const libraryEntries = await Library.find({ qn_id: { $in: questionIds } }).populate('qn_id');
+      console.log('[Institution.createTest] found', libraryEntries.length, 'library entries for provided question IDs');
+      
+      for (const entry of libraryEntries) {
+        const q = entry.qn_id;
+        if (q && q.category === type) {
+          libraryQuestionIds.push(q._id);
+          
+          // Get correct answers using the Question model's helper method
+          const correctAnswers = q.getCorrectAnswers ? q.getCorrectAnswers() : 
+            (Array.isArray(q.correctIndices) && q.correctIndices.length > 0 ? q.correctIndices : [q.correctIndex]);
+          
+          console.log(`[Test Creation] Library Q: "${q.text}" - correct answers: [${correctAnswers.join(', ')}]`);
+          
+          // Also populate legacy format for backward compatibility
+          legacyQuestions.push({
+            questionId: q._id,
+            text: q.text,
+            options: (q.options || []).map((o) => ({ text: o.text || String(o) })),
+            correctIndex: correctAnswers[0],
+            correctIndices: correctAnswers,
+          });
+        }
+      }
+      
+      if (libraryQuestionIds.length < questionIds.length) {
+        console.log('[Institution.createTest] ⚠ some question IDs were not in Library or didn\'t match category');
+      }
+    }
+    
+    // Process Custom Questions (embedded, test-specific)
+    if (Array.isArray(customQuestions) && customQuestions.length) {
+      for (const cq of customQuestions) {
+        const { text, options, correctIndex, correctIndices, difficulty } = cq;
+        if (!text || !Array.isArray(options) || options.length < 2) {
+          console.log('[Institution.createTest] ⚠ skipping invalid custom question - missing text or options');
+          continue;
+        }
+        
+        // Support both single (correctIndex) and multiple (correctIndices) answers
+        let finalCorrectIndices = [];
+        if (Array.isArray(correctIndices) && correctIndices.length > 0) {
+          finalCorrectIndices = correctIndices;
+        } else if (typeof correctIndex === 'number') {
+          finalCorrectIndices = [correctIndex];
+        } else {
+          console.log('[Institution.createTest] ⚠ skipping invalid custom question - no correct answer specified');
+          continue;
+        }
+        
+        customQs.push({ 
+          text, 
+          options, 
+          correctIndices: finalCorrectIndices,
+          correctIndex: finalCorrectIndices[0], // Keep first for backward compatibility
+          difficulty: difficulty || 'medium' 
+        });
+        
+        console.log(`[Test Creation] Custom Q: "${text}" - correct answers: [${finalCorrectIndices.join(', ')}]`);
+        
+        // Also populate legacy format (only if valid)
+        legacyQuestions.push({ 
+          text, 
+          options: options.map(o => ({ text: String(o) })), 
+          correctIndices: finalCorrectIndices,
+          correctIndex: finalCorrectIndices[0]
         });
       }
     }
-    if (Array.isArray(customQuestions) && customQuestions.length) {
-      for (const cq of customQuestions) {
-        const { text, options, correctIndex } = cq;
-        if (!text || !Array.isArray(options) || options.length < 2 || typeof correctIndex !== 'number') continue;
-        embeddedQuestions.push({ questionId: undefined, text, options, correctIndex });
-      }
+    
+    if (libraryQuestionIds.length === 0 && customQs.length === 0) {
+      console.log('[Institution.createTest] ⚠ no questions provided - creating test without questions');
     }
-    if (embeddedQuestions.length === 0) {
-      console.log('[Institution.createTest] ✗ no questions provided');
-      return res.status(400).json({ success: false, message: 'no questions provided' });
-    }
-    // enforce test limit if configured
+    
+    // Enforce test limit if configured
     const instId = req.institution?.id;
     const instDoc = instId ? await Institution.findById(instId).select('testLimit') : null;
     if (instDoc && typeof instDoc.testLimit === 'number' && instDoc.testLimit >= 0) {
@@ -630,13 +713,16 @@ const createTest = async (req, res) => {
       assignedFaculty: assignedFacultyId || undefined,
       assignedBatches: Array.isArray(batchIds) ? batchIds : [],
       createdBy: req.institution?.id,
-      questions: embeddedQuestions,
+      libraryQuestionIds,  // NEW: Store library question references
+      customQuestions: customQs,  // NEW: Store custom questions
+      questions: legacyQuestions,  // LEGACY: Keep for backward compatibility
     });
-    console.log('[Institution.createTest] ✓ created - id:', t._id.toString(), 'name:', t.name, 'questions:', t.questions.length);
+    
+    console.log('[Institution.createTest] ✓ created - id:', t._id.toString(), 'name:', t.name, 'libraryQs:', libraryQuestionIds.length, 'customQs:', customQs.length);
     res.status(201).json({ success: true, data: t });
   } catch (err) {
-    console.error('[Institution.createTest] ✗ error:', err.message);
-    res.status(500).json({ success: false, message: 'failed to create test' });
+    console.error('[Institution.createTest] ✗ error:', err);
+    res.status(500).json({ success: false, message: err.message || 'failed to create test' });
   }
 };
 
@@ -653,16 +739,37 @@ const updateTest = async (req, res) => {
       return res.status(404).json({ success: false, message: 'test not found' });
     }
     
-    const { name, type, durationMinutes, startTime, endTime, assignedFacultyId, batchIds, questionIds, customQuestions, removeQuestionIndices } = req.body || {};
+    const { name, type, durationMinutes, startTime, endTime, assignedFacultyId, batchIds, 
+            questionIds, customQuestions, removeQuestionIndices, 
+            libraryQuestionIds: newLibraryIds, customQuestions: newCustomQs } = req.body || {};
     
+    // Update basic fields
     if (name !== undefined) t.name = name;
-    if (type !== undefined && ['aptitude', 'technical', 'psycometric'].includes(type)) t.type = type;
+    if (type !== undefined && ['aptitude', 'technical', 'psychometric'].includes(type)) t.type = type;
     if (durationMinutes !== undefined) t.durationMinutes = durationMinutes;
     if (startTime !== undefined) t.startTime = startTime ? new Date(startTime) : undefined;
     if (endTime !== undefined) t.endTime = endTime ? new Date(endTime) : undefined;
     if (assignedFacultyId !== undefined) t.assignedFaculty = assignedFacultyId || undefined;
     if (Array.isArray(batchIds)) t.assignedBatches = batchIds;
 
+    // NEW: Handle explicit libraryQuestionIds and customQuestions updates
+    if (Array.isArray(newLibraryIds)) {
+      t.libraryQuestionIds = newLibraryIds;
+      console.log('[Institution.updateTest] updated libraryQuestionIds:', newLibraryIds.length);
+    }
+    
+    if (Array.isArray(newCustomQs)) {
+      t.customQuestions = newCustomQs.filter(cq => {
+        const hasText = cq.text;
+        const hasOptions = Array.isArray(cq.options) && cq.options.length >= 2;
+        const hasSingleAnswer = typeof cq.correctIndex === 'number';
+        const hasMultipleAnswers = Array.isArray(cq.correctIndices) && cq.correctIndices.length > 0;
+        return hasText && hasOptions && (hasSingleAnswer || hasMultipleAnswers);
+      });
+      console.log('[Institution.updateTest] updated customQuestions:', t.customQuestions.length);
+    }
+
+    // LEGACY: Handle old questions array removal
     if (removeQuestionIndices && Array.isArray(removeQuestionIndices)) {
       const sorted = [...removeQuestionIndices].sort((a, b) => b - a);
       for (const idx of sorted) {
@@ -670,12 +777,18 @@ const updateTest = async (req, res) => {
           t.questions.splice(idx, 1);
         }
       }
-      console.log('[Institution.updateTest] removed', removeQuestionIndices.length, 'questions');
+      console.log('[Institution.updateTest] removed', removeQuestionIndices.length, 'legacy questions');
     }
 
+    // LEGACY: Handle old-style questionIds addition
     if (Array.isArray(questionIds) && questionIds.length) {
       const qs = await Question.find({ _id: { $in: questionIds }, category: t.type });
       for (const q of qs) {
+        // Add to new libraryQuestionIds if not already present
+        if (!t.libraryQuestionIds.some(id => String(id) === String(q._id))) {
+          t.libraryQuestionIds.push(q._id);
+        }
+        // Also add to legacy questions for backward compatibility
         const exists = t.questions.some((tq) => String(tq.questionId) === String(q._id));
         if (!exists) {
           t.questions.push({
@@ -689,11 +802,32 @@ const updateTest = async (req, res) => {
       console.log('[Institution.updateTest] added', qs.length, 'library questions');
     }
 
+    // LEGACY: Handle old-style customQuestions addition
     if (Array.isArray(customQuestions) && customQuestions.length) {
       for (const cq of customQuestions) {
-        const { text, options, correctIndex } = cq;
-        if (!text || !Array.isArray(options) || options.length < 2 || typeof correctIndex !== 'number') continue;
-        t.questions.push({ questionId: undefined, text, options, correctIndex });
+        const { text, options, correctIndex, correctIndices, difficulty } = cq;
+        if (!text || !Array.isArray(options) || options.length < 2) continue;
+        
+        const hasSingleAnswer = typeof correctIndex === 'number';
+        const hasMultipleAnswers = Array.isArray(correctIndices) && correctIndices.length > 0;
+        
+        if (!hasSingleAnswer && !hasMultipleAnswers) continue;
+        
+        // Add to new customQuestions
+        const newCq = { 
+          text, 
+          options, 
+          difficulty: difficulty || 'medium' 
+        };
+        if (hasSingleAnswer) newCq.correctIndex = correctIndex;
+        if (hasMultipleAnswers) newCq.correctIndices = correctIndices;
+        t.customQuestions.push(newCq);
+        
+        // Also add to legacy questions
+        const legacyQ = { questionId: undefined, text, options };
+        if (hasSingleAnswer) legacyQ.correctIndex = correctIndex;
+        if (hasMultipleAnswers) legacyQ.correctIndices = correctIndices;
+        t.questions.push(legacyQ);
       }
       console.log('[Institution.updateTest] added', customQuestions.length, 'custom questions');
     }
@@ -792,6 +926,19 @@ const getStudentTest = async (req, res) => {
       $or: [{ assignedStudents: studentId }, { assignedBatches: { $in: batchIds } }],
     });
     if (!t) return res.status(404).json({ success: false, message: 'test not found' });
+    // Use model helper to gather library + custom questions if available
+    let allQuestions = [];
+    if (typeof t.getAllQuestions === 'function') {
+      try {
+        allQuestions = await t.getAllQuestions();
+      } catch (e) {
+        // fallback to legacy questions
+        allQuestions = t.questions || [];
+      }
+    } else {
+      allQuestions = t.questions || [];
+    }
+
     const sanitized = {
       _id: t._id,
       name: t.name,
@@ -799,8 +946,52 @@ const getStudentTest = async (req, res) => {
       durationMinutes: t.durationMinutes,
       startTime: t.startTime,
       endTime: t.endTime,
-      questions: t.questions.map((q) => ({ text: q.text, options: q.options })),
+      questions: allQuestions.map((q) => {
+        // normalize options: may be strings or objects
+        const options = Array.isArray(q.options) ? q.options.map(o => (typeof o === 'string' ? o : (o && o.text) || String(o))) : [];
+
+        // Determine correct answers from available fields
+        let correctIndices = [];
+        if (Array.isArray(q.correctIndices) && q.correctIndices.length > 0) correctIndices = q.correctIndices;
+        else if (typeof q.correctIndex === 'number') correctIndices = [q.correctIndex];
+
+        return {
+          text: q.text,
+          options,
+          isMultipleAnswer: correctIndices.length > 1
+        };
+      }),
     };
+
+    // If options are missing for many questions, attempt to load original Question docs by libraryQuestionIds
+    try {
+      const missingCount = (sanitized.questions || []).filter(q => !Array.isArray(q.options) || q.options.length === 0).length;
+      if (missingCount > 0 && Array.isArray(t.libraryQuestionIds) && t.libraryQuestionIds.length > 0) {
+        const libs = await Question.find({ _id: { $in: t.libraryQuestionIds } }).lean();
+        const libMap = {};
+        libs.forEach((l) => { libMap[String(l._id)] = l; });
+        sanitized.questions = sanitized.questions.map((q, idx) => {
+          // try match by questionId (from getAllQuestions) or by index if lengths match
+          const qId = q.questionId || (t.libraryQuestionIds && t.libraryQuestionIds[idx] ? String(t.libraryQuestionIds[idx]) : null);
+          if (qId && libMap[qId]) {
+            const opts = Array.isArray(libMap[qId].options) ? libMap[qId].options.map(o => (o && o.text) || String(o)) : [];
+            return { ...q, options: opts };
+          }
+          return q;
+        });
+      }
+    } catch (e) {
+      console.log('[Institution.getStudentTest] fallback lib load failed:', e && e.message);
+    }
+
+    // Debug: log question/options counts to help diagnose prod vs dev differences
+    try {
+      const counts = (sanitized.questions || []).map((q) => ({ text: q.text, options: Array.isArray(q.options) ? q.options.length : 0 }));
+      console.log('[Institution.getStudentTest] sending sanitized test:', { testId: t._id.toString(), questionCount: (sanitized.questions || []).length, optionCounts: counts });
+    } catch (e) {
+      console.log('[Institution.getStudentTest] debug log failed:', e && e.message);
+    }
+
     res.json({ success: true, data: sanitized });
   } catch (err) {
     res.status(500).json({ success: false, message: 'failed to get test' });
@@ -869,15 +1060,47 @@ const submitTestAttempt = async (req, res) => {
     const secs = Math.max(1, Math.floor((now.getTime() - start.getTime()) / 1000));
     let correctCount = 0;
     const respRecords = [];
+    
     for (let i = 0; i < t.questions.length; i++) {
       const q = t.questions[i];
       const sel = responses[i];
-      const isCorrect = Number(sel) === Number(q.correctIndex);
+      
+      // Support both single answer (number) and multiple answers (array)
+      let isCorrect = false;
+      let selectedIndices = [];
+      
+      if (Array.isArray(sel)) {
+        // Multiple answers selected
+        selectedIndices = sel.map(Number);
+      } else if (typeof sel === 'number' || !isNaN(Number(sel))) {
+        // Single answer selected (backward compatibility)
+        selectedIndices = [Number(sel)];
+      }
+      
+      // Get correct answers for this question
+      const correctIndices = Array.isArray(q.correctIndices) && q.correctIndices.length > 0
+        ? q.correctIndices
+        : (typeof q.correctIndex === 'number' ? [q.correctIndex] : []);
+      
+      console.log(`[Grading] Q${i + 1}: "${q.text}" - Student selected: [${selectedIndices.join(', ')}], Correct: [${correctIndices.join(', ')}]`);
+      
+      // Check if selected answers match correct answers exactly
+      // Must match all correct answers and no extra answers
+      if (selectedIndices.length === correctIndices.length) {
+        const sortedSelected = [...selectedIndices].sort((a, b) => a - b);
+        const sortedCorrect = [...correctIndices].sort((a, b) => a - b);
+        isCorrect = sortedSelected.every((val, idx) => val === sortedCorrect[idx]);
+      }
+      
+      console.log(`[Grading] Q${i + 1} Result: ${isCorrect ? 'CORRECT ✓' : 'WRONG ✗'}`);
+      
       if (isCorrect) correctCount++;
+      
       // Build response objects that match TestAttempt ResponseSchema
       respRecords.push({
         questionId: q.questionId || undefined,
-        selectedIndex: Number(sel),
+        selectedIndex: selectedIndices[0] || -1, // Keep first for backward compatibility
+        selectedIndices: selectedIndices, // NEW: Store all selected answers
         correct: isCorrect,
       });
     }
@@ -915,8 +1138,31 @@ const listAssignedTestsForFaculty = async (req, res) => {
     console.log('[Institution.listAssignedTestsForFaculty] called by faculty:', facultyUsername);
     
     const tests = await Test.find({ assignedFaculty: facultyId }).sort({ startTime: 1 });
+    
+    // Sanitize tests - remove correct answers from questions for faculty
+    const sanitizedTests = tests.map(t => ({
+      _id: t._id,
+      name: t.name,
+      type: t.type,
+      durationMinutes: t.durationMinutes,
+      startTime: t.startTime,
+      endTime: t.endTime,
+      questions: t.questions.map(q => {
+        // Normalize options - handle both string arrays and object arrays
+        const normalizedOptions = Array.isArray(q.options) 
+          ? q.options.map(opt => typeof opt === 'string' ? opt : (opt.text || String(opt)))
+          : [];
+        
+        return {
+          text: q.text,
+          options: normalizedOptions,
+          // DO NOT include correctIndex or correctIndices for faculty
+        };
+      })
+    }));
+    
     console.log('[Institution.listAssignedTestsForFaculty] ✓ found', tests.length, 'assigned tests');
-    res.json({ success: true, data: tests });
+    res.json({ success: true, data: sanitizedTests });
   } catch (err) {
     console.error('[Institution.listAssignedTestsForFaculty] ✗ error:', err.message);
     res.status(500).json({ success: false, message: 'failed to list assigned tests' });
@@ -972,8 +1218,32 @@ const getTestResultsForFaculty = async (req, res) => {
       };
     });
     
-    console.log('[Institution.getTestResultsForFaculty] ✓ found results - total students:', studentIds.length, ', completed:', attempts.filter(a => a.completedAt).length);
-    res.json({ success: true, data: { test: t, status } });
+    // Sanitize test data - remove correct answers from questions for faculty
+    const sanitizedTest = {
+      _id: t._id,
+      name: t.name,
+      type: t.type,
+      durationMinutes: t.durationMinutes,
+      startTime: t.startTime,
+      endTime: t.endTime,
+      questions: t.questions.map((q, idx) => {
+        // Normalize options - handle both string arrays and object arrays
+        const normalizedOptions = Array.isArray(q.options) 
+          ? q.options.map(opt => typeof opt === 'string' ? opt : (opt.text || String(opt)))
+          : [];
+        
+        console.log(`[Faculty Results] Q${idx + 1}: "${q.text}" has ${normalizedOptions.length} options`);
+        
+        return {
+          text: q.text,
+          options: normalizedOptions,
+          // DO NOT include correctIndex or correctIndices for faculty
+        };
+      })
+    };
+    
+    console.log('[Institution.getTestResultsForFaculty] ✓ found results - total students:', studentIds.length, ', completed:', attempts.filter(a => a.completedAt).length, ', questions:', sanitizedTest.questions.length);
+    res.json({ success: true, data: { test: sanitizedTest, status } });
   } catch (err) {
     console.error('[Institution.getTestResultsForFaculty] ✗ error:', err.message);
     res.status(500).json({ success: false, message: 'failed to get results' });
