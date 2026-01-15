@@ -73,7 +73,48 @@ const InstitutionManagement: React.FC = () => {
 
   const remove = async (id: string) => {
     const token = localStorage.getItem('admin_token');
-  console.log('[InstitutionManagement] RENDERING - items:', items.length, 'loading:', loading, 'error:', error);
+    const delHeaders: Record<string, string> = {};
+    if (token) delHeaders.Authorization = `Bearer ${token}`;
+    const res = await fetch(`${BACKEND}/admin/institutions/${id}`, { method: 'DELETE', headers: delHeaders });
+    const b = await res.json().catch(() => ({}));
+    if (res.ok && b.success) setItems((s) => s.filter((it) => it.id !== id));
+    else alert(b.message || 'Could not delete');
+  };
+
+  // Batches Modal Logic
+  const [viewingBatchesFor, setViewingBatchesFor] = useState<string | null>(null);
+  const [batches, setBatches] = useState<any[]>([]);
+  const [batchesLoading, setBatchesLoading] = useState(false);
+
+  const viewBatches = async (instId: string) => {
+    setViewingBatchesFor(instId);
+    setBatchesLoading(true);
+    setBatches([]);
+    
+    const token = localStorage.getItem('admin_token');
+    const headers: Record<string, string> = {};
+    if (token) headers.Authorization = `Bearer ${token}`;
+
+    try {
+      const res = await fetch(`${BACKEND}/admin/institution/${instId}/batches`, { headers });
+      const b = await res.json();
+      if (b.success) {
+        setBatches(b.data || []);
+      } else {
+        alert(b.message || 'Failed to load batches');
+      }
+    } catch (e) {
+      console.error(e);
+      alert('Error loading batches');
+    } finally {
+      setBatchesLoading(false);
+    }
+  };
+
+  const closeBatchesModal = () => {
+    setViewingBatchesFor(null);
+    setBatches([]);
+  };
 
   if (loading) {
     return (
@@ -96,14 +137,6 @@ const InstitutionManagement: React.FC = () => {
       </div>
     );
   }
-
-    const delHeaders: Record<string, string> = {};
-    if (token) delHeaders.Authorization = `Bearer ${token}`;
-    const res = await fetch(`${BACKEND}/admin/institutions/${id}`, { method: 'DELETE', headers: delHeaders });
-    const b = await res.json().catch(() => ({}));
-    if (res.ok && b.success) setItems((s) => s.filter((it) => it.id !== id));
-    else alert(b.message || 'Could not delete');
-  };
 
   return (
     <div className="min-h-screen bg-red-50 p-6">
@@ -132,20 +165,71 @@ const InstitutionManagement: React.FC = () => {
 
         <div className="grid gap-4">
           {items.map((it) => (
-            <InstitutionItem key={it.id} item={it} onDelete={remove} onUpdated={(u) => setItems((s) => s.map((x) => x.id === u.id ? { ...x, ...u } : x))} />
+            <InstitutionItem 
+              key={it.id} 
+              item={it} 
+              onDelete={remove} 
+              onUpdated={(u) => setItems((s) => s.map((x) => x.id === u.id ? { ...x, ...u } : x))}
+              onViewBatches={() => viewBatches(it.id)}
+            />
           ))}
         </div>
         <div className="mt-6">
           <button onClick={() => (window.location.href = '/admin/dashboard')} className="px-4 py-2 bg-white border rounded">Back</button>
         </div>
       </div>
+
+      {/* Batches Modal */}
+      {viewingBatchesFor && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[80vh] flex flex-col">
+            <div className="p-4 border-b flex justify-between items-center">
+              <h3 className="text-xl font-bold text-gray-800">Institution Batches</h3>
+              <button onClick={closeBatchesModal} className="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+            </div>
+            <div className="p-4 overflow-y-auto flex-1">
+              {batchesLoading ? (
+                <div className="text-center py-8 text-gray-500">Loading batches...</div>
+              ) : batches.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">No batches found for this institution.</div>
+              ) : (
+                <div className="space-y-3">
+                  {batches.map((batch) => (
+                    <div key={batch._id} className="border rounded p-3 bg-gray-50">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h4 className="font-semibold text-gray-800">{batch.name}</h4>
+                          <div className="text-sm text-gray-600 mt-1">
+                            Created: {new Date(batch.createdAt).toLocaleDateString()}
+                          </div>
+                        </div>
+                        <div className="text-right text-sm">
+                          <div className="text-gray-700">
+                            Faculty: <span className="font-medium">{batch.faculty?.name || 'Unassigned'}</span>
+                          </div>
+                          <div className="text-gray-700 mt-1">
+                            Students: <span className="font-medium">{batch.students?.length || 0}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="p-4 border-t bg-gray-50 rounded-b-lg text-right">
+              <button onClick={closeBatchesModal} className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded text-gray-800">Close</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
 export default InstitutionManagement;
 
-const InstitutionItem: React.FC<{ item: any; onDelete: (id: string) => void; onUpdated: (u: any) => void }> = ({ item, onDelete, onUpdated }) => {
+const InstitutionItem: React.FC<{ item: any; onDelete: (id: string) => void; onUpdated: (u: any) => void; onViewBatches: () => void }> = ({ item, onDelete, onUpdated, onViewBatches }) => {
   const [editing, setEditing] = React.useState(false);
   const [form, setForm] = React.useState({ name: item.name || '', facultyLimit: item.facultyLimit ?? '', studentLimit: item.studentLimit ?? '', batchLimit: item.batchLimit ?? '', testLimit: item.testLimit ?? '' });
 
@@ -198,6 +282,7 @@ const InstitutionItem: React.FC<{ item: any; onDelete: (id: string) => void; onU
           </>
         ) : (
           <>
+            <button onClick={onViewBatches} className="px-3 py-1 bg-teal-600 text-white rounded">Batches</button>
             <Link to={`/admin/institution/${item.id}/chat`} className="px-3 py-1 bg-indigo-600 text-white rounded">Chat</Link>
             <button onClick={() => setEditing(true)} className="px-3 py-1 bg-blue-600 text-white rounded">Edit</button>
             <button onClick={() => onDelete(item.id)} className="px-3 py-1 bg-red-600 text-white rounded">Delete</button>

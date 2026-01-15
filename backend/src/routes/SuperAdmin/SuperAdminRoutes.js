@@ -27,4 +27,7 @@ router.put('/admins/:id', SuperAdminControllers.updateAdmin);
 console.log('[SuperAdminRoutes] DELETE /admins/:id - Delete admin (superadmin)');
 router.delete('/admins/:id', SuperAdminControllers.deleteAdmin);
 
+console.log('[SuperAdminRoutes] GET /system-vitals - Get system vitals');
+router.get('/system-vitals', SuperAdminControllers.getSystemVitals);
+
 module.exports = router;

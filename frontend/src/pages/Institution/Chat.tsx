@@ -17,7 +17,7 @@ const InstitutionChat: React.FC = () => {
     } catch (err) { console.error(err); }
   };
 
-  useEffect(() => { load(); const id = setInterval(load, 5000); return () => clearInterval(id); }, []);
+  useEffect(() => { load(); const id = setInterval(load, 5001); return () => clearInterval(id); }, []);
 
   useEffect(()=>{ if (ref.current) ref.current.scrollTop = ref.current.scrollHeight; }, [msgs]);
 

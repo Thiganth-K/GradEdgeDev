@@ -16,6 +16,16 @@ const Dashboard: React.FC = () => {
       </header>
       <main className="max-w-6xl mx-auto">
         <AdminManagement />
+        <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="bg-white p-6 rounded shadow cursor-pointer hover:shadow-lg transition-shadow" onClick={() => window.location.href='/superadmin/logs'}>
+                <h3 className="text-xl font-bold text-gray-800 mb-2">System Logs</h3>
+                <p className="text-gray-600">View detailed system logs and audit trails.</p>
+            </div>
+            <div className="bg-white p-6 rounded shadow cursor-pointer hover:shadow-lg transition-shadow" onClick={() => window.location.href='/superadmin/system-status'}>
+                <h3 className="text-xl font-bold text-gray-800 mb-2">System Vitals</h3>
+                <p className="text-gray-600">Monitor MongoDB status, CPU, RAM and uptime.</p>
+            </div>
+        </div>
       </main>
     </div>
   );

@@ -139,4 +139,35 @@ const deleteAdmin = async (req, res) => {
   }
 };
 
-module.exports = { login, getInstitutions, getLogs, listAdmins, createAdmin, updateAdmin, deleteAdmin };
+const os = require('os');
+const mongoose = require('mongoose');
+
+const getSystemVitals = async (req, res) => {
+  try {
+    const user = req.superadmin?.username || 'anonymous';
+    console.log('[SuperAdmin.getSystemVitals] called by', user);
+
+    const mongoStatus = {
+      state: mongoose.connection.readyState, // 0: disconnected, 1: connected, 2: connecting, 3: disconnecting
+      host: mongoose.connection.host,
+      name: mongoose.connection.name,
+    };
+
+    const system = {
+      uptime: os.uptime(),
+      totalMem: os.totalmem(),
+      freeMem: os.freemem(),
+      loadAvg: os.loadavg(), // [1, 5, 15] min
+      platform: os.platform(),
+      cpus: os.cpus().length,
+    };
+
+    console.log('[SuperAdmin.getSystemVitals] ✓ returning vitals');
+    res.json({ success: true, data: { mongoStatus, system } });
+  } catch (err) {
+    console.error('[SuperAdmin.getSystemVitals] ✗ error:', err.message);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+module.exports = { login, getInstitutions, getLogs, listAdmins, createAdmin, updateAdmin, deleteAdmin, getSystemVitals };

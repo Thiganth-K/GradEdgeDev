@@ -27,7 +27,7 @@ const InstitutionChatAdmin: React.FC = () => {
     } catch (err) { console.error(err); }
   };
 
-  useEffect(() => { load(1); let idt: any = null; if (page === 1) idt = setInterval(()=>load(1), 5000); return () => { if (idt) clearInterval(idt); }; }, [id, page]);
+  useEffect(() => { load(1); let idt: any = null; if (page === 1) idt = setInterval(()=>load(1), 5001); return () => { if (idt) clearInterval(idt); }; }, [id, page]);
   useEffect(()=>{ if (ref.current) ref.current.scrollTop = ref.current.scrollHeight; }, [msgs]);
 
   const send = async (e?: React.FormEvent) => {

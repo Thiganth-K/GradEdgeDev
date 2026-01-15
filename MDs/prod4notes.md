@@ -7,7 +7,6 @@
 - superadmin dashboard -> *Najila*
 
 
-
 **Admin**
 - the admin dashboard to be designed -> *Najla*
 - neat institution management page -> *Neha*
