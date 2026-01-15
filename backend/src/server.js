@@ -91,6 +91,15 @@ app.use('/admin', adminRoutes);
 const institutionRoutes = require('./routes/Institution/InstitutionRoutes');
 app.use('/institution', institutionRoutes);
 
+// Faculty routes
+try {
+  const facultyRoutes = require('./routes/Faculty/FacultyRoutes');
+  app.use('/faculty', facultyRoutes);
+  console.log('[SERVER] Faculty routes registered at /faculty');
+} catch (e) {
+  console.log('[SERVER] No faculty routes registered:', e && e.message);
+}
+
 // Contributor routes
 try {
   const contributorRoutes = require('./routes/Contributor/ContributorRoutes');

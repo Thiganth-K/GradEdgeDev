@@ -40,7 +40,7 @@ const FacultyManagement: React.FC = () => {
           <select value={role} onChange={(e) => setRole(e.target.value)} className="border p-2">
             <option value="aptitude">Aptitude</option>
             <option value="technical">Technical</option>
-            <option value="psycometric">Psycometric</option>
+            <option value="psychometric">psychometric</option>
           </select>
           <button className="px-4 py-2 bg-red-600 text-white rounded">Create Faculty</button>
         </form>

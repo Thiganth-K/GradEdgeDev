@@ -10,6 +10,8 @@ const QuestionSchema = new mongoose.Schema({
   options: { type: [OptionSchema], validate: v => Array.isArray(v) && v.length >= 2 },
   // Legacy field for backward compatibility - keep for single-answer questions
   correctIndex: { type: Number },
+  // NEW: Multiple correct answers support
+  correctIndices: [{ type: Number }],
   // New field: multiple correct answers support via isCorrect in options
   // If correctIndex is present, it takes precedence for backward compatibility
   category: { type: String, enum: ['aptitude', 'technical', 'psychometric'], required: true },
@@ -41,12 +43,17 @@ QuestionSchema.methods.getMainTopic = function() {
 
 // Helper method to get all correct answers
 QuestionSchema.methods.getCorrectAnswers = function() {
-  // For backward compatibility, check correctIndex first
+  // Priority 1: Check correctIndices array
+  if (Array.isArray(this.correctIndices) && this.correctIndices.length > 0) {
+    return this.correctIndices;
+  }
+  
+  // Priority 2: For backward compatibility, check correctIndex
   if (this.correctIndex !== undefined && this.correctIndex !== null) {
     return [this.correctIndex];
   }
   
-  // Otherwise, return all options marked as correct
+  // Priority 3: Return all options marked as correct
   const correctIndices = [];
   this.options.forEach((option, index) => {
     if (option.isCorrect) {

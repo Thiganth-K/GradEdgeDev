@@ -7,6 +7,7 @@ interface Question {
   text: string;
   options: { text: string; isCorrect?: boolean }[];
   correctIndex?: number;
+  correctIndices?: number[];
   category: string;
   subtopic: string;
   difficulty: 'easy' | 'medium' | 'hard';
@@ -62,12 +63,15 @@ const ContributorLibrary: React.FC = () => {
   };
 
   const getCorrectAnswers = (question: Question): number[] => {
-    // For backward compatibility, check correctIndex first
+    // Priority: correctIndices > correctIndex > isCorrect in options
+    if (Array.isArray(question.correctIndices) && question.correctIndices.length > 0) {
+      return question.correctIndices;
+    }
+    
     if (question.correctIndex !== undefined && question.correctIndex !== null) {
       return [question.correctIndex];
     }
     
-    // Otherwise, return all options marked as correct
     const correctIndices: number[] = [];
     question.options.forEach((option, index) => {
       if (option.isCorrect) {
