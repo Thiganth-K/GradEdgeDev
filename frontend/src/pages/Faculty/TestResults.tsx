@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-
-const BACKEND = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+import API_BASE_URL, { getApiUrl } from '../../lib/api';
 
 const FacultyTestResults: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -14,7 +13,20 @@ const FacultyTestResults: React.FC = () => {
   const load = async () => {
     setError(null);
     try {
-      const res = await fetch(`${BACKEND}/institution/faculty/tests/${id}/results`, { headers: { Authorization: `Bearer ${token}` } });
+      // Try the new faculty evaluation endpoint that includes correct answers
+      const res = await fetch(getApiUrl(`/faculty/tests/${id}/evaluation`), { headers: { Authorization: `Bearer ${token}` } });
+      if (res.status === 404) {
+        // Evaluation endpoint not available in this deployment — fall back to older results endpoint
+        console.warn('[FacultyTestResults] evaluation endpoint 404, falling back to institution results');
+        const fallback = await fetch(getApiUrl(`/institution/faculty/tests/${id}/results`), { headers: { Authorization: `Bearer ${token}` } });
+        const fbBody = await fallback.json().catch(() => ({}));
+        if (!fallback.ok || !fbBody.success) throw new Error(fbBody.message || 'failed to load fallback results');
+        setData(fbBody.data);
+        const completed = fbBody.data?.status?.find((s: any) => s.status === 'completed');
+        if (completed) setSelectedStudent(completed.studentId);
+        return;
+      }
+
       const body = await res.json().catch(() => ({}));
       if (!res.ok || !body.success) throw new Error(body.message || 'failed to load results');
       setData(body.data);
@@ -128,32 +140,61 @@ const FacultyTestResults: React.FC = () => {
                   {test.questions.map((q: any, qIdx: number) => {
                     const response = currentStudent.responses?.[qIdx];
                     const isCorrect = response?.correct;
+                    
+                    // Get selected answer(s)
+                    const selectedIndices = Array.isArray(response?.selectedIndices) && response.selectedIndices.length > 0
+                      ? response.selectedIndices
+                      : (typeof response?.selectedIndex === 'number' ? [response.selectedIndex] : []);
+                    
+                    // Get correct answer(s) from the question
+                    const correctIndices = Array.isArray(q.correctIndices) && q.correctIndices.length > 0
+                      ? q.correctIndices
+                      : (typeof q.correctIndex === 'number' ? [q.correctIndex] : []);
+                    
+                    const isMultipleAnswer = q.isMultipleAnswer || correctIndices.length > 1;
+                    
                     return (
                       <div key={qIdx} className={`border-l-4 p-4 rounded ${isCorrect ? 'bg-green-50 border-l-green-500' : 'bg-red-50 border-l-red-500'}`}>
                         <div className="font-semibold mb-3 flex items-center justify-between">
                           <span>Q{qIdx + 1}. {q.text}</span>
-                          <span className={`text-sm font-bold px-2 py-1 rounded ${isCorrect ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'}`}>
-                            {isCorrect ? '✓ Correct' : '✗ Wrong'}
-                          </span>
+                          <div className="flex items-center gap-2">
+                            {isMultipleAnswer && (
+                              <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded">
+                                ℹ️ Multiple correct answers
+                              </span>
+                            )}
+                            <span className={`text-sm font-bold px-2 py-1 rounded ${isCorrect ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'}`}>
+                              {isCorrect ? '✓ Correct' : '✗ Wrong'}
+                            </span>
+                          </div>
                         </div>
                         <div className="space-y-2 ml-2">
-                          {q.options.map((opt: string, optIdx: number) => {
-                            const isCorrectOption = optIdx === q.correctIndex;
-                            const isSelectedOption = optIdx === response?.selectedIndex;
+                          {q.options.map((opt: any, optIdx: number) => {
+                            const optionText = typeof opt === 'string' ? opt : opt?.text || '';
+                            const isSelectedOption = selectedIndices.includes(optIdx);
+                            const isCorrectOption = correctIndices.includes(optIdx);
+                            
+                            let bgColor = 'border-gray-300 bg-white';
+                            let borderColor = 'border-gray-300';
+                            
+                            if (isCorrectOption) {
+                              bgColor = 'bg-green-100 border-green-500';
+                              borderColor = 'border-green-500';
+                            }
+                            if (isSelectedOption) {
+                              bgColor = isCorrectOption ? 'bg-green-200 border-green-600' : 'bg-red-100 border-red-500';
+                              borderColor = isCorrectOption ? 'border-green-600' : 'border-red-500';
+                            }
+                            
                             return (
                               <div
                                 key={optIdx}
-                                className={`p-2 rounded border ${
-                                  isCorrectOption
-                                    ? 'border-green-500 bg-green-100'
-                                    : isSelectedOption && !isCorrectOption
-                                      ? 'border-red-500 bg-red-100'
-                                      : 'border-gray-300'
-                                }`}
+                                className={`p-2 rounded border-2 ${bgColor} ${borderColor}`}
                               >
-                                <span className="font-medium">{String.fromCharCode(65 + optIdx)})</span> {opt}
+                                <span className="font-medium">{String.fromCharCode(65 + optIdx)})</span> {optionText}
                                 {isCorrectOption && <span className="ml-2 text-green-700 font-bold">✓ Correct Answer</span>}
-                                {isSelectedOption && !isCorrectOption && <span className="ml-2 text-red-700 font-bold">✗ Student Answer</span>}
+                                {isSelectedOption && !isCorrectOption && <span className="ml-2 text-red-700 font-bold">✗ Student's Wrong Answer</span>}
+                                {isSelectedOption && isCorrectOption && <span className="ml-2 text-green-700 font-bold">✓ Student's Correct Answer</span>}
                               </div>
                             );
                           })}

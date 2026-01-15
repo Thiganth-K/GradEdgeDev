@@ -12,8 +12,9 @@ interface QuestionRequest {
 
 interface DraftedQuestion {
   text: string;
-  options: { text: string }[];
-  correctIndex: number;
+  options: { text: string; isCorrect?: boolean }[];
+  // correctIndex is legacy (single-answer); keep optional for backward compatibility
+  correctIndex?: number;
   category: string;
   difficulty: string;
   tags: string[];
@@ -359,21 +360,24 @@ const ContributorRequestManagement: React.FC = () => {
                         <p className="text-gray-800 mb-3 font-medium">{q.text}</p>
                         
                         <div className="space-y-2 mb-3">
-                          {q.options.map((opt, optIndex) => (
-                            <div 
-                              key={optIndex} 
-                              className={`px-3 py-2 rounded ${
-                                optIndex === q.correctIndex 
-                                  ? 'bg-green-100 border-2 border-green-500 text-green-800 font-semibold' 
-                                  : 'bg-white border border-gray-300 text-gray-700'
-                              }`}
-                            >
-                              {String.fromCharCode(65 + optIndex)}. {opt.text}
-                              {optIndex === q.correctIndex && (
-                                <span className="ml-2 text-green-600">✓ Correct</span>
-                              )}
-                            </div>
-                          ))}
+                          {q.options.map((opt, optIndex) => {
+                            const isCorrect = (q.correctIndex !== undefined && q.correctIndex === optIndex) || (!!opt.isCorrect);
+                            return (
+                              <div
+                                key={optIndex}
+                                className={`px-3 py-2 rounded ${
+                                  isCorrect
+                                    ? 'bg-green-100 border-2 border-green-500 text-green-800 font-semibold'
+                                    : 'bg-white border border-gray-300 text-gray-700'
+                                }`}
+                              >
+                                {String.fromCharCode(65 + optIndex)}. {opt.text}
+                                {isCorrect && (
+                                  <span className="ml-2 text-green-600">✓ Correct</span>
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
 
                         {q.tags && q.tags.length > 0 && (

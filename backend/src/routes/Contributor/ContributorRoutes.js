@@ -1,7 +1,30 @@
 const express = require('express');
 const router = express.Router();
+const multer = require('multer');
 const ContributorControllers = require('../../controllers/Contributor/ContributorControllers');
+const BulkQuestionControllers = require('../../controllers/Contributor/BulkQuestionControllers');
 const verifyContributor = require('../../middleware/verifyContributor');
+
+// Configure multer for file upload (memory storage)
+const upload = multer({ 
+  storage: multer.memoryStorage(),
+  limits: { 
+    fileSize: 10 * 1024 * 1024 // 10MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    // Accept only Excel files
+    const allowedMimes = [
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
+      'application/vnd.ms-excel', // .xls
+      'text/csv' // .csv
+    ];
+    if (allowedMimes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only Excel files (.xlsx, .xls, .csv) are allowed'));
+    }
+  }
+});
 
 console.log('[ContributorRoutes] POST /login - Contributor login');
 router.post('/login', ContributorControllers.login);
@@ -35,5 +58,17 @@ router.post('/chat/read', verifyContributor, ContributorControllers.markMessages
 
 console.log('[ContributorRoutes] GET /chat/unread - Get unread message count');
 router.get('/chat/unread', verifyContributor, ContributorControllers.getUnreadCount);
+
+console.log('[ContributorRoutes] GET /library/my-questions - Get my library questions');
+router.get('/library/my-questions', verifyContributor, ContributorControllers.getMyLibraryQuestions);
+
+console.log('[ContributorRoutes] GET /library/structure - Get library structure');
+router.get('/library/structure', verifyContributor, ContributorControllers.getLibraryStructure);
+
+console.log('[ContributorRoutes] GET /bulk/template - Download bulk question template');
+router.get('/bulk/template', verifyContributor, BulkQuestionControllers.generateTemplate);
+
+console.log('[ContributorRoutes] POST /bulk/parse - Parse uploaded bulk question file');
+router.post('/bulk/parse', verifyContributor, upload.single('file'), BulkQuestionControllers.parseUploadedFile);
 
 module.exports = router;

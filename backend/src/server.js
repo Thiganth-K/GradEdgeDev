@@ -17,7 +17,7 @@ console.log('[ENV] INSTITUTION_JWT_SECRET set:', _instSecret ? 'yes' : 'no');
 console.log('[ENV] MONGO_URI set:', _mongoUri ? 'yes' : 'no');
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 
 app.use(cors());
 app.use(express.json());
@@ -90,6 +90,15 @@ app.use('/admin', adminRoutes);
 // Institution public routes
 const institutionRoutes = require('./routes/Institution/InstitutionRoutes');
 app.use('/institution', institutionRoutes);
+
+// Faculty routes
+try {
+  const facultyRoutes = require('./routes/Faculty/FacultyRoutes');
+  app.use('/faculty', facultyRoutes);
+  console.log('[SERVER] Faculty routes registered at /faculty');
+} catch (e) {
+  console.log('[SERVER] No faculty routes registered:', e && e.message);
+}
 
 // Contributor routes
 try {

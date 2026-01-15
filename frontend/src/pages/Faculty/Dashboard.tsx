@@ -3,7 +3,7 @@ import Noticeboard from '../../components/Faculty/Noticeboard';
 import BatchList from '../../components/Faculty/BatchList';
 import type { Announcement, Batch } from '../../components/Faculty/types';
 
-const BACKEND = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const BACKEND = import.meta.env.VITE_API_URL || 'http://localhost:5001';
 
 const FacultyDashboard: React.FC = () => {
   const stored = typeof window !== 'undefined' ? localStorage.getItem('faculty_data') : null;
