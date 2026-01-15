@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import InstitutionAnnouncements from '../../components/Institution/Announcements';
+import InstitutionSidebar from '../../components/Institution/Sidebar';
 
 const BACKEND = import.meta.env.VITE_API_URL || 'http://localhost:5001';
 
@@ -135,7 +136,9 @@ const InstitutionDashboard: React.FC = () => {
   ) : null;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="flex min-h-screen bg-gray-50">
+      <InstitutionSidebar />
+      <main className="flex-1 h-screen overflow-y-auto">
       <div className="bg-gradient-to-r from-red-600 to-red-700 text-white">
         <div className="max-w-7xl mx-auto px-8 py-6">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -370,6 +373,7 @@ const InstitutionDashboard: React.FC = () => {
           <InstitutionAnnouncements />
         </div>
       </div>
+      </main>
     </div>
   );
 };

@@ -10,6 +10,9 @@ const ContributorManagement: React.FC = () => {
   const [list, setList] = useState<Contributor[]>([]);
   const [msg, setMsg] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState<string | null>(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [editingContributor, setEditingContributor] = useState<Contributor | null>(null);
+
 
   const token = localStorage.getItem('admin_token') || '';
 
@@ -57,7 +60,7 @@ const ContributorManagement: React.FC = () => {
   return (
     <div className="flex min-h-screen">
       <Sidebar />
-      <div className="flex-1 bg-gray-50 p-8">
+      <div className="flex-1 h-screen overflow-y-auto bg-gray-50 p-8">
         <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
@@ -94,7 +97,7 @@ const ContributorManagement: React.FC = () => {
             <h3 className="text-xl font-semibold text-gray-700 mb-2">No Contributors Yet</h3>
             <p className="text-gray-500 mb-6">Get started by adding your first contributor</p>
             <button
-              onClick={() => navigate('/admin/contributors/create')}
+              onClick={() => setShowCreateModal(true)}
               className="bg-red-600 hover:bg-red-700 text-white font-medium px-6 py-3 rounded-lg transition-colors"
             >
               Create First Contributor
@@ -143,7 +146,7 @@ const ContributorManagement: React.FC = () => {
                   {/* Actions */}
                   <div className="col-span-3 flex items-center justify-end gap-2">
                     <button
-                      onClick={() => navigate(`/admin/contributors/edit/${c.id}`)}
+                      onClick={() => setEditingContributor(c)}
                       className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
                       title="Edit"
                     >
@@ -198,7 +201,7 @@ const ContributorManagement: React.FC = () => {
         {/* Floating Action Button */}
         {list.length > 0 && (
           <button
-            onClick={() => navigate('/admin/contributors/create')}
+            onClick={() => setShowCreateModal(true)}
             className="fixed bottom-8 right-8 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-semibold px-6 py-4 rounded-full shadow-2xl transition-all flex items-center gap-2 hover:scale-105"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -207,10 +210,151 @@ const ContributorManagement: React.FC = () => {
             <span>Add Contributor</span>
           </button>
         )}
+
+        {/* Create Contributor Modal */}
+        {showCreateModal && (
+          <CreateContributorModal
+            onClose={() => setShowCreateModal(false)}
+            onCreated={() => { setShowCreateModal(false); fetchList(); }}
+          />
+        )}
+
+        {editingContributor && (
+          <CreateContributorModal
+            initial={editingContributor}
+            onClose={() => setEditingContributor(null)}
+            onUpdated={() => { setEditingContributor(null); fetchList(); }}
+          />
+        )}
         </div>
       </div>
     </div>
   );
 };
-
+ 
 export default ContributorManagement;
+
+// Inline modal component for creating a contributor
+const CreateContributorModal: React.FC<{ onClose: () => void; onCreated?: () => void; initial?: Contributor; onUpdated?: () => void }> = ({ onClose, onCreated, initial, onUpdated }) => {
+  const [username, setUsername] = useState(initial?.username || '');
+  const [password, setPassword] = useState('');
+  const [fname, setFname] = useState(initial?.fname || '');
+  const [lname, setLname] = useState(initial?.lname || '');
+  const [contact, setContact] = useState(initial?.contact || '');
+  const [email, setEmail] = useState(initial?.email || '');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const token = localStorage.getItem('admin_token') || '';
+  const makeHeadersLocal = (contentType = false) => {
+    const h: Record<string, string> = {};
+    if (contentType) h['Content-Type'] = 'application/json';
+    if (token) h.Authorization = `Bearer ${token}`;
+    return h;
+  };
+
+  const handleCreateOrUpdate = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    setError(null);
+    if (!username || !fname || !lname) {
+      setError('Please fill required fields');
+      return;
+    }
+    if (!initial && !password) {
+      setError('Password is required for new contributor');
+      return;
+    }
+    setLoading(true);
+    try {
+      if (initial) {
+        // update
+        const res = await apiFetch(`/admin/contributors/${initial.id}`, {
+          method: 'PUT',
+          headers: makeHeadersLocal(true),
+          body: JSON.stringify({ username, fname, lname, contact, email, password: password || undefined }),
+        });
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          setError(body.message || 'Failed to update contributor');
+          setLoading(false);
+          return;
+        }
+        onUpdated && onUpdated();
+      } else {
+        // create
+        const res = await apiFetch('/admin/contributors', {
+          method: 'POST',
+          headers: makeHeadersLocal(true),
+          body: JSON.stringify({ username, password, fname, lname, contact, email }),
+        });
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          setError(body.message || 'Failed to create contributor');
+          setLoading(false);
+          return;
+        }
+        onCreated && onCreated();
+      }
+    } catch (err: any) {
+      setError(err.message || 'Network error');
+      setLoading(false);
+      return;
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+        <div className="sticky top-0 bg-gradient-to-r from-red-600 to-red-700 text-white p-6 rounded-t-xl flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-lg font-bold">{initial ? 'Edit Contributor' : 'Create Contributor'}</h2>
+              <p className="text-red-100 text-sm">{initial ? 'Update contributor details' : 'Add a new content contributor'}</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="text-white hover:bg-white hover:bg-opacity-20 rounded-lg p-2 transition-colors">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <form onSubmit={handleCreateOrUpdate} className="p-6">
+          {error && <div className="mb-4 text-sm p-3 rounded bg-red-50 text-red-700 border border-red-100">{error}</div>}
+          <div className="grid grid-cols-3 gap-6">
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Username <span className="text-red-500">*</span></label>
+              <input value={username} onChange={(e)=>setUsername(e.target.value)} className="w-full border px-3 py-2 rounded" required />
+              <label className="block text-xs font-medium text-gray-700 mb-1 mt-4">Password {initial ? <span className="text-xs text-gray-500">(leave blank to keep)</span> : <span className="text-red-500">*</span>}</label>
+              <input type="password" value={password} onChange={(e)=>setPassword(e.target.value)} className="w-full border px-3 py-2 rounded" {...(initial ? {} : { required: true })} />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">First Name <span className="text-red-500">*</span></label>
+              <input value={fname} onChange={(e)=>setFname(e.target.value)} className="w-full border px-3 py-2 rounded" required />
+              <label className="block text-xs font-medium text-gray-700 mb-1 mt-4">Last Name <span className="text-red-500">*</span></label>
+              <input value={lname} onChange={(e)=>setLname(e.target.value)} className="w-full border px-3 py-2 rounded" required />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Contact</label>
+              <input value={contact} onChange={(e)=>setContact(e.target.value)} className="w-full border px-3 py-2 rounded" />
+              <label className="block text-xs font-medium text-gray-700 mb-1 mt-4">Email</label>
+              <input type="email" value={email} onChange={(e)=>setEmail(e.target.value)} className="w-full border px-3 py-2 rounded" />
+            </div>
+          </div>
+
+          <div className="flex gap-3 mt-6 pt-6 border-t border-gray-200">
+            <button type="submit" disabled={loading} className="flex-1 bg-gradient-to-r from-red-600 to-red-700 text-white py-3 rounded-lg">
+              {loading ? (initial ? 'Updating...' : 'Creating...') : (initial ? 'Update Contributor' : 'Create Contributor')}
+            </button>
+            <button type="button" onClick={onClose} className="px-6 py-3 border rounded">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};

@@ -155,8 +155,8 @@ const Dashboard: React.FC = () => {
   return (
     <div className="flex min-h-screen bg-gray-50">
       <Sidebar />
-      <div className="flex-1 flex flex-col">
-        <div className="flex-1 p-8">
+      <div className="flex-1 h-screen overflow-y-auto">
+        <div className="p-8">
           {/* Welcome Header with Bell Icon */}
           <div className="mb-8 flex justify-between items-center">
             <div>
