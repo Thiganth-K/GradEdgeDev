@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { makeHeaders } from '../../lib/makeHeaders';
 import { apiFetch } from '../../lib/api';
+import Sidebar from '../../components/Admin/Sidebar';
 
 interface Message {
   senderRole: 'admin' | 'contributor';
@@ -160,22 +161,24 @@ const ContributorChatManagement: React.FC = () => {
   const totalUnread = chats.reduce((sum, chat) => sum + chat.unreadCountAdmin, 0);
 
   return (
-    <div className="p-6 bg-gray-100 min-h-screen">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="bg-white border-2 border-gray-300 rounded-lg shadow-lg p-6 mb-6">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-3xl font-bold text-black">Contributor Chat</h1>
-              <p className="text-gray-600 mt-1">Communicate with contributors</p>
-            </div>
-            {totalUnread > 0 && (
-              <div className="bg-red-600 text-white px-4 py-2 rounded-full font-semibold">
-                {totalUnread} unread message{totalUnread > 1 ? 's' : ''}
+    <div className="flex min-h-screen bg-gray-50">
+      <Sidebar />
+      <div className="flex-1 p-8">
+        <div className="max-w-7xl mx-auto">
+          {/* Header */}
+          <div className="bg-gradient-to-r from-red-600 to-red-800 text-white rounded-xl shadow-lg p-6 mb-6">
+            <div className="flex justify-between items-center">
+              <div>
+                <h1 className="text-3xl font-bold">Contributor Chat</h1>
+                <p className="text-red-100 mt-1">Communicate with contributors</p>
               </div>
-            )}
+              {totalUnread > 0 && (
+                <div className="bg-white text-red-600 px-4 py-2 rounded-full font-semibold shadow-lg">
+                  {totalUnread} unread message{totalUnread > 1 ? 's' : ''}
+                </div>
+              )}
+            </div>
           </div>
-        </div>
 
         {error && (
           <div className="bg-red-100 border-2 border-red-500 text-red-800 px-4 py-3 rounded-lg mb-6 font-semibold">
@@ -201,9 +204,10 @@ const ContributorChatManagement: React.FC = () => {
                 <div
                   key={chat._id}
                   onClick={() => handleSelectChat(chat)}
-                  className={`p-4 border-b border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors ${
-                    selectedChat?._id === chat._id ? 'bg-red-50 border-l-4 border-l-red-600' : ''
-                  }`}
+                  className={
+                    'p-4 border-b border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors ' +
+                    (selectedChat?._id === chat._id ? 'bg-red-50 border-l-4 border-l-red-600' : '')
+                  }
                 >
                   <div className="flex justify-between items-start mb-1">
                     <span className="font-semibold text-black">{chat.contributorName}</span>
@@ -257,15 +261,16 @@ const ContributorChatManagement: React.FC = () => {
                   {selectedChat.messages.map((msg, index) => (
                     <div
                       key={index}
-                      className={`flex ${msg.senderRole === 'admin' ? 'justify-end' : 'justify-start'}`}
+                      className={'flex ' + (msg.senderRole === 'admin' ? 'justify-end' : 'justify-start')}
                     >
                       <div
-                        className={`max-w-[70%] rounded-lg px-4 py-2 ${
-                          msg.senderRole === 'admin'
+                        className={
+                          'max-w-[70%] rounded-lg px-4 py-2 ' +
+                          (msg.senderRole === 'admin'
                             ? 'bg-red-600 text-white'
-                            : 'bg-white border-2 border-gray-300 text-black'
-                        }`}
-                      >
+                            : 'bg-white border-2 border-gray-300 text-black')
+                        }
+                        >
                         <div className="text-xs opacity-75 mb-1">
                           {msg.senderName} • {formatTime(msg.timestamp)}
                         </div>

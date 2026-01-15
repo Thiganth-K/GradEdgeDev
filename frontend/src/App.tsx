@@ -8,9 +8,11 @@ import AdminManagement from './pages/SuperAdmin/AdminManagementClean'
 import SystemVitals from './pages/SuperAdmin/SystemVitals'
 import AdminDashboard from './pages/Admin/Dashboard'
 import AdminInstitutionManagement from './pages/Admin/InstitutionManagement'
+import AdminCreateInstitution from './pages/Admin/CreateInstitution'
 import AdminViewLogs from './pages/Admin/ViewLogs'
 import AdminAnnouncementManagement from './pages/Admin/AnnouncementManagement'
 import AdminContributorManagement from './pages/Admin/ContributorManagement'
+import AdminCreateContributor from './pages/Admin/CreateContributor'
 import InstitutionChatAdmin from './pages/Admin/InstitutionChat'
 import InstitutionChat from './pages/Institution/Chat'
 import ChatWithAdmin from './pages/Institution/ChatWithAdmin'
@@ -49,9 +51,12 @@ const App: React.FC = () => {
         <Route path="/superadmin/system-vitals" element={<SystemVitals />} />
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
         <Route path="/admin/institutions" element={<AdminInstitutionManagement />} />
+        <Route path="/admin/institutions/create" element={<AdminCreateInstitution />} />
         <Route path="/admin/logs" element={<AdminViewLogs />} />
         <Route path="/admin/announcements" element={<AdminAnnouncementManagement />} />
         <Route path="/admin/contributors" element={<AdminContributorManagement />} />
+        <Route path="/admin/contributors/create" element={<AdminCreateContributor />} />
+        <Route path="/admin/contributors/edit/:id" element={<AdminCreateContributor />} />
         <Route path="/admin/institution/:id/chat" element={<InstitutionChatAdmin />} />
         <Route path="/institution/chat" element={<InstitutionChat />} />
         <Route path="/institution/admin-chat" element={<ChatWithAdmin />} />

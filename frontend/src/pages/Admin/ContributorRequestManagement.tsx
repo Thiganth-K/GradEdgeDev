@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { makeHeaders } from '../../lib/makeHeaders';
 import { apiFetch } from '../../lib/api';
+import Sidebar from '../../components/Admin/Sidebar';
 
 interface QuestionRequest {
   topic: string;
@@ -145,13 +146,15 @@ const ContributorRequestManagement: React.FC = () => {
   };
 
   return (
-    <div className="p-6 bg-gray-100 min-h-screen">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="bg-white border-2 border-gray-300 rounded-lg shadow-lg p-6 mb-6">
-          <h1 className="text-3xl font-bold text-black">Contributor Request Management</h1>
-          <p className="text-gray-600 mt-1">Review and manage question contribution requests</p>
-        </div>
+    <div className="flex min-h-screen bg-gray-50">
+      <Sidebar />
+      <div className="flex-1 p-8">
+        <div className="max-w-7xl mx-auto">
+          {/* Header */}
+          <div className="bg-gradient-to-r from-red-600 to-red-800 text-white rounded-xl shadow-lg p-6 mb-6">
+            <h1 className="text-3xl font-bold">Contributor Request Management</h1>
+            <p className="text-red-100 mt-1">Review and manage question contribution requests</p>
+          </div>
 
         {/* Messages */}
         {successMessage && (
@@ -441,6 +444,7 @@ const ContributorRequestManagement: React.FC = () => {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 };

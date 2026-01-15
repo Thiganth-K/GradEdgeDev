@@ -59,14 +59,13 @@ const AdminManagement: React.FC = () => {
   const del = async (id: string) => { if (!confirm('Delete admin?')) return; const token = localStorage.getItem('superadmin_token'); const headers: any = {}; if (token) headers.Authorization = `Bearer ${token}`; await fetch(`${BACKEND}/superadmin/admins/${id}`, { method: 'DELETE', headers }); load(); }
 
   return (
-    <div className="min-h-screen bg-red-50 p-6">
-      <div className="max-w-6xl mx-auto flex">
-        <Sidebar />
-
-        <main className="flex-1">
-          <div className="mb-6">
-            <h2 className="text-2xl font-bold text-red-700">Admin Management</h2>
-            <div className="mt-2 text-sm text-gray-600">Create and manage admin accounts for institutions</div>
+    <div className="flex min-h-screen">
+      <Sidebar />
+      <div className="flex-1 bg-gray-50 p-8">
+        <main className="max-w-7xl mx-auto">
+          <div className="mb-8">
+            <h2 className="text-3xl font-bold text-gray-900">Admin Management</h2>
+            <p className="text-gray-600">Create and manage admin accounts for institutions</p>
           </div>
 
           <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
