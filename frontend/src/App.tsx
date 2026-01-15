@@ -4,12 +4,15 @@ import Login from './pages/Login'
 import Dashboard from './pages/SuperAdmin/Dashboard'
 import InstitutionManagement from './pages/SuperAdmin/InstitutionManagement'
 import ViewLogs from './pages/SuperAdmin/ViewLogs'
-import SystemStatus from './pages/SuperAdmin/SystemStatus'
+import AdminManagement from './pages/SuperAdmin/AdminManagementClean'
+import SystemVitals from './pages/SuperAdmin/SystemVitals'
 import AdminDashboard from './pages/Admin/Dashboard'
 import AdminInstitutionManagement from './pages/Admin/InstitutionManagement'
+import AdminCreateInstitution from './pages/Admin/CreateInstitution'
 import AdminViewLogs from './pages/Admin/ViewLogs'
 import AdminAnnouncementManagement from './pages/Admin/AnnouncementManagement'
 import AdminContributorManagement from './pages/Admin/ContributorManagement'
+import AdminCreateContributor from './pages/Admin/CreateContributor'
 import InstitutionChatAdmin from './pages/Admin/InstitutionChat'
 import InstitutionChat from './pages/Institution/Chat'
 import ChatWithAdmin from './pages/Institution/ChatWithAdmin'
@@ -38,28 +41,24 @@ import './App.css'
 const App: React.FC = () => {
   return (
     <div>
-      <nav className="p-4 bg-white shadow">
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <div className="text-xl font-bold text-red-700">GradEdgeDev</div>
-          <div className="space-x-3">
-            <Link to="/login" className="text-sm text-gray-700">Login</Link>
-            <Link to="/superadmin/dashboard" className="text-sm text-gray-700">Dashboard</Link>
-          </div>
-        </div>
-      </nav>
+      
 
       <Routes>
         <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="/login" element={<Login />} />
         <Route path="/superadmin/dashboard" element={<Dashboard />} />
         <Route path="/superadmin/institutions" element={<InstitutionManagement />} />
+        <Route path="/superadmin/admins" element={<AdminManagement />} />
         <Route path="/superadmin/logs" element={<ViewLogs />} />
-        <Route path="/superadmin/system-status" element={<SystemStatus />} />
+        <Route path="/superadmin/system-vitals" element={<SystemVitals />} />
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
         <Route path="/admin/institutions" element={<AdminInstitutionManagement />} />
+        <Route path="/admin/institutions/create" element={<AdminCreateInstitution />} />
         <Route path="/admin/logs" element={<AdminViewLogs />} />
         <Route path="/admin/announcements" element={<AdminAnnouncementManagement />} />
         <Route path="/admin/contributors" element={<AdminContributorManagement />} />
+        <Route path="/admin/contributors/create" element={<AdminCreateContributor />} />
+        <Route path="/admin/contributors/edit/:id" element={<AdminCreateContributor />} />
         <Route path="/admin/institution/:id/chat" element={<InstitutionChatAdmin />} />
         <Route path="/institution/chat" element={<InstitutionChat />} />
         <Route path="/institution/admin-chat" element={<ChatWithAdmin />} />

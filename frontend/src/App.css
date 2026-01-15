@@ -1,0 +1,149 @@
+
+/* Hide browser-native password reveal icons (Chrome/Safari/Edge/IE) */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+	display: none;
+}
+
+/* WebKit-based browsers (Chrome, Safari) - best-effort selectors */
+input[type="password"]::-webkit-credentials-auto-fill-button,
+input[type="password"]::-webkit-textfield-decoration-container,
+input[type="password"]::-webkit-textfield-decoration-button {
+	display: none !important;
+}
+
+/* Ensure our toggle button doesn't get overlapped */
+.password-toggle-button {
+	position: relative;
+	z-index: 1;
+}
+
+/* Design tokens */
+:root{
+	--brand-primary:#C62828;
+	--brand-dark:#8E1B1B;
+	--brand-soft:#FDECEC;
+	--bg-soft:#FFF7F7;
+	--text-primary:#1F2937;
+	--text-secondary:#6B7280;
+	--border:#E5E7EB;
+	--card-radius:16px;
+}
+
+/* Container shadow & glass */
+.card-enterprise{
+	border-radius:20px;
+	box-shadow: 0 30px 60px rgba(0,0,0,0.12);
+}
+
+/* Left gradient panel */
+.left-gradient{
+	background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-dark) 100%);
+	position:relative;
+	overflow:hidden;
+}
+
+/* dotted pattern on left panel */
+.left-gradient::before{
+	content:'';
+	position:absolute; inset:0; pointer-events:none;
+	background-image: radial-gradient(rgba(255,255,255,0.06) 1px, transparent 1px);
+	background-size: 18px 18px;
+	opacity:0.35;
+}
+
+.glass-card{
+	backdrop-filter: blur(6px);
+	background: rgba(255,255,255,0.12);
+	border-radius: 9999px;
+}
+
+/* Inputs */
+.enterprise-input{
+	height:48px;
+	line-height:48px;
+	border-radius:10px;
+	border:1px solid var(--border);
+	padding-left:16px;
+	padding-right:16px;
+	font-size:14px;
+	-webkit-appearance: none;
+	appearance: none;
+}
+.enterprise-input:focus{
+	border-color: var(--brand-primary);
+	box-shadow: 0 0 0 6px rgba(198,40,40,0.08);
+	outline: none;
+}
+
+/* make inputs look like soft cards */
+.enterprise-input{
+	box-shadow: inset 0 1px 0 rgba(255,255,255,0.6), 0 6px 18px rgba(16,24,40,0.04);
+	background: linear-gradient(#ffffff, #fafafa);
+}
+
+/* Icon container inside input */
+.input-icon{
+	position:absolute; left:12px; top:50%; transform:translateY(-50%);
+	color:var(--brand-primary);
+}
+
+.input-wrapper{ position:relative }
+
+/* left icon circle inside inputs */
+.input-left-icon{ display:inline-flex; width:32px; height:32px; align-items:center; justify-content:center; border-radius:8px; background:rgba(198,40,40,0.06) }
+.input-left-icon svg{ color:var(--brand-primary) }
+
+/* Primary CTA */
+.cta-primary{
+	height:48px;
+	border-radius:12px;
+	background: linear-gradient(135deg, var(--brand-primary), var(--brand-dark));
+	color:white;
+	font-weight:600;
+	transition: all .18s ease;
+}
+.cta-primary:hover{ transform: translateY(-1px); box-shadow: 0 12px 24px rgba(198,40,40,0.25); }
+.cta-primary:disabled{ transform:none; opacity:0.7 }
+
+/* spinner */
+.cta-spinner{ width:16px; height:16px; border-radius:9999px; border:2px solid rgba(255,255,255,0.35); border-top-color:rgba(255,255,255,1); animation:spin .8s linear infinite; display:inline-block; vertical-align:middle }
+@keyframes spin{ to{ transform:rotate(360deg) } }
+
+/* small badges */
+.role-badge{ display:inline-block; background:rgba(255,255,255,0.08); color:rgba(255,255,255,0.92); padding:4px 8px; border-radius:999px; font-size:12px; margin-right:6px }
+
+/* password toggle helper */
+.password-toggle-button{ position:relative; z-index:20; background:transparent; border:0 }
+
+/* right eye circle */
+.toggle-circle{ display:inline-flex; width:34px; height:34px; align-items:center; justify-content:center; border-radius:999px; background:#ffffff; box-shadow: 0 6px 18px rgba(16,24,40,0.06); border:1px solid rgba(16,24,40,0.04) }
+
+/* Stronger rules to hide native browser password reveal / clear buttons */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear,
+input[type="password"]::-webkit-credentials-auto-fill-button,
+input[type="password"]::-webkit-textfield-decoration-button,
+input[type="password"]::-webkit-reveal-password-button,
+input[type="password"]::-webkit-reveal-password-icon,
+input[type="password"]::-webkit-clear-button,
+input[type="password"]::-webkit-search-decoration {
+	display: none !important;
+	-webkit-appearance: none !important;
+	appearance: none !important;
+}
+
+/* Left icon container positioning */
+.input-left-container{ 
+	position:absolute; 
+	top:0; 
+	bottom:0; 
+	left:8px; 
+	display:flex; 
+	align-items:center; 
+	pointer-events:none;
+}
+
+/* tooltip small helper for password */
+.field-help{ font-size:12px; color:var(--text-secondary) }
+

@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import AdminManagement from './AdminManagement';
+import Sidebar from '../../components/SuperAdmin/sidebar';
 
 const Dashboard: React.FC = () => {
   useEffect(() => {
@@ -10,23 +10,31 @@ const Dashboard: React.FC = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-red-50 p-6">
-      <header className="max-w-6xl mx-auto mb-6">
-        <h2 className="text-3xl font-bold text-red-700">SuperAdmin Dashboard — GradEdgeDev</h2>
-      </header>
-      <main className="max-w-6xl mx-auto">
-        <AdminManagement />
-        <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="bg-white p-6 rounded shadow cursor-pointer hover:shadow-lg transition-shadow" onClick={() => window.location.href='/superadmin/logs'}>
-                <h3 className="text-xl font-bold text-gray-800 mb-2">System Logs</h3>
-                <p className="text-gray-600">View detailed system logs and audit trails.</p>
+    <div className="flex min-h-screen">
+      <Sidebar />
+      <div className="flex-1 bg-gray-50 p-8">
+        <header className="mb-8">
+          <h2 className="text-3xl font-bold text-gray-900">SuperAdmin Dashboard</h2>
+          <p className="text-gray-600">Overview — quick links and system summary</p>
+        </header>
+
+        <main>
+          <div className="grid gap-6 md:grid-cols-3">
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+              <div className="text-sm text-gray-500 font-medium">Admins</div>
+              <div className="mt-2 text-2xl font-semibold text-gray-900">—</div>
             </div>
-            <div className="bg-white p-6 rounded shadow cursor-pointer hover:shadow-lg transition-shadow" onClick={() => window.location.href='/superadmin/system-status'}>
-                <h3 className="text-xl font-bold text-gray-800 mb-2">System Vitals</h3>
-                <p className="text-gray-600">Monitor MongoDB status, CPU, RAM and uptime.</p>
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+              <div className="text-sm text-gray-500 font-medium">Institutions</div>
+              <div className="mt-2 text-2xl font-semibold text-gray-900">—</div>
             </div>
-        </div>
-      </main>
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+              <div className="text-sm text-gray-500 font-medium">Recent Logs</div>
+              <div className="mt-2 text-2xl font-semibold text-gray-900">—</div>
+            </div>
+          </div>
+        </main>
+      </div>
     </div>
   );
 };
