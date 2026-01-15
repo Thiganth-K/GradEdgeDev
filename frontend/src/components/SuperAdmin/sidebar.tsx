@@ -13,6 +13,7 @@ const Sidebar: React.FC = () => {
     navigate('/login');
   };
 
+
   const menuItems = [
     {
       name: 'Dashboard',
@@ -96,6 +97,8 @@ const Sidebar: React.FC = () => {
             </button>
           );
         })}
+
+        {/* Institutions quick-list removed per request */}
       </nav>
 
       {/* User Profile & Sign Out */}
