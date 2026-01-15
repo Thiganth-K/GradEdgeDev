@@ -307,6 +307,7 @@ const ContributorChatManagement: React.FC = () => {
         </div>
       </div>
     </div>
+    </div>
   );
 };
 
