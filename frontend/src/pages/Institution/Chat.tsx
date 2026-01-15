@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 
-const BACKEND = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const BACKEND = import.meta.env.VITE_API_URL || 'http://localhost:5001';
 
 const InstitutionChat: React.FC = () => {
   const [msgs, setMsgs] = useState<any[]>([]);

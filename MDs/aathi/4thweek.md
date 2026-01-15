@@ -2,12 +2,14 @@
 - the contributor to post qns with the concepts style as a request. [done] [reviewed]
 - can able to see the request lists. [done] [reviewed]  
 - can able to communicate with their admin just a simple lms chat platform. [done] [reviewed]
-- notifications feature and the contributor to see what he contributed the qns with all the contents. [not done]
-- Bulk upload and the single upload with the excel and the img for the qns. [not done]
-- can able to contribute based on the role based [ aptitute, technical, pscometric ]. [not done]
+- notifications feature and the contributor to see what he contributed the qns with all the contents. [done]
+- Bulk upload and the single upload with the excel [done]
+- the img for the qns. [not done]
+- can able to contribute based on the role based [ aptitute, technical, pscometric ]. [done]
 - can able to decide the dificulty level of the each qns. [done] [reviewed]
 - contributor can do CRUD operation[done] [reviewed]
 - add filtering and sub topics (Q&A)
+- Added Library module with all integrations [done]
 
 **Admin**
 - admin can able to view the institution admin/ faculty/ student / contributor actions in the audit logs -> *Aathi*

@@ -7,6 +7,7 @@ const Contributor = require('../../models/Contributor');
 const ContributorRequest = require('../../models/ContributorRequest');
 const AdminContributorChat = require('../../models/AdminContributorChat');
 const Question = require('../../models/Question');
+const Library = require('../../models/Library');
 
 const login = async (req, res) => {
   const { username, password } = req.body || {};
@@ -483,9 +484,11 @@ const updateContributorRequestStatus = async (req, res) => {
           correctIndex: dq.correctIndex,
           category,
           difficulty: dq.difficulty,
+          subtopic: dq.subtopic, // Include subtopic for library organization
           tags: dq.tags || [],
           details: dq.details,
           createdByContributor: request.contributorId,
+          inLibrary: true, // Mark as in library by default when accepted
           createdAt: new Date()
         };
       });
@@ -493,6 +496,18 @@ const updateContributorRequestStatus = async (req, res) => {
       try {
         const savedQuestions = await Question.insertMany(questionsToSave);
         console.log('[Admin.updateContributorRequestStatus] ✓ saved', savedQuestions.length, 'questions to database');
+        
+        // Add each question to Library collection
+        for (const question of savedQuestions) {
+          try {
+            const mainTopic = question.category === 'aptitude' ? 'Aptitude' : 
+                             question.category === 'technical' ? 'Technical' : 'Psychometric';
+            await Library.addQuestionToLibrary(question._id, mainTopic, question.subtopic);
+            console.log('[Admin.updateContributorRequestStatus] ✓ added question', question._id, 'to library');
+          } catch (libErr) {
+            console.error('[Admin.updateContributorRequestStatus] ✗ error adding to library:', libErr.message);
+          }
+        }
       } catch (qErr) {
         console.error('[Admin.updateContributorRequestStatus] ✗ error saving questions:', qErr.message);
         // Continue with request update even if question save fails
@@ -660,6 +675,160 @@ const getUnreadMessagesCount = async (req, res) => {
   }
 };
 
+// Get library questions grouped by contributor
+const getLibraryQuestionsByContributor = async (req, res) => {
+  try {
+    const adminUser = req.admin && req.admin.username;
+    console.log('[Admin.getLibraryQuestionsByContributor] called by', adminUser);
+
+    // Get all library questions
+    const questions = await Question.find({ inLibrary: true })
+      .populate('createdByContributor', 'username fname lname')
+      .sort({ createdAt: -1 });
+
+    // Group by contributor
+    const grouped = {};
+    
+    questions.forEach(q => {
+      const contributor = q.createdByContributor;
+      if (!contributor) return; // Skip questions without contributor
+      
+      const contributorId = contributor._id.toString();
+      if (!grouped[contributorId]) {
+        grouped[contributorId] = {
+          contributor: {
+            id: contributor._id,
+            username: contributor.username,
+            fname: contributor.fname,
+            lname: contributor.lname
+          },
+          questions: []
+        };
+      }
+      grouped[contributorId].questions.push(q);
+    });
+
+    // Convert to array
+    const result = Object.values(grouped);
+
+    console.log('[Admin.getLibraryQuestionsByContributor] ✓ found', result.length, 'contributors with questions');
+    return res.json({ success: true, data: result });
+  } catch (err) {
+    console.error('[Admin.getLibraryQuestionsByContributor] ✗ error:', err.message);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// Get library questions for a specific contributor
+const getLibraryQuestionsByContributorId = async (req, res) => {
+  try {
+    const adminUser = req.admin && req.admin.username;
+    const { contributorId } = req.params;
+    console.log('[Admin.getLibraryQuestionsByContributorId] called by', adminUser, 'for contributor', contributorId);
+
+    // Get contributor info
+    const contributor = await Contributor.findById(contributorId);
+    if (!contributor) {
+      return res.status(404).json({ success: false, message: 'Contributor not found' });
+    }
+
+    // Use Library helper method to get organized questions
+    const organized = await Library.getAllQuestionsByContributor(contributorId);
+
+    console.log('[Admin.getLibraryQuestionsByContributorId] ✓ fetched library questions');
+    return res.json({ 
+      success: true, 
+      data: {
+        contributor: {
+          id: contributor._id,
+          username: contributor.username,
+          fname: contributor.fname,
+          lname: contributor.lname
+        },
+        questions: organized
+      }
+    });
+  } catch (err) {
+    console.error('[Admin.getLibraryQuestionsByContributorId] ✗ error:', err.message);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// Add question to library
+const addQuestionToLibrary = async (req, res) => {
+  try {
+    const adminUser = req.admin && req.admin.username;
+    const { questionId } = req.params;
+    console.log('[Admin.addQuestionToLibrary] called by', adminUser, 'for question', questionId);
+
+    const question = await Question.findById(questionId);
+    if (!question) {
+      return res.status(404).json({ success: false, message: 'Question not found' });
+    }
+
+    if (!question.subtopic) {
+      return res.status(400).json({ success: false, message: 'Question must have a subtopic to be added to library' });
+    }
+
+    // Update question
+    question.inLibrary = true;
+    await question.save();
+
+    // Add to library structure
+    const mainTopic = question.getMainTopic();
+    await Library.addQuestionToLibrary(questionId, mainTopic, question.subtopic);
+
+    console.log('[Admin.addQuestionToLibrary] ✓ added question to library');
+    return res.json({ success: true, message: 'Question added to library' });
+  } catch (err) {
+    console.error('[Admin.addQuestionToLibrary] ✗ error:', err.message);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// Remove question from library
+const removeQuestionFromLibrary = async (req, res) => {
+  try {
+    const adminUser = req.admin && req.admin.username;
+    const { questionId } = req.params;
+    console.log('[Admin.removeQuestionFromLibrary] called by', adminUser, 'for question', questionId);
+
+    const question = await Question.findById(questionId);
+    if (!question) {
+      return res.status(404).json({ success: false, message: 'Question not found' });
+    }
+
+    // Update question
+    question.inLibrary = false;
+    await question.save();
+
+    // Remove from library structure
+    await Library.removeQuestionFromLibrary(questionId);
+
+    console.log('[Admin.removeQuestionFromLibrary] ✓ removed question from library');
+    return res.json({ success: true, message: 'Question removed from library' });
+  } catch (err) {
+    console.error('[Admin.removeQuestionFromLibrary] ✗ error:', err.message);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// Get library structure
+const getLibraryStructure = async (req, res) => {
+  try {
+    const adminUser = req.admin && req.admin.username;
+    console.log('[Admin.getLibraryStructure] called by', adminUser);
+
+    const library = await Library.getLibraryStructure();
+
+    console.log('[Admin.getLibraryStructure] ✓');
+    return res.json({ success: true, data: library });
+  } catch (err) {
+    console.error('[Admin.getLibraryStructure] ✗ error:', err.message);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 module.exports = { 
   login, 
   listInstitutions, 
@@ -682,6 +851,11 @@ module.exports = {
   getContributorChat,
   sendMessageToContributor,
   markContributorMessagesAsRead,
-  getUnreadMessagesCount
+  getUnreadMessagesCount,
+  getLibraryQuestionsByContributor,
+  getLibraryQuestionsByContributorId,
+  addQuestionToLibrary,
+  removeQuestionFromLibrary,
+  getLibraryStructure
 };
 

@@ -4,6 +4,7 @@ const Contributor = require('../../models/Contributor');
 const ContributorRequest = require('../../models/ContributorRequest');
 const AdminContributorChat = require('../../models/AdminContributorChat');
 const Question = require('../../models/Question');
+const Library = require('../../models/Library');
 
 const login = async (req, res) => {
   const { username, password } = req.body || {};
@@ -94,12 +95,25 @@ const createRequest = async (req, res) => {
     const topics = Array.isArray(questionRequests) ? questionRequests.map(qr => qr.topic) : [];
     if (Array.isArray(draftedQuestions) && draftedQuestions.length > 0) {
       for (const q of draftedQuestions) {
-          if (!q.text || !q.options || q.options.length < 2 || q.correctIndex === undefined || !q.topic || !q.difficulty) {
+          // Check basic fields
+          if (!q.text || !q.options || q.options.length < 2 || !q.topic || !q.difficulty) {
           return res.status(400).json({ 
             success: false, 
-            message: 'Each drafted question must have text, at least 2 options, correctIndex, category, and difficulty' 
+            message: 'Each drafted question must have text, at least 2 options, category, and difficulty' 
           });
         }
+        
+        // Validate correct answers - support both old (correctIndex) and new (isCorrect) formats
+        const hasCorrectIndex = q.correctIndex !== undefined && q.correctIndex !== null;
+        const hasIsCorrect = Array.isArray(q.options) && q.options.some(opt => opt.isCorrect === true);
+        
+        if (!hasCorrectIndex && !hasIsCorrect) {
+          return res.status(400).json({ 
+            success: false, 
+            message: 'Each drafted question must have at least one correct answer (either correctIndex or isCorrect in options)' 
+          });
+        }
+        
           if (!topics.includes(q.topic)) {
             return res.status(400).json({ success: false, message: `Drafted question topic '${q.topic}' does not match any request topic` });
           }
@@ -386,6 +400,43 @@ const getUnreadCount = async (req, res) => {
   }
 };
 
+// Get library questions contributed by this contributor
+// Organized by topic and subtopic
+const getMyLibraryQuestions = async (req, res) => {
+  try {
+    const contributor = req.contributor || {};
+    console.log('[Contributor.getMyLibraryQuestions] called by', contributor.username);
+
+    // Use Library model's helper method to get organized questions
+    const organized = await Library.getAllQuestionsByContributor(contributor.id);
+
+    return res.json({ 
+      success: true, 
+      data: organized
+    });
+  } catch (err) {
+    console.error('[Contributor.getMyLibraryQuestions] error', err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// Get library structure (topics and subtopics)
+const getLibraryStructure = async (req, res) => {
+  try {
+    console.log('[Contributor.getLibraryStructure] called');
+
+    const library = await Library.getLibraryStructure();
+
+    return res.json({ 
+      success: true, 
+      data: library
+    });
+  } catch (err) {
+    console.error('[Contributor.getLibraryStructure] error', err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 module.exports = { 
   login, 
   dashboard,
@@ -397,6 +448,8 @@ module.exports = {
   getOrCreateChat,
   sendMessage,
   markMessagesAsRead,
-  getUnreadCount
+  getUnreadCount,
+  getMyLibraryQuestions,
+  getLibraryStructure
 };
 
