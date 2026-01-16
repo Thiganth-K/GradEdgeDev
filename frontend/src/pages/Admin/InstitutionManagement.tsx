@@ -29,6 +29,7 @@ const EditModal: React.FC<EditModalProps> = ({ item, onClose, onSave }) => {
     location: item.location || '',
     contactNo: item.contactNo || '',
     email: item.email || '',
+    password: '',
     facultyLimit: item.facultyLimit?.toString() || '',
     studentLimit: item.studentLimit?.toString() || '',
     batchLimit: item.batchLimit?.toString() || '',
@@ -45,6 +46,9 @@ const EditModal: React.FC<EditModalProps> = ({ item, onClose, onSave }) => {
       contactNo: form.contactNo,
       email: form.email,
     };
+    if ((form as any).password && (form as any).password.trim() !== '') {
+      payload.password = (form as any).password;
+    }
     
     ['facultyLimit', 'studentLimit', 'batchLimit', 'testLimit'].forEach((k) => {
       const v = (form as any)[k];

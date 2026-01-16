@@ -1,63 +1,255 @@
 import React, { useEffect, useState } from 'react';
+import InstitutionSidebar from '../../components/Institution/Sidebar';
 
 const BACKEND = import.meta.env.VITE_API_URL || 'http://localhost:5001';
 
-const StudentManagement: React.FC = () => {
-  const [list, setList] = useState<any[]>([]);
+const EditStudentModal: React.FC<{ item: any; onClose: () => void; onSave: (updated: any) => void }> = ({ item, onClose, onSave }) => {
+  const [form, setForm] = useState({ username: item.username || '', name: item.name || '', email: item.email || '', dept: item.dept || '', regno: item.regno || '', password: '' });
+  const [saving, setSaving] = useState(false);
+  const token = typeof window !== 'undefined' ? localStorage.getItem('institution_token') : null;
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const payload: any = { username: form.username, name: form.name, email: form.email, dept: form.dept, regno: form.regno };
+      if (form.password) payload.password = form.password;
+      const res = await fetch(`${BACKEND}/institution/students/${item._id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify(payload) });
+      const body = await res.json().catch(() => ({}));
+      if (res.ok) {
+        onSave({ ...item, ...payload });
+        onClose();
+      } else alert(body.message || 'Failed to update');
+    } catch (err) { console.error(err); alert('Network error'); }
+    finally { setSaving(false); }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl">
+        <div className="sticky top-0 bg-gradient-to-r from-red-600 to-red-700 text-white p-4 rounded-t-xl flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-bold">Edit Student</h3>
+            <p className="text-red-100 text-sm">Modify student details</p>
+          </div>
+          <button onClick={onClose} className="text-white p-2">✕</button>
+        </div>
+        <div className="p-6">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs text-gray-700 mb-1">Username</label>
+              <input value={form.username} onChange={(e)=>setForm({...form, username: e.target.value})} className="w-full border px-3 py-2 rounded" />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-700 mb-1">Name</label>
+              <input value={form.name} onChange={(e)=>setForm({...form, name: e.target.value})} className="w-full border px-3 py-2 rounded" />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-700 mb-1">Email</label>
+              <input value={form.email} onChange={(e)=>setForm({...form, email: e.target.value})} className="w-full border px-3 py-2 rounded" />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-700 mb-1">Department</label>
+              <input value={form.dept} onChange={(e)=>setForm({...form, dept: e.target.value})} className="w-full border px-3 py-2 rounded" />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-700 mb-1">Reg No</label>
+              <input value={form.regno} onChange={(e)=>setForm({...form, regno: e.target.value})} className="w-full border px-3 py-2 rounded" />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-700 mb-1">Password (leave blank to keep)</label>
+              <input type="password" value={form.password} onChange={(e)=>setForm({...form, password: e.target.value})} className="w-full border px-3 py-2 rounded" />
+            </div>
+          </div>
+          <div className="flex gap-3 mt-6 justify-end">
+            <button onClick={handleSave} disabled={saving} className="bg-gradient-to-r from-red-600 to-red-700 text-white px-4 py-2 rounded">{saving ? 'Saving...' : 'Save'}</button>
+            <button onClick={onClose} className="px-4 py-2 border rounded">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const CreateStudentModal: React.FC<{ onClose: () => void; onCreated: (newItem: any) => void }> = ({ onClose, onCreated }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [dept, setDept] = useState('');
   const [regno, setRegno] = useState('');
+  const [loading, setLoading] = useState(false);
+  const token = typeof window !== 'undefined' ? localStorage.getItem('institution_token') : null;
+
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!username.trim() || !password) { alert('Username and password required'); return; }
+    setLoading(true);
+    try {
+      const res = await fetch(`${BACKEND}/institution/students`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ username: username.trim(), password, name, email, dept, regno }) });
+      const body = await res.json().catch(()=>({}));
+      if (res.ok) {
+        onCreated(body.data || { _id: body.data?._id || Math.random()+'', username: username.trim(), name, email, dept, regno });
+        onClose();
+      } else alert(body.message || 'Failed to create');
+    } catch (err) { console.error(err); alert('Network error'); }
+    finally { setLoading(false); }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl">
+        <div className="sticky top-0 bg-gradient-to-r from-red-600 to-red-700 text-white p-4 rounded-t-xl flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-bold">Create Student</h3>
+            <p className="text-red-100 text-sm">Add a new student account</p>
+          </div>
+          <button onClick={onClose} className="text-white p-2">✕</button>
+        </div>
+        <form onSubmit={handleSubmit} className="p-6">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs text-gray-700 mb-1">Username</label>
+              <input value={username} onChange={(e)=>setUsername(e.target.value)} className="w-full border px-3 py-2 rounded" />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-700 mb-1">Name</label>
+              <input value={name} onChange={(e)=>setName(e.target.value)} className="w-full border px-3 py-2 rounded" />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-700 mb-1">Email</label>
+              <input value={email} onChange={(e)=>setEmail(e.target.value)} className="w-full border px-3 py-2 rounded" />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-700 mb-1">Department</label>
+              <input value={dept} onChange={(e)=>setDept(e.target.value)} className="w-full border px-3 py-2 rounded" />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-700 mb-1">Reg No</label>
+              <input value={regno} onChange={(e)=>setRegno(e.target.value)} className="w-full border px-3 py-2 rounded" />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-700 mb-1">Password</label>
+              <input type="password" value={password} onChange={(e)=>setPassword(e.target.value)} className="w-full border px-3 py-2 rounded" />
+            </div>
+          </div>
+          <div className="flex gap-3 mt-6 justify-end">
+            <button type="submit" disabled={loading} className="bg-gradient-to-r from-red-600 to-red-700 text-white px-4 py-2 rounded">{loading ? 'Creating...' : 'Create'}</button>
+            <button type="button" onClick={onClose} className="px-4 py-2 border rounded">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+const StudentManagement: React.FC = () => {
+  const [list, setList] = useState<any[]>([]);
+  const [search, setSearch] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+  const [menuOpen, setMenuOpen] = useState<string | null>(null);
+  const [editingItem, setEditingItem] = useState<any | null>(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
   const token = typeof window !== 'undefined' ? localStorage.getItem('institution_token') : null;
 
   const load = async () => {
-    const res = await fetch(`${BACKEND}/institution/students`, { headers: { Authorization: `Bearer ${token}` } });
-    const body = await res.json().catch(() => ({}));
-    if (res.ok) setList(body.data || []);
+    setLoading(true);
+    try {
+      const res = await fetch(`${BACKEND}/institution/students`, { headers: { Authorization: `Bearer ${token}` } });
+      const body = await res.json().catch(() => ({}));
+      if (res.ok) setList(body.data || []);
+    } catch (err) { console.error(err); setMsg('Failed to load'); }
+    finally { setLoading(false); }
   };
 
   useEffect(() => { load(); }, []);
 
-  const create = async (e: React.FormEvent) => {
-    e.preventDefault();
-    await fetch(`${BACKEND}/institution/students`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ username, password, name, email, dept, regno }),
-    });
-    setUsername(''); setPassword(''); setName(''); setEmail(''); setDept(''); setRegno('');
-    load();
+  const handleRemove = async (id: string) => {
+    if (!window.confirm('Delete this student?')) return;
+    setLoading(true); setMsg(null);
+    try {
+      const res = await fetch(`${BACKEND}/institution/students/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+      if (res.ok) { setMsg('Student removed'); load(); }
+      else setMsg('Failed to delete');
+    } catch (err) { console.error(err); setMsg('Network error'); }
+    finally { setLoading(false); }
   };
 
-  const remove = async (id: string) => { await fetch(`${BACKEND}/institution/students/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } }); load(); };
-
   return (
-    <div className="p-8">
-      <div className="max-w-4xl mx-auto">
-        <h2 className="text-xl font-bold mb-4">Student Management</h2>
-        <form onSubmit={create} className="space-y-2 mb-4">
-          <input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="username" className="border p-2" />
-          <input value={password} onChange={(e) => setPassword(e.target.value)} placeholder="password" type="password" className="border p-2" />
-          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="name" className="border p-2" />
-          <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email" className="border p-2" />
-          <input value={dept} onChange={(e) => setDept(e.target.value)} placeholder="dept" className="border p-2" />
-          <input value={regno} onChange={(e) => setRegno(e.target.value)} placeholder="regno" className="border p-2" />
-          <button className="px-4 py-2 bg-red-600 text-white rounded">Create Student</button>
-        </form>
+    <div className="flex min-h-screen bg-gray-50">
+      <InstitutionSidebar />
+      {editingItem && <EditStudentModal item={editingItem} onClose={() => setEditingItem(null)} onSave={(u) => { setList((s)=>s.map(x=>x._id===u._id?{...x,...u}:x)); setEditingItem(null); }} />}
+      {showCreateModal && <CreateStudentModal onClose={() => setShowCreateModal(false)} onCreated={(n)=>{ setList((s)=>[n, ...s]); setShowCreateModal(false); }} />}
 
-        <div className="bg-white rounded shadow">
-          <table className="w-full">
-            <thead><tr><th className="p-2">Username</th><th>Name</th><th>RegNo</th><th>Actions</th></tr></thead>
-            <tbody>
-              {list.map((s) => (
-                <tr key={s._id}><td className="p-2">{s.username}</td><td>{s.name}</td><td>{s.regno}</td><td className="p-2"><button className="text-red-600" onClick={() => remove(s._id)}>Delete</button></td></tr>
-              ))}
-            </tbody>
-          </table>
+      <main className="flex-1 h-screen overflow-y-auto p-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-2xl font-bold">Students</h2>
+              <p className="text-sm text-gray-500">Manage student accounts and registrations</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <input value={search} onChange={(e)=>setSearch(e.target.value)} placeholder="Search students..." className="px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500" />            </div>
+          </div>
+
+          {msg && <div className="mb-4 text-sm text-center text-gray-700">{msg}</div>}
+
+          <div className="bg-white rounded-xl shadow overflow-visible">
+            <div className="p-4 border-b flex items-center justify-between">
+              <div className="text-sm font-semibold text-gray-700">All Students ({list.length})</div>
+              <div className="text-xs text-gray-500">{loading ? 'Loading...' : ''}</div>
+            </div>
+            <div className="p-2">
+              <div className="divide-y divide-gray-100">
+                {list.filter(s => s.username.toLowerCase().includes(search.toLowerCase()) || (s.name || '').toLowerCase().includes(search.toLowerCase())).map((s) => (
+                  <div key={s._id} className="grid grid-cols-12 gap-4 px-4 py-4 items-center">
+                    <div className="col-span-3">
+                      <div className="font-medium text-gray-900">{s.name || s.username}</div>
+                      <div className="text-xs text-gray-500">{s.email || '—'}</div>
+                    </div>
+                    <div className="col-span-3">
+                      <div className="text-sm text-gray-700">{s.username}</div>
+                      <div className="text-xs text-gray-500">Dept: {s.dept || '—'}</div>
+                    </div>
+                    <div className="col-span-3">
+                      <div className="text-sm text-gray-700">Reg No</div>
+                      <div className="text-xs text-gray-500">{s.regno || '—'}</div>
+                    </div>
+                    <div className="col-span-3 text-right">
+                      <div className="inline-flex items-center gap-2">
+                        <button onClick={() => setEditingItem(s)} className="p-2 text-gray-400 hover:text-gray-600 transition-colors" title="Edit">
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                        </button>
+                        <div className="relative">
+                          <button onClick={() => setMenuOpen(menuOpen === s._id ? null : s._id)} className="p-2 rounded hover:bg-gray-50 text-gray-500">•••</button>
+                          {menuOpen === s._id && (
+                            <>
+                              <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(null)}></div>
+                              <div className="absolute right-0 mt-2 w-40 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-50">
+                                <button onClick={() => { setMenuOpen(null); handleRemove(s._id); }} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">Delete</button>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {list.filter(s => s.username.toLowerCase().includes(search.toLowerCase()) || (s.name || '').toLowerCase().includes(search.toLowerCase())).length === 0 && (
+                  <div className="py-8 px-4 text-center text-sm text-gray-500">No students found</div>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
+      </main>
+
+      {list.length > 0 && (
+        <button onClick={() => setShowCreateModal(true)} className="fixed bottom-8 right-8 bg-gradient-to-r from-red-600 to-red-700 text-white px-6 py-4 rounded-full shadow-2xl hover:scale-105 transition-transform">+ Add Student</button>
+      )}
     </div>
   );
 };
