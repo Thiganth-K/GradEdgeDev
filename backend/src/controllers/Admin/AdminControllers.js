@@ -235,7 +235,8 @@ const createAnnouncement = async (req, res) => {
     
     const announcement = await Announcement.create({
       message: message.trim(),
-      createdBy: adminId,
+      createdByRef: adminId,
+      createdByRole: 'admin',
       targetInstitutions: targets,
       readBy: [],
     });
@@ -254,7 +255,7 @@ const listAnnouncements = async (req, res) => {
     const adminUsername = req.admin && req.admin.username;
     console.log('[Admin.listAnnouncements] called by admin:', adminUsername);
     
-    const announcements = await Announcement.find({ createdBy: adminId })
+    const announcements = await Announcement.find({ createdByRef: adminId, createdByRole: 'admin' })
       .populate('targetInstitutions', 'name institutionId')
       .populate('readBy', 'name institutionId')
       .sort({ createdAt: -1 });

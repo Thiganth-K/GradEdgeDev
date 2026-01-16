@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import Sidebar from '../../components/Admin/Sidebar';
 import makeHeaders from '../../lib/makeHeaders';
 
+const BACKEND = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+
 interface Stats {
   institutions: number;
   contributors: number;
@@ -48,10 +50,10 @@ const Dashboard: React.FC = () => {
       
       // Fetch all stats in parallel
       const [institutionsRes, contributorsRes, requestsRes, chatsRes] = await Promise.all([
-        fetch('http://localhost:5000/admin/institutions', { headers }),
-        fetch('http://localhost:5000/admin/contributors', { headers }),
-        fetch('http://localhost:5000/admin/contributor-requests', { headers }),
-        fetch('http://localhost:5000/admin/contributor-chats', { headers })
+        fetch(`${BACKEND}/admin/institutions`, { headers }),
+        fetch(`${BACKEND}/admin/contributors`, { headers }),
+        fetch(`${BACKEND}/admin/contributor-requests`, { headers }),
+        fetch(`${BACKEND}/admin/contributor-chats`, { headers })
       ]);
 
       const institutions = institutionsRes.ok ? await institutionsRes.json() : [];
@@ -75,7 +77,7 @@ const Dashboard: React.FC = () => {
   const fetchAnnouncements = async () => {
     try {
       const headers = makeHeaders('admin');
-      const res = await fetch('http://localhost:5000/admin/announcements', { headers });
+      const res = await fetch(`${BACKEND}/admin/announcements`, { headers });
       if (!res.ok) return setAnnouncements([]);
       const data = await res.json();
       if (data && data.success) setAnnouncements(data.data || []);
