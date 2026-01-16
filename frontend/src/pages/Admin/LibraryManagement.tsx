@@ -7,6 +7,7 @@ interface Question {
   text: string;
   options: { text: string; isCorrect?: boolean }[];
   correctIndex?: number;
+  correctIndices?: number[];
   category: string;
   subtopic: string;
   difficulty: string;
@@ -102,6 +103,11 @@ const AdminLibraryManagement: React.FC = () => {
   };
 
   const getCorrectAnswers = (question: Question): number[] => {
+    // Priority: correctIndices > correctIndex > isCorrect in options
+    if (Array.isArray(question.correctIndices) && question.correctIndices.length > 0) {
+      return question.correctIndices;
+    }
+    
     if (question.correctIndex !== undefined && question.correctIndex !== null) {
       return [question.correctIndex];
     }

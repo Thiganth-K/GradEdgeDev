@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import InstitutionAnnouncements from '../../components/Institution/Announcements';
+import InstitutionSidebar from '../../components/Institution/Sidebar';
 
 const BACKEND = import.meta.env.VITE_API_URL || 'http://localhost:5001';
 
@@ -18,6 +19,9 @@ const InstitutionDashboard: React.FC = () => {
   const [tests, setTests] = useState<Test[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showAnns, setShowAnns] = useState(false);
+  const [announcements, setAnnouncements] = useState<any[]>([]);
+  const [annsLoading, setAnnsLoading] = useState(false);
 
   const loadData = async () => {
     const role = typeof window !== 'undefined' ? localStorage.getItem('gradedge_role') : null;
@@ -64,6 +68,31 @@ const InstitutionDashboard: React.FC = () => {
   useEffect(() => {
     loadData();
   }, []);
+
+  const loadAnnouncements = async () => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('institution_token') : null;
+    if (!token) return;
+    setAnnsLoading(true);
+    try {
+      const res = await fetch(`${BACKEND}/institution/announcements`, { headers: { Authorization: `Bearer ${token}` } });
+      const body = await res.json().catch(() => ({}));
+      if (body.success) setAnnouncements(body.data || []);
+    } catch (err) {
+      // ignore
+    } finally { setAnnsLoading(false); }
+  };
+
+  const markAnnAsRead = async (id: string) => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('institution_token') : null;
+    if (!token) return;
+    try {
+      const res = await fetch(`${BACKEND}/institution/announcements/${id}/read`, { method: 'POST', headers: { Authorization: `Bearer ${token}` } });
+      const body = await res.json().catch(() => ({}));
+      if (body.success) setAnnouncements(announcements.map(a => a._id === id ? { ...a, isRead: true } : a));
+    } catch (err) {
+      // ignore
+    }
+  };
 
   const StatCard = ({ title, value, action }: { title: string; value: number; action: { label: string; href: string } }) => (
     <div className="bg-white rounded shadow p-4 flex flex-col justify-between">
@@ -366,10 +395,62 @@ const InstitutionDashboard: React.FC = () => {
                 View All
               </a>
             </div>
+            {students.length === 0 ? (
+              <p className="text-sm text-gray-500 text-center py-8">No students yet.</p>
+            ) : (
+              <ul className="space-y-3">
+                {take(students, 4).map((s) => (
+                  <li key={s._id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-b-0">
+                    <span className="text-sm font-medium text-gray-900">{s.name || s.username}</span>
+                    <span className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded">{s.dept || s.username}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
-          <InstitutionAnnouncements />
+
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Recent Batches</h3>
+              <a href="/institution/batches" className="text-sm text-red-600 hover:text-red-700 font-medium">View all</a>
+            </div>
+            {batches.length === 0 ? (
+              <p className="text-sm text-gray-500 text-center py-8">No batches yet.</p>
+            ) : (
+              <ul className="space-y-3">
+                {take(batches, 4).map((b) => (
+                  <li key={b._id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-b-0">
+                    <span className="text-sm font-medium text-gray-900">{b.name}</span>
+                    <span className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded">Faculty: {b.faculty?.username || '—'}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Recent Tests</h3>
+              <a href="/institution/tests" className="text-sm text-red-600 hover:text-red-700 font-medium">View all</a>
+            </div>
+            {tests.length === 0 ? (
+              <p className="text-sm text-gray-500 text-center py-8">No tests yet.</p>
+            ) : (
+              <ul className="space-y-3">
+                {take(tests, 4).map((t) => (
+                  <li key={t._id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-b-0">
+                    <span className="text-sm font-medium text-gray-900">{t.name}</span>
+                    <span className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded">{t.type}{t.assignedFaculty ? ` • ${t.assignedFaculty.username}` : ''}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
+
+        {/* Announcements card removed (use bell icon popup in header) */}
       </div>
+      </main>
     </div>
   );
 };

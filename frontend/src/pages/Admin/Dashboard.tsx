@@ -30,6 +30,7 @@ const Dashboard: React.FC = () => {
       window.location.href = '/login';
     }
     fetchDashboardStats();
+    fetchAnnouncements();
   }, []);
 
   const fetchDashboardStats = async () => {
@@ -42,6 +43,10 @@ const Dashboard: React.FC = () => {
         fetch('http://localhost:5000/admin/contributors', { headers }),
         fetch('http://localhost:5000/admin/contributor-requests', { headers }),
         fetch('http://localhost:5000/admin/contributor-chats', { headers })
+        fetch(`${BACKEND}/admin/institutions`, { headers }),
+        fetch(`${BACKEND}/admin/contributors`, { headers }),
+        fetch(`${BACKEND}/admin/contributor-requests`, { headers }),
+        fetch(`${BACKEND}/admin/contributor-chats`, { headers })
       ]);
 
       const institutions = institutionsRes.ok ? await institutionsRes.json() : [];

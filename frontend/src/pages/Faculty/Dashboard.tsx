@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import Noticeboard from '../../components/Faculty/Noticeboard';
 import BatchList from '../../components/Faculty/BatchList';
+import Sidebar from '../../components/Faculty/Sidebar';
 import type { Announcement, Batch } from '../../components/Faculty/types';
 
 const BACKEND = import.meta.env.VITE_API_URL || 'http://localhost:5001';
@@ -60,46 +61,49 @@ const FacultyDashboard: React.FC = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-red-50 p-6">
-      <div className="max-w-6xl mx-auto space-y-6">
-        <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div>
-            <h1 className="text-3xl font-bold text-red-700">Faculty Dashboard</h1>
-            <p className="text-gray-700">Welcome back{faculty?.username ? `, ${faculty.username}` : ''}</p>
+    <div className="flex min-h-screen bg-gray-50">
+      <Sidebar />
+      <div className="flex-1 h-screen overflow-y-auto">
+        <div className="p-8 max-w-6xl mx-auto space-y-6">
+          <header className="mb-6 flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-red-700">Faculty Dashboard</h1>
+              <p className="text-gray-700 mt-1">Welcome back{faculty?.username ? `, ${faculty.username}` : ''}</p>
+            </div>
+            <div className="text-sm text-gray-600">
+              <div>Role: {faculty?.role || 'faculty'}</div>
+              {faculty?.username && <div>User: {faculty.username}</div>}
+            </div>
+          </header>
+
+          {error && <div className="bg-red-100 border border-red-300 text-red-700 px-4 py-2 rounded">{error}</div>}
+
+          <div className="grid md:grid-cols-2 gap-6">
+            <Noticeboard announcements={announcements} loading={loading} onRefresh={loadData} />
+            <BatchList batches={batches} />
           </div>
-          <div className="text-sm text-gray-600">
-            <div>Role: {faculty?.role || 'faculty'}</div>
-            {faculty?.username && <div>User: {faculty.username}</div>}
+
+          <div className="mt-2">
+            <a href="/faculty/announcements" className="text-sm text-red-700 font-semibold mr-4">View all announcements</a>
+            <a href="/faculty/chat" className="text-sm text-red-700 font-semibold">Chat with Institution Admin</a>
           </div>
-        </header>
 
-        {error && <div className="bg-red-100 border border-red-300 text-red-700 px-4 py-2 rounded">{error}</div>}
-
-        <div className="grid md:grid-cols-2 gap-6">
-          <Noticeboard announcements={announcements} loading={loading} onRefresh={loadData} />
-          <BatchList batches={batches} />
-        </div>
-
-        <div className="mt-2">
-          <a href="/faculty/announcements" className="text-sm text-red-700 font-semibold mr-4">View all announcements</a>
-          <a href="/faculty/chat" className="text-sm text-red-700 font-semibold">Chat with Institution Admin</a>
-        </div>
-
-        <section className="bg-white rounded shadow p-5">
-          <h2 className="text-xl font-semibold mb-2">Assigned Tests</h2>
-          <div className="space-y-2">
-            {tests.map((t:any) => (
-              <div key={t._id} className="flex items-center justify-between border rounded p-3">
-                <div>
-                  <div className="font-medium">{t.name} ({t.type})</div>
-                  <div className="text-sm text-gray-600">Questions: {t.questions?.length || 0}</div>
+          <section className="bg-white rounded shadow p-5">
+            <h2 className="text-xl font-semibold mb-2">Assigned Tests</h2>
+            <div className="space-y-2">
+              {tests.map((t:any) => (
+                <div key={t._id} className="flex items-center justify-between border rounded p-3">
+                  <div>
+                    <div className="font-medium">{t.name} ({t.type})</div>
+                    <div className="text-sm text-gray-600">Questions: {t.questions?.length || 0}</div>
+                  </div>
+                  <button onClick={() => (window.location.href = `/faculty/test/${t._id}/results`)} className="px-3 py-2 border rounded">View Results</button>
                 </div>
-                <button onClick={() => (window.location.href = `/faculty/test/${t._id}/results`)} className="px-3 py-2 border rounded">View Results</button>
-              </div>
-            ))}
-            {tests.length === 0 && <p className="text-sm text-gray-600">No tests assigned yet.</p>}
-          </div>
-        </section>
+              ))}
+              {tests.length === 0 && <p className="text-sm text-gray-600">No tests assigned yet.</p>}
+            </div>
+          </section>
+        </div>
       </div>
     </div>
   );

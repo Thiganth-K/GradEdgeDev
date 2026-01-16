@@ -3,6 +3,8 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const Admin = require('../../models/Admin');
 
+const Institution = require('../../models/Institution');
+
 const login = (req, res) => {
   const { username, password } = req.body || {};
   console.log('[SuperAdmin.login] called', { username });
@@ -30,26 +32,75 @@ const login = (req, res) => {
   return res.status(401).json({ success: false, message: 'invalid credentials' });
 };
 
-const getInstitutions = (req, res) => {
+const getInstitutions = async (req, res) => {
   const user = req.superadmin?.username || 'anonymous';
   console.log('[SuperAdmin.getInstitutions] called by', user);
-  const sample = [
-    { id: 1, name: 'City University', status: 'Active' },
-    { id: 2, name: 'Greenfield College', status: 'Pending' },
-  ];
-  console.log('[SuperAdmin.getInstitutions] ✓ returning', sample.length, 'institutions');
-  res.json({ success: true, data: sample });
+  try {
+    const list = await Institution.find({}).lean();
+    const mapped = (list || []).map((it) => ({
+      id: it._id,
+      _id: it._id,
+      name: it.name,
+      institutionId: it.institutionId,
+      location: it.location,
+      contactNo: it.contactNo,
+      email: it.email,
+      facultyLimit: it.facultyLimit,
+      studentLimit: it.studentLimit,
+      batchLimit: it.batchLimit,
+      testLimit: it.testLimit,
+      createdAt: it.createdAt,
+      createdBy: it.createdBy,
+    }));
+    console.log('[SuperAdmin.getInstitutions] ✓ returning', mapped.length, 'institutions from DB');
+    res.json({ success: true, data: mapped });
+  } catch (err) {
+    console.error('[SuperAdmin.getInstitutions] error querying DB', err.message);
+    res.status(500).json({ success: false, message: 'failed to fetch institutions' });
+  }
 };
+
+const fs = require('fs');
+const path = require('path');
 
 const getLogs = (req, res) => {
   const user = req.superadmin?.username || 'anonymous';
   console.log('[SuperAdmin.getLogs] called by', user);
-  const sample = [
-    { id: 1, time: new Date().toISOString(), message: 'SuperAdmin logged in' },
-    { id: 2, time: new Date().toISOString(), message: 'Institution created' },
-  ];
-  console.log('[SuperAdmin.getLogs] ✓ returning', sample.length, 'log entries');
-  res.json({ success: true, data: sample });
+
+  const roleFilter = (req.query.role || '').toString(); // Admin | Institution | Faculty | Student | Contributor | SuperAdmin
+  const logFile = path.resolve(__dirname, '../../logs/actions.log');
+
+  if (!fs.existsSync(logFile)) {
+    console.log('[SuperAdmin.getLogs] actions.log not found, returning empty');
+    return res.json({ success: true, data: [] });
+  }
+
+  try {
+    const content = fs.readFileSync(logFile, 'utf8');
+    const lines = content.split('\n').filter(Boolean);
+    // Parse last 500 lines to keep payload small
+    const start = Math.max(0, lines.length - 500);
+    const entries = [];
+    for (let i = start; i < lines.length; i++) {
+      try {
+        const obj = JSON.parse(lines[i]);
+        entries.push(obj);
+      } catch (_) {}
+    }
+
+    let filtered = entries;
+    if (roleFilter) {
+      filtered = entries.filter((e) => (e.roleGroup || '').toLowerCase() === roleFilter.toLowerCase());
+    }
+
+    // Return newest first
+    filtered.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
+    console.log('[SuperAdmin.getLogs] ✓ returning', filtered.length, 'entries');
+    res.json({ success: true, data: filtered });
+  } catch (err) {
+    console.error('[SuperAdmin.getLogs] error reading logs:', err.message);
+    res.status(500).json({ success: false, message: 'failed to read logs' });
+  }
 };
 
 const getDashboardStats = async (req, res) => {

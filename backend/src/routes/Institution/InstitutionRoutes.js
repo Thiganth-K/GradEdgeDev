@@ -110,6 +110,10 @@ router.post('/student/tests/:id/start', verifyStudent, InstitutionControllers.st
 console.log('[InstitutionRoutes] POST /student/tests/:id/submit - Submit test attempt (student)');
 router.post('/student/tests/:id/submit', verifyStudent, InstitutionControllers.submitTestAttempt);
 
+// Student Results (student-protected)
+console.log('[InstitutionRoutes] GET /student/results - List student results');
+router.get('/student/results', verifyStudent, InstitutionControllers.listStudentResults);
+
 // Faculty Test Views (faculty-protected)
 console.log('[InstitutionRoutes] GET /faculty/tests - List assigned tests (faculty)');
 router.get('/faculty/tests', verifyFaculty, InstitutionControllers.listAssignedTestsForFaculty);

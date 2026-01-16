@@ -13,6 +13,7 @@ import {
   FaChevronRight
 } from 'react-icons/fa';
 
+
 const Sidebar: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -30,7 +31,6 @@ const Sidebar: React.FC = () => {
   };
 
   const menuItems = [
-<<<<<<< Updated upstream
     {
       name: 'Dashboard',
       path: '/admin/dashboard',
@@ -85,7 +85,6 @@ const Sidebar: React.FC = () => {
         </svg>
       )
     }
-=======
     { name: 'Dashboard', path: '/admin/dashboard', icon: <FaChartPie /> },
     { name: 'Announcements', path: '/admin/announcements', icon: <FaBullhorn /> },
     { name: 'Institutions', path: '/admin/institutions', icon: <FaUniversity /> },
@@ -93,7 +92,6 @@ const Sidebar: React.FC = () => {
     { name: 'Requests', path: '/admin/contributor-requests', icon: <FaUserPlus /> },
     { name: 'Chats', path: '/admin/contributor-chats', icon: <FaComments /> },
     { name: 'Audit Logs', path: '/admin/logs', icon: <FaClipboardList /> }
->>>>>>> Stashed changes
   ];
 
   return (
@@ -120,6 +118,21 @@ const Sidebar: React.FC = () => {
           {!isCollapsed && (
             <span className="text-white text-xl font-bold tracking-wide">GradEdge</span>
           )}
+
+  ];
+
+  return (
+    <div className="w-64 bg-gradient-to-b from-red-800 to-red-900 min-h-screen flex flex-col">
+      {/* Logo */}
+      <div className="p-6 border-b border-red-700">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center">
+            <svg className="w-6 h-6 text-red-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+            </svg>
+          </div>
+          <span className="text-white text-xl font-bold">GradEdge</span>
+
         </div>
       </div>
 

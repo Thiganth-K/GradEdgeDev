@@ -216,10 +216,18 @@ const createQuestion = async (req, res) => {
     const payload = req.body || {};
     console.log('[Contributor.createQuestion] called by', contributor.username);
 
-    const { text, options, correctIndex, category, difficulty, tags, details } = payload;
+    const { text, options, correctIndex, correctIndices, category, difficulty, tags, details } = payload;
 
-    if (!text || !Array.isArray(options) || options.length < 2 || typeof correctIndex !== 'number') {
-      return res.status(400).json({ success: false, message: 'text, options (>=2) and correctIndex are required' });
+    if (!text || !Array.isArray(options) || options.length < 2) {
+      return res.status(400).json({ success: false, message: 'text and options (>=2) are required' });
+    }
+
+    // Support both single answer (correctIndex) and multiple answers (correctIndices)
+    const hasCorrectIndex = typeof correctIndex === 'number';
+    const hasCorrectIndices = Array.isArray(correctIndices) && correctIndices.length > 0;
+    
+    if (!hasCorrectIndex && !hasCorrectIndices) {
+      return res.status(400).json({ success: false, message: 'Either correctIndex or correctIndices must be provided' });
     }
 
     if (!['aptitude', 'technical', 'psychometric'].includes((category || '').toLowerCase())) {
@@ -233,7 +241,8 @@ const createQuestion = async (req, res) => {
     const q = new Question({
       text: text.trim(),
       options: options.map(o => ({ text: (o && o.text) ? o.text : String(o) })),
-      correctIndex,
+      correctIndex: hasCorrectIndex ? correctIndex : undefined,
+      correctIndices: hasCorrectIndices ? correctIndices : undefined,
       category: category.toLowerCase(),
       difficulty: difficulty.toLowerCase(),
       tags: Array.isArray(tags) ? tags : [],
