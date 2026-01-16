@@ -195,11 +195,38 @@ const getInstitutions = (req, res) => {
 };
 
 const getLogs = (req, res) => {
-  const sample = [
-    { id: 1, time: new Date().toISOString(), message: 'Admin logged in' },
-    { id: 2, time: new Date().toISOString(), message: 'Institution created' },
-  ];
-  res.json({ success: true, data: sample });
+  const fs = require('fs');
+  const path = require('path');
+  const logFile = path.resolve(__dirname, '../../logs/actions.log');
+  
+  try {
+    if (!fs.existsSync(logFile)) {
+      console.log('[Admin.getLogs] ✗ log file not found');
+      return res.json({ success: true, data: [] });
+    }
+    
+    const content = fs.readFileSync(logFile, 'utf-8');
+    const lines = content.trim().split('\n').filter(l => l.trim());
+    const logs = lines
+      .map((line, idx) => {
+        try {
+          const parsed = JSON.parse(line);
+          return { id: idx + 1, ...parsed };
+        } catch (e) {
+          return null;
+        }
+      })
+      .filter(l => l !== null)
+      .reverse(); // Most recent first
+    
+    // Limit to last 500 logs to avoid huge payloads
+    const limited = logs.slice(0, 500);
+    console.log('[Admin.getLogs] ✓ returning', limited.length, 'log entries');
+    res.json({ success: true, data: limited });
+  } catch (err) {
+    console.error('[Admin.getLogs] ✗ error reading logs:', err.message);
+    res.status(500).json({ success: false, message: 'failed to read logs' });
+  }
 };
 
 // =====================
@@ -235,7 +262,8 @@ const createAnnouncement = async (req, res) => {
     
     const announcement = await Announcement.create({
       message: message.trim(),
-      createdBy: adminId,
+      createdByRef: adminId,
+      createdByRole: 'admin',
       targetInstitutions: targets,
       readBy: [],
     });
@@ -254,7 +282,7 @@ const listAnnouncements = async (req, res) => {
     const adminUsername = req.admin && req.admin.username;
     console.log('[Admin.listAnnouncements] called by admin:', adminUsername);
     
-    const announcements = await Announcement.find({ createdBy: adminId })
+    const announcements = await Announcement.find({ createdByRef: adminId, createdByRole: 'admin' })
       .populate('targetInstitutions', 'name institutionId')
       .populate('readBy', 'name institutionId')
       .sort({ createdAt: -1 });
