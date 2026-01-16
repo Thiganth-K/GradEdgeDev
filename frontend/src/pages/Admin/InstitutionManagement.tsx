@@ -29,6 +29,7 @@ const EditModal: React.FC<EditModalProps> = ({ item, onClose, onSave }) => {
     location: item.location || '',
     contactNo: item.contactNo || '',
     email: item.email || '',
+    password: '',
     facultyLimit: item.facultyLimit?.toString() || '',
     studentLimit: item.studentLimit?.toString() || '',
     batchLimit: item.batchLimit?.toString() || '',
@@ -45,6 +46,9 @@ const EditModal: React.FC<EditModalProps> = ({ item, onClose, onSave }) => {
       contactNo: form.contactNo,
       email: form.email,
     };
+    if ((form as any).password && (form as any).password.trim() !== '') {
+      payload.password = (form as any).password;
+    }
     
     ['facultyLimit', 'studentLimit', 'batchLimit', 'testLimit'].forEach((k) => {
       const v = (form as any)[k];
@@ -77,197 +81,57 @@ const EditModal: React.FC<EditModalProps> = ({ item, onClose, onSave }) => {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 bg-gradient-to-r from-red-600 to-red-700 text-white p-6 rounded-t-xl">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
-              </div>
-              <div>
-                <h2 className="text-xl font-bold">Edit Institution</h2>
-                <p className="text-red-100 text-sm">Update institution details</p>
-              </div>
-            </div>
-            <button
-              onClick={onClose}
-              className="text-white hover:bg-white hover:bg-opacity-20 rounded-lg p-2 transition-colors"
-            >
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-y-auto">
+        <div className="sticky top-0 bg-gradient-to-r from-red-600 to-red-700 text-white p-6 rounded-t-xl flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
               </svg>
-            </button>
+            </div>
+            <div>
+              <h2 className="text-xl font-bold">Edit Institution</h2>
+              <p className="text-red-100 text-sm">Update institution details</p>
+            </div>
           </div>
+          <button onClick={onClose} className="text-white hover:bg-white hover:bg-opacity-20 rounded-lg p-2 transition-colors">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
         </div>
 
-        <div className="p-6">
+        <form className="p-6">
           <div className="grid grid-cols-3 gap-6">
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 pb-2 border-b border-gray-200">
-                <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <h3 className="font-semibold text-gray-700">Basic Information</h3>
-              </div>
-              
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">
-                  Institution Name <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  required
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Institution ID</label>
-                <input
-                  type="text"
-                  value={item.institutionId}
-                  disabled
-                  className="w-full border border-gray-200 bg-gray-50 rounded-lg px-3 py-2 text-sm text-gray-500 cursor-not-allowed"
-                />
-              </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Institution Name</label>
+              <input value={form.name} onChange={(e)=>setForm({...form, name: e.target.value})} className="w-full border px-3 py-2 rounded" required />
+              <label className="block text-xs font-medium text-gray-700 mb-1 mt-4">Institution ID</label>
+              <input value={item.institutionId} disabled className="w-full border px-3 py-2 rounded bg-gray-50 text-gray-700 cursor-not-allowed" />
+              <label className="block text-xs font-medium text-gray-700 mb-1 mt-4">Password</label>
+              <input type="password" value={form.password} onChange={(e)=>setForm({...form, password: e.target.value})} className="w-full border px-3 py-2 rounded" />
             </div>
-
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 pb-2 border-b border-gray-200">
-                <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                </svg>
-                <h3 className="font-semibold text-gray-700">Contact Details</h3>
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Location</label>
-                <input
-                  type="text"
-                  value={form.location}
-                  onChange={(e) => setForm({ ...form, location: e.target.value })}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                  placeholder="Enter location"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Contact Number</label>
-                <input
-                  type="text"
-                  value={form.contactNo}
-                  onChange={(e) => setForm({ ...form, contactNo: e.target.value })}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                  placeholder="Enter contact number"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Email Address</label>
-                <input
-                  type="email"
-                  value={form.email}
-                  onChange={(e) => setForm({ ...form, email: e.target.value })}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                  placeholder="Enter email"
-                />
-              </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Location</label>
+              <input value={form.location} onChange={(e)=>setForm({...form, location: e.target.value})} className="w-full border px-3 py-2 rounded" />
+              <label className="block text-xs font-medium text-gray-700 mb-1 mt-4">Contact Number</label>
+              <input value={form.contactNo} onChange={(e)=>setForm({...form, contactNo: e.target.value})} className="w-full border px-3 py-2 rounded" />
+              <label className="block text-xs font-medium text-gray-700 mb-1 mt-4">Email Address</label>
+              <input type="email" value={form.email} onChange={(e)=>setForm({...form, email: e.target.value})} className="w-full border px-3 py-2 rounded" />
             </div>
-
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 pb-2 border-b border-gray-200">
-                <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                </svg>
-                <h3 className="font-semibold text-gray-700">Resource Limits</h3>
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Faculty Limit</label>
-                <input
-                  type="number"
-                  value={form.facultyLimit}
-                  onChange={(e) => setForm({ ...form, facultyLimit: e.target.value })}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                  placeholder="∞"
-                  min="0"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Student Limit</label>
-                <input
-                  type="number"
-                  value={form.studentLimit}
-                  onChange={(e) => setForm({ ...form, studentLimit: e.target.value })}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                  placeholder="∞"
-                  min="0"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Batch Limit</label>
-                <input
-                  type="number"
-                  value={form.batchLimit}
-                  onChange={(e) => setForm({ ...form, batchLimit: e.target.value })}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                  placeholder="∞"
-                  min="0"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Test Limit</label>
-                <input
-                  type="number"
-                  value={form.testLimit}
-                  onChange={(e) => setForm({ ...form, testLimit: e.target.value })}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                  placeholder="∞"
-                  min="0"
-                />
-              </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Faculty Limit</label>
+              <input type="number" value={form.facultyLimit} onChange={(e)=>setForm({...form, facultyLimit: e.target.value})} className="w-full border px-3 py-2 rounded" />
+              <label className="block text-xs font-medium text-gray-700 mb-1 mt-4">Student Limit</label>
+              <input type="number" value={form.studentLimit} onChange={(e)=>setForm({...form, studentLimit: e.target.value})} className="w-full border px-3 py-2 rounded" />
             </div>
           </div>
 
           <div className="flex gap-3 mt-6 pt-6 border-t border-gray-200">
-            <button
-              onClick={handleSave}
-              disabled={saving}
-              className="flex-1 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-semibold py-3 px-6 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-            >
-              {saving ? (
-                <>
-                  <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Saving...
-                </>
-              ) : (
-                <>
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  Save Changes
-                </>
-              )}
-            </button>
-            <button
-              onClick={onClose}
-              disabled={saving}
-              className="px-8 py-3 border-2 border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
-            >
-              Cancel
-            </button>
+            <button onClick={handleSave} disabled={saving} className="flex-1 bg-gradient-to-r from-red-600 to-red-700 text-white py-3 rounded-lg">{saving ? 'Saving...' : 'Save Changes'}</button>
+            <button type="button" onClick={onClose} className="px-6 py-3 border rounded">Cancel</button>
           </div>
-        </div>
+        </form>
       </div>
     </div>
   );
@@ -280,6 +144,7 @@ const InstitutionManagement: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [editingItem, setEditingItem] = useState<Institution | null>(null);
   const [menuOpen, setMenuOpen] = useState<string | null>(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
   useEffect(() => {
     console.log('[InstitutionManagement] COMPONENT MOUNTED');
@@ -382,8 +247,11 @@ const InstitutionManagement: React.FC = () => {
           }}
         />
       )}
+      {showCreateModal && (
+        <CreateInstitutionModal onClose={() => setShowCreateModal(false)} onCreated={(newItem) => { setItems((s) => [newItem, ...s]); setShowCreateModal(false); }} />
+      )}
       
-      <div className="flex-1 bg-gray-50 p-8">
+      <div className="flex-1 h-screen overflow-y-auto bg-gray-50 p-8">
         <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
@@ -408,7 +276,7 @@ const InstitutionManagement: React.FC = () => {
             <h3 className="text-xl font-semibold text-gray-700 mb-2">No Institutions Yet</h3>
             <p className="text-gray-500 mb-6">Get started by creating your first institution</p>
             <button
-              onClick={() => navigate('/admin/institutions/create')}
+              onClick={() => setShowCreateModal(true)}
               className="bg-red-600 hover:bg-red-700 text-white font-medium px-6 py-3 rounded-lg transition-colors"
             >
               Create First Institution
@@ -523,7 +391,7 @@ const InstitutionManagement: React.FC = () => {
         {/* Floating Action Button */}
         {items.length > 0 && (
           <button
-            onClick={() => navigate('/admin/institutions/create')}
+            onClick={() => setShowCreateModal(true)}
             className="fixed bottom-8 right-8 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-semibold px-6 py-4 rounded-full shadow-2xl transition-all flex items-center gap-2 hover:scale-105"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -539,3 +407,103 @@ const InstitutionManagement: React.FC = () => {
 };
 
 export default InstitutionManagement;
+
+const CreateInstitutionModal: React.FC<{ onClose: () => void; onCreated: (newItem: any) => void }> = ({ onClose, onCreated }) => {
+  const [form, setForm] = useState({
+    name: '',
+    institutionId: '',
+    password: '',
+    location: '',
+    contactNo: '',
+    email: '',
+    facultyLimit: '',
+    studentLimit: '',
+    batchLimit: '',
+    testLimit: '',
+  });
+  const [loading, setLoading] = useState(false);
+  const token = localStorage.getItem('admin_token');
+
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    setLoading(true);
+    try {
+      const payload: any = { ...form };
+      ['facultyLimit', 'studentLimit', 'batchLimit', 'testLimit'].forEach((k) => {
+        if (payload[k] === '') delete payload[k];
+      });
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (token) headers.Authorization = `Bearer ${token}`;
+      const res = await fetch(`${BACKEND}/admin/institutions`, { method: 'POST', headers, body: JSON.stringify(payload) });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        alert(body.message || 'Failed to create institution');
+        setLoading(false);
+        return;
+      }
+      onCreated({ id: body.data?.id || body.data?._id || (Math.random()+''), ...body.data });
+    } catch (err) {
+      console.error(err);
+      alert('Network error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-y-auto">
+        <div className="sticky top-0 bg-gradient-to-r from-red-600 to-red-700 text-white p-6 rounded-t-xl flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5" />
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-xl font-bold">Create Institution</h2>
+              <p className="text-red-100 text-sm">Add a new institution</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="text-white hover:bg-white hover:bg-opacity-20 rounded-lg p-2 transition-colors">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6">
+          <div className="grid grid-cols-3 gap-6">
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Institution Name</label>
+              <input value={form.name} onChange={(e)=>setForm({...form, name: e.target.value})} className="w-full border px-3 py-2 rounded" required />
+              <label className="block text-xs font-medium text-gray-700 mb-1 mt-4">Institution ID</label>
+              <input value={form.institutionId} onChange={(e)=>setForm({...form, institutionId: e.target.value})} className="w-full border px-3 py-2 rounded" required />
+              <label className="block text-xs font-medium text-gray-700 mb-1 mt-4">Password</label>
+              <input type="password" value={form.password} onChange={(e)=>setForm({...form, password: e.target.value})} className="w-full border px-3 py-2 rounded" required />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Location</label>
+              <input value={form.location} onChange={(e)=>setForm({...form, location: e.target.value})} className="w-full border px-3 py-2 rounded" />
+              <label className="block text-xs font-medium text-gray-700 mb-1 mt-4">Contact Number</label>
+              <input value={form.contactNo} onChange={(e)=>setForm({...form, contactNo: e.target.value})} className="w-full border px-3 py-2 rounded" />
+              <label className="block text-xs font-medium text-gray-700 mb-1 mt-4">Email</label>
+              <input type="email" value={form.email} onChange={(e)=>setForm({...form, email: e.target.value})} className="w-full border px-3 py-2 rounded" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Faculty Limit</label>
+              <input type="number" value={form.facultyLimit} onChange={(e)=>setForm({...form, facultyLimit: e.target.value})} className="w-full border px-3 py-2 rounded" />
+              <label className="block text-xs font-medium text-gray-700 mb-1 mt-4">Student Limit</label>
+              <input type="number" value={form.studentLimit} onChange={(e)=>setForm({...form, studentLimit: e.target.value})} className="w-full border px-3 py-2 rounded" />
+            </div>
+          </div>
+
+          <div className="flex gap-3 mt-6 pt-6 border-t border-gray-200">
+            <button type="submit" disabled={loading} className="flex-1 bg-gradient-to-r from-red-600 to-red-700 text-white py-3 rounded-lg">{loading ? 'Creating...' : 'Create Institution'}</button>
+            <button type="button" onClick={onClose} className="px-6 py-3 border rounded">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
