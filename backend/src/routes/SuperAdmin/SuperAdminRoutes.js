@@ -14,6 +14,9 @@ router.get('/institutions', SuperAdminControllers.getInstitutions);
 console.log('[SuperAdminRoutes] GET /logs - Get system logs');
 router.get('/logs', SuperAdminControllers.getLogs);
 
+console.log('[SuperAdminRoutes] GET /dashboard-stats - Get dashboard statistics');
+router.get('/dashboard-stats', SuperAdminControllers.getDashboardStats);
+
 // Admin management CRUD (no auth)
 console.log('[SuperAdminRoutes] GET /admins - List all admins (superadmin)');
 router.get('/admins', SuperAdminControllers.listAdmins);

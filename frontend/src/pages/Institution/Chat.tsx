@@ -17,7 +17,24 @@ const InstitutionChat: React.FC = () => {
     } catch (err) { console.error(err); }
   };
 
+<<<<<<< Updated upstream
   useEffect(() => { load(); const id = setInterval(load, 5001); return () => clearInterval(id); }, []);
+=======
+  useEffect(() => { load(); const id = setInterval(load, 5000); return () => clearInterval(id); }, [chatType]);
+  useEffect(() => {
+    if (chatType === 'faculty') {
+      const loadFaculties = async () => {
+        if (!token) return;
+        try {
+          const r = await fetch(`${BACKEND}/institution/faculties`, { headers: { Authorization: `Bearer ${token}` } });
+          const b = await r.json();
+          if (r.ok) setFaculties(b.data || []);
+        } catch {}
+      };
+      loadFaculties();
+    }
+  }, [chatType]);
+>>>>>>> Stashed changes
 
   useEffect(()=>{ if (ref.current) ref.current.scrollTop = ref.current.scrollHeight; }, [msgs]);
 
