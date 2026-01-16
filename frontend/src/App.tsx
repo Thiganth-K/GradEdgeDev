@@ -4,7 +4,7 @@ import Login from './pages/Login'
 import Dashboard from './pages/SuperAdmin/Dashboard'
 import InstitutionManagement from './pages/SuperAdmin/InstitutionManagement'
 import ViewLogs from './pages/SuperAdmin/ViewLogs'
-import AdminManagement from './pages/SuperAdmin/AdminManagementClean'
+import AdminManagement from './pages/SuperAdmin/AdminManagement'
 import SystemVitals from './pages/SuperAdmin/SystemVitals'
 import AdminDashboard from './pages/Admin/Dashboard'
 import AdminInstitutionManagement from './pages/Admin/InstitutionManagement'
@@ -49,6 +49,8 @@ const App: React.FC = () => {
         <Route path="/superadmin/dashboard" element={<Dashboard />} />
         <Route path="/superadmin/institutions" element={<InstitutionManagement />} />
         <Route path="/superadmin/admins" element={<AdminManagement />} />
+        <Route path="/superadmin/admins/create" element={<AdminManagement />} />
+        <Route path="/superadmin/admins/edit" element={<AdminManagement />} />
         <Route path="/superadmin/logs" element={<ViewLogs />} />
         <Route path="/superadmin/system-vitals" element={<SystemVitals />} />
         <Route path="/admin/dashboard" element={<AdminDashboard />} />

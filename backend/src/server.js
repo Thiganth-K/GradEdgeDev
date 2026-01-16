@@ -78,23 +78,49 @@ app.use((req, res, next) => {
   next();
 });
 
+  // Health endpoint for System Vitals
+  app.get('/health', (req, res) => {
+    try {
+      const mongoConnected = (mongoose.connection && mongoose.connection.readyState === 1);
+      const envOk = Boolean(_saSecret && _adminSecret && _instSecret && _mongoUri);
+      const frontendFound = fs.existsSync(frontendDist);
+
+      return res.json({
+        success: true,
+        mongodb: mongoConnected,
+        env: envOk,
+        port: Number(PORT),
+        frontendFound,
+        details: {
+          superadminSecret: Boolean(_saSecret),
+          adminSecret: Boolean(_adminSecret),
+          institutionSecret: Boolean(_instSecret),
+          mongoUriPresent: Boolean(_mongoUri),
+        }
+      });
+    } catch (e) {
+      return res.status(500).json({ success: false, message: 'health check failed', error: e && e.message });
+    }
+  });
+
 // API Routes registered AFTER SPA middleware
 // SuperAdmin routes
 const superAdminRoutes = require('./routes/SuperAdmin/SuperAdminRoutes');
-app.use('/superadmin', superAdminRoutes);
+const actionLogger = require('./middleware/actionLogger');
+app.use('/superadmin', actionLogger('SuperAdmin'), superAdminRoutes);
 
 // Admin routes (persistent admins stored in MongoDB)
 const adminRoutes = require('./routes/Admin/AdminRoutes');
-app.use('/admin', adminRoutes);
+app.use('/admin', actionLogger('Admin'), adminRoutes);
 
 // Institution public routes
 const institutionRoutes = require('./routes/Institution/InstitutionRoutes');
-app.use('/institution', institutionRoutes);
+app.use('/institution', actionLogger('Institution'), institutionRoutes);
 
 // Faculty routes
 try {
   const facultyRoutes = require('./routes/Faculty/FacultyRoutes');
-  app.use('/faculty', facultyRoutes);
+  app.use('/faculty', actionLogger('Faculty'), facultyRoutes);
   console.log('[SERVER] Faculty routes registered at /faculty');
 } catch (e) {
   console.log('[SERVER] No faculty routes registered:', e && e.message);
@@ -103,7 +129,7 @@ try {
 // Contributor routes
 try {
   const contributorRoutes = require('./routes/Contributor/ContributorRoutes');
-  app.use('/contributor', contributorRoutes);
+  app.use('/contributor', actionLogger('Contributor'), contributorRoutes);
   console.log('[SERVER] Contributor routes registered at /contributor');
 } catch (e) {
   console.log('[SERVER] No contributor routes registered:', e && e.message);
