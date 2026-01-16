@@ -11,6 +11,7 @@ const AdminManagement: React.FC = () => {
   const [loading, setLoading] = useState(true)
   const [modalOpen, setModalOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [menuOpen, setMenuOpen] = useState<string | null>(null)
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [institutionLimit, setInstitutionLimit] = useState<number | ''>('')
@@ -186,17 +187,9 @@ const AdminManagement: React.FC = () => {
                       </svg>
                     </button>
 
-                    <button onClick={() => del(a.id)} className="p-2 text-gray-400 hover:text-gray-600 transition-colors" title="Delete">
-                      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
-
                     <div className="relative">
                       <button
-                        onClick={() => {
-                          // placeholder for menu
-                        }}
+                        onClick={() => setMenuOpen(menuOpen === a.id ? null : a.id)}
                         className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
                         title="More options"
                       >
@@ -204,6 +197,26 @@ const AdminManagement: React.FC = () => {
                           <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
                         </svg>
                       </button>
+
+                      {menuOpen === a.id && (
+                        <>
+                          <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(null)}></div>
+                          <div className="absolute right-0 top-full mt-1 z-50 w-40 bg-white rounded-lg shadow-xl border border-gray-200 py-2">
+                            <button
+                              onClick={() => {
+                                setMenuOpen(null);
+                                if (confirm('Delete admin?')) del(a.id);
+                              }}
+                              className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors font-medium"
+                            >
+                              <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                              <span>Delete</span>
+                            </button>
+                          </div>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>

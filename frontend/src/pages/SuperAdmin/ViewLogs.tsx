@@ -8,6 +8,8 @@ const ViewLogs: React.FC = () => {
   const [logs, setLogs] = useState<any[]>([]);
   const [role, setRole] = useState<(typeof roles)[number]>('All');
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(0);
+  const PAGE_SIZE = 10;
 
   const load = async (r: (typeof roles)[number]) => {
     setLoading(true);
@@ -17,6 +19,7 @@ const ViewLogs: React.FC = () => {
       const b = await res.json().catch(() => ({}));
       if (b.success) setLogs(b.data || []);
     } catch (_) {}
+    setPage(0);
     setLoading(false);
   };
 
@@ -58,7 +61,7 @@ const ViewLogs: React.FC = () => {
             <div className="divide-y">
               {loading && (<div className="p-6 text-sm text-gray-500">Loading...</div>)}
               {!loading && logs.length === 0 && (<div className="p-6 text-sm text-gray-500">No logs.</div>)}
-              {logs.map((l, idx) => (
+              {logs.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE).map((l, idx) => (
                 <div key={idx} className="grid grid-cols-12 gap-4 px-6 py-4">
                   <div className="col-span-3 text-sm text-gray-800">{new Date(l.time).toLocaleString()}</div>
                   <div className="col-span-2 text-sm"><span className="inline-block px-2 py-1 rounded-full bg-gray-100 text-gray-700 text-xs font-medium">{l.roleGroup || 'Unknown'}</span></div>
@@ -67,6 +70,28 @@ const ViewLogs: React.FC = () => {
                   <div className="col-span-2 text-sm text-right"><span className={`inline-block px-2 py-1 rounded-full text-xs ${l.status >= 200 && l.status < 300 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{l.status}</span></div>
                 </div>
               ))}
+            </div>
+            {/* Pagination */}
+            <div className="px-6 py-4 bg-gray-50 border-t flex items-center justify-between">
+              <div className="text-sm text-gray-600">
+                Showing {Math.min(page * PAGE_SIZE + 1, logs.length === 0 ? 0 : logs.length)} - {Math.min((page + 1) * PAGE_SIZE, logs.length)} of {logs.length}
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setPage((p) => Math.max(0, p - 1))}
+                  disabled={page === 0}
+                  className={`px-3 py-1 rounded ${page === 0 ? 'bg-gray-100 text-gray-400' : 'bg-white border'}`}
+                >
+                  Previous
+                </button>
+                <button
+                  onClick={() => setPage((p) => p + 1)}
+                  disabled={(page + 1) * PAGE_SIZE >= logs.length}
+                  className={`px-3 py-1 rounded ${(page + 1) * PAGE_SIZE >= logs.length ? 'bg-gray-100 text-gray-400' : 'bg-white border'}`}
+                >
+                  Next
+                </button>
+              </div>
             </div>
           </div>
         </main>
