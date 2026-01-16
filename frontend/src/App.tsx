@@ -18,6 +18,7 @@ import InstitutionChat from './pages/Institution/Chat'
 import ChatWithAdmin from './pages/Institution/ChatWithAdmin'
 import InstitutionDashboard from './pages/Institution/Dashboard'
 import InstitutionAnnouncementCreate from './pages/Institution/AnnouncementCreate'
+import InstitutionAnnouncements from './pages/Institution/Announcements'
 import FacultyManagement from './pages/Institution/FacultyManagement'
 import StudentManagement from './pages/Institution/StudentManagement'
 import BatchManagement from './pages/Institution/BatchManagement'
@@ -69,6 +70,7 @@ const App: React.FC = () => {
         <Route path="/institution/chat" element={<InstitutionChat />} />
         <Route path="/institution/admin-chat" element={<ChatWithAdmin />} />
         <Route path="/institution/dashboard" element={<InstitutionDashboard />} />
+        <Route path="/institution/announcements" element={<InstitutionAnnouncements />} />
         <Route path="/institution/announcements/create" element={<InstitutionAnnouncementCreate />} />
         <Route path="/institution/faculties" element={<FacultyManagement />} />
         <Route path="/institution/students" element={<StudentManagement />} />
