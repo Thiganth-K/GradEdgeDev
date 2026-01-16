@@ -19,10 +19,13 @@ import ChatWithAdmin from './pages/Institution/ChatWithAdmin'
 import InstitutionDashboard from './pages/Institution/Dashboard'
 import InstitutionAnnouncementCreate from './pages/Institution/AnnouncementCreate'
 import InstitutionAnnouncements from './pages/Institution/Announcements'
+import InstitutionLibrary from './pages/Institution/Library'
 import FacultyManagement from './pages/Institution/FacultyManagement'
 import StudentManagement from './pages/Institution/StudentManagement'
 import BatchManagement from './pages/Institution/BatchManagement'
 import TestManagement from './pages/Institution/TestManagement'
+import TestCreateDetails from './pages/Institution/TestCreateDetails'
+import TestCreateQuestions from './pages/Institution/TestCreateQuestions'
 import FacultyDashboard from './pages/Faculty/Dashboard'
 import FacultyChat from './pages/Faculty/Chat'
 import FacultyTestResults from './pages/Faculty/TestResults'
@@ -72,10 +75,13 @@ const App: React.FC = () => {
         <Route path="/institution/dashboard" element={<InstitutionDashboard />} />
         <Route path="/institution/announcements" element={<InstitutionAnnouncements />} />
         <Route path="/institution/announcements/create" element={<InstitutionAnnouncementCreate />} />
+        <Route path="/institution/library" element={<InstitutionLibrary />} />
         <Route path="/institution/faculties" element={<FacultyManagement />} />
         <Route path="/institution/students" element={<StudentManagement />} />
         <Route path="/institution/batches" element={<BatchManagement />} />
         <Route path="/institution/tests" element={<TestManagement />} />
+        <Route path="/institution/tests/create" element={<TestCreateDetails />} />
+        <Route path="/institution/tests/create/questions" element={<TestCreateQuestions />} />
         <Route path="/faculty/dashboard" element={<FacultyDashboard />} />
         <Route path="/faculty/test/:id/results" element={<FacultyTestResults />} />
         <Route path="/faculty/announcements" element={<FacultyAnnouncements />} />

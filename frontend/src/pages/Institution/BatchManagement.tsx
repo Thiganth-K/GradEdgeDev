@@ -245,11 +245,8 @@ const BatchManagement: React.FC = () => {
               <label className="sr-only">Search batches</label>
               <div className="relative">
                 <input value={query} onChange={(e)=>setQuery(e.target.value)} placeholder="Search batches, faculty or student" className="w-full border border-gray-200 rounded-lg px-4 py-2 shadow-sm focus:outline-none focus:ring-2 focus:ring-red-100" />
-                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">🔎</div>
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"></div>
               </div>
-            </div>
-            <div className="ml-auto">
-              <button onClick={() => setShowCreateModal(true)} className="hidden md:inline-flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg shadow">+ Create Batch</button>
             </div>
           </div>
 
@@ -281,24 +278,27 @@ const BatchManagement: React.FC = () => {
                     return false;
                   });
                 }, [list, query]).map((b) => (
-                  <div key={b._id} className="border rounded-xl p-4 flex items-start justify-between hover:shadow-md transition-shadow bg-white">
-                    <div className="flex items-start gap-4 flex-1">
-                      <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center text-gray-700 font-semibold text-lg">{(b.name||'--').charAt(0).toUpperCase()}</div>
-                      <div>
-                        <div className="font-medium text-lg">{b.name}</div>
-                        <div className="text-sm text-gray-500 mt-2">{b.faculty ? `Faculty: ${b.faculty.username}` : 'No faculty assigned'}</div>
-                        <div className="text-sm text-gray-500 mt-1">Students: {(b.students||[]).length}</div>
+                  <div key={b._id} className="col-span-full">
+                    <div className="rounded-lg border border-gray-100 p-6 bg-white shadow-sm">
+                      <div className="flex items-center gap-6">
+                        <div className="w-14 h-14 rounded-md bg-gray-100 flex items-center justify-center text-gray-700 font-semibold text-lg">{(b.name||'--').charAt(0).toUpperCase()}</div>
+                        <div className="flex-1">
+                          <div className="text-xl font-semibold text-gray-800">{b.name}</div>
+                          <div className="text-sm text-gray-500 mt-2">{b.faculty ? `Faculty: ${b.faculty.username}` : 'Faculty: not assigned'}</div>
+                          <div className="text-sm text-gray-500 mt-1">Students: {(b.students||[]).length}</div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <button onClick={() => setEditingItem(b)} className="px-3 py-2 border border-gray-100 rounded-lg text-gray-600 hover:bg-gray-50">Edit</button>
+                          <button onClick={() => setOpenMenuFor(openMenuFor === b._id ? null : b._id)} className="p-2 text-gray-500 hover:text-gray-700" title="Actions">
+                            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="6" r="1.5" /><circle cx="12" cy="12" r="1.5" /><circle cx="12" cy="18" r="1.5" /></svg>
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex items-center gap-2 ml-4 relative">
-                      <button onClick={() => setEditingItem(b)} className="inline-flex items-center gap-2 px-3 py-2 border border-gray-100 rounded-lg text-gray-600 hover:bg-gray-50">Edit</button>
-                      <button onClick={() => setOpenMenuFor(openMenuFor === b._id ? null : b._id)} className="p-2 text-gray-500 hover:text-gray-700" title="Actions">
-                        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="6" r="1.5" /><circle cx="12" cy="12" r="1.5" /><circle cx="12" cy="18" r="1.5" /></svg>
-                      </button>
+
                       {openMenuFor === b._id && (
                         <>
                           <div onClick={() => setOpenMenuFor(null)} className="fixed inset-0 z-40" />
-                          <div className="absolute right-0 z-50 mt-2 w-44 bg-white border rounded-lg shadow-lg">
+                          <div className="absolute right-8 z-50 mt-2 w-44 bg-white border rounded-lg shadow-lg">
                             <button onClick={() => { setDetailsItem(b); setOpenMenuFor(null); }} className="w-full text-left px-3 py-2 hover:bg-gray-50">View details</button>
                             <button onClick={() => { if (confirm('Delete this batch?')) { remove(b._id); } setOpenMenuFor(null); }} className="w-full text-left px-3 py-2 text-red-600 hover:bg-gray-50">Delete</button>
                           </div>
