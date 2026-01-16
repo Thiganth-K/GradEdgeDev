@@ -19,6 +19,9 @@ const InstitutionDashboard: React.FC = () => {
   const [tests, setTests] = useState<Test[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showAnns, setShowAnns] = useState(false);
+  const [announcements, setAnnouncements] = useState<any[]>([]);
+  const [annsLoading, setAnnsLoading] = useState(false);
 
   const loadData = async () => {
     const role = typeof window !== 'undefined' ? localStorage.getItem('gradedge_role') : null;
@@ -65,6 +68,31 @@ const InstitutionDashboard: React.FC = () => {
   useEffect(() => {
     loadData();
   }, []);
+
+  const loadAnnouncements = async () => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('institution_token') : null;
+    if (!token) return;
+    setAnnsLoading(true);
+    try {
+      const res = await fetch(`${BACKEND}/institution/announcements`, { headers: { Authorization: `Bearer ${token}` } });
+      const body = await res.json().catch(() => ({}));
+      if (body.success) setAnnouncements(body.data || []);
+    } catch (err) {
+      // ignore
+    } finally { setAnnsLoading(false); }
+  };
+
+  const markAnnAsRead = async (id: string) => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('institution_token') : null;
+    if (!token) return;
+    try {
+      const res = await fetch(`${BACKEND}/institution/announcements/${id}/read`, { method: 'POST', headers: { Authorization: `Bearer ${token}` } });
+      const body = await res.json().catch(() => ({}));
+      if (body.success) setAnnouncements(announcements.map(a => a._id === id ? { ...a, isRead: true } : a));
+    } catch (err) {
+      // ignore
+    }
+  };
 
   const StatCard = ({ title, value, action }: { title: string; value: number; action: { label: string; href: string } }) => (
     <div className="bg-white rounded shadow p-4 flex flex-col justify-between">
@@ -139,7 +167,7 @@ const InstitutionDashboard: React.FC = () => {
     <div className="flex min-h-screen bg-gray-50">
       <InstitutionSidebar />
       <main className="flex-1 h-screen overflow-y-auto">
-      <div className="bg-gradient-to-r from-red-600 to-red-700 text-white">
+      <div className="bg-gradient-to-r from-red-600 to-red-700 text-white relative">
         <div className="max-w-7xl mx-auto px-8 py-6">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
@@ -158,6 +186,36 @@ const InstitutionDashboard: React.FC = () => {
                 </svg>
                 {loading ? 'Refreshing...' : 'Refresh'}
               </button>
+              <div className="relative">
+                <button onClick={async () => { setShowAnns(!showAnns); if (!showAnns) await loadAnnouncements(); }} className="px-3 py-2 bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 rounded-lg text-white transition-colors flex items-center gap-2">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
+                  {announcements.filter(a => !a.isRead).length > 0 && (
+                    <span className="ml-1 inline-flex items-center justify-center px-2 py-0.5 text-xs font-bold leading-none text-red-700 bg-white rounded-full">{announcements.filter(a => !a.isRead).length}</span>
+                  )}
+                </button>
+
+                {showAnns && (
+                  <div className="absolute right-0 mt-2 w-96 bg-white text-gray-900 rounded shadow-lg border border-gray-200 z-50">
+                    <div className="p-3 border-b flex items-center justify-between">
+                      <div className="font-semibold">Announcements</div>
+                      <a href="/institution/announcements" className="text-sm text-red-600">View all</a>
+                    </div>
+                    <div className="p-3 max-h-72 overflow-y-auto space-y-2">
+                      {annsLoading && <div className="text-sm text-gray-500">Loading...</div>}
+                      {!annsLoading && announcements.length === 0 && <div className="text-sm text-gray-500">No announcements</div>}
+                      {announcements.slice(0, 6).map(a => (
+                        <div key={a._id} className={`p-2 rounded ${a.isRead ? 'bg-gray-50' : 'bg-blue-50 border border-blue-100'}`}>
+                          <div className="flex items-start justify-between">
+                            <div className="text-xs text-gray-500">{new Date(a.createdAt).toLocaleString()}</div>
+                            {!a.isRead && <button onClick={() => markAnnAsRead(a._id)} className="text-xs text-blue-600 hover:underline">Mark as read</button>}
+                          </div>
+                          <div className="text-sm mt-1">{a.message}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -339,21 +397,7 @@ const InstitutionDashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Announcements Section */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">Announcements</h3>
-            <div className="flex gap-2">
-              <a href="/institution/announcements/create" className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg transition-colors">
-                Create New
-              </a>
-              <a href="/institution/announcements" className="px-4 py-2 border border-gray-300 hover:bg-gray-50 text-sm font-medium text-gray-700 rounded-lg transition-colors">
-                View All
-              </a>
-            </div>
-          </div>
-          <InstitutionAnnouncements />
-        </div>
+        {/* Announcements card removed (use bell icon popup in header) */}
       </div>
       </main>
     </div>

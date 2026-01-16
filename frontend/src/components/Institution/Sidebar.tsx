@@ -59,6 +59,8 @@ const InstitutionSidebar: React.FC = () => {
         })}
       </nav>
 
+      
+
       <div className="border-t border-red-700 p-4">
         <div className="flex items-center gap-3 mb-3">
           <div className="w-10 h-10 bg-red-700 rounded-full flex items-center justify-center">
@@ -77,5 +79,7 @@ const InstitutionSidebar: React.FC = () => {
     </div>
   );
 };
+
+
 
 export default InstitutionSidebar;

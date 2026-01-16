@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import API_BASE_URL from '../../lib/api';
 import InstitutionSidebar from '../../components/Institution/Sidebar';
+import { useNavigate } from 'react-router-dom';
 
 const BACKEND = API_BASE_URL || import.meta.env.VITE_API_URL || 'http://localhost:5001';
 
@@ -13,6 +14,7 @@ const TestManagement: React.FC = () => {
   // Edit mode state
   const [editingTestId, setEditingTestId] = useState<string | null>(null);
   const [editingTest, setEditingTest] = useState<any | null>(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
   // Create Test form state
   const [name, setName] = useState('');
@@ -195,249 +197,128 @@ const TestManagement: React.FC = () => {
         <div className="max-w-6xl mx-auto">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h1 className="text-2xl font-bold">Create a Test</h1>
+              <h1 className="text-2xl font-bold">Tests</h1>
               <p className="text-sm text-gray-500">Configure tests, add questions and manage existing tests.</p>
+            </div>
+            <div>
+              <CreateTestButton />
             </div>
           </div>
           <div className="space-y-6">
-        {/* Test Configuration Card */}
-        <div className="bg-white rounded-2xl shadow p-6 ring-1 ring-gray-50">
-          <h3 className="text-lg font-semibold mb-4 text-red-700">📋 Test Configuration</h3>
-          <p className="text-sm text-gray-600 mb-4">Configure basic test details before selecting questions.</p>
-          <form onSubmit={createTest} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block font-medium mb-1">Test Name</label>
-                <input value={name} onChange={(e)=>setName(e.target.value)} placeholder="Test name" className="border border-gray-200 px-3 py-2 w-full rounded-lg shadow-sm focus:outline-none" required />
-              </div>
-              <div>
-                <label className="block font-medium mb-1">Test Type</label>
-                <select value={type} onChange={(e)=>setType(e.target.value as any)} className="border border-gray-200 px-3 py-2 w-full rounded-lg shadow-sm">
-                  <option value="aptitude">Aptitude</option>
-                  <option value="technical">Technical</option>
-                  <option value="psychometric">psychometric</option>
-                </select>
-              </div>
-              <div>
-                <label className="block font-medium mb-1">Assigned Faculty</label>
-                <select value={assignedFacultyId} onChange={(e)=>setAssignedFacultyId(e.target.value)} className="border border-gray-200 px-3 py-2 w-full rounded-lg shadow-sm">
-                  <option value="">-- No faculty assigned --</option>
-                  {faculties.map((f)=> <option key={f._id} value={f._id}>{f.username} ({f.role})</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="block font-medium mb-1">Duration (minutes)</label>
-                <input type="number" value={durationMinutes} onChange={(e)=>setDurationMinutes(Number(e.target.value)||30)} className="border border-gray-200 px-3 py-2 w-full rounded-lg shadow-sm" />
-              </div>
-              <div>
-                <label className="block font-medium mb-1">Start Time</label>
-                <input type="datetime-local" value={startTime} onChange={(e)=>handleStartTimeChange(e.target.value)} className="border border-gray-200 px-3 py-2 w-full rounded-lg shadow-sm" />
-              </div>
-              <div>
-                <label className="block font-medium mb-1">End Time</label>
-                <input type="datetime-local" value={endTime} onChange={(e)=>setEndTime(e.target.value)} className="border border-gray-200 px-3 py-2 w-full rounded-lg shadow-sm" />
-              </div>
-            </div>
-            
-            <div>
-              <label className="block font-medium mb-2">Assign Batches</label>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-32 overflow-auto border border-gray-100 rounded-lg p-3 bg-gray-50">
-                {batches.map((b)=> (
-                  <label key={b._id} className="flex items-center space-x-2">
-                    <input type="checkbox" checked={selectedBatchIds.includes(b._id)} onChange={()=>toggleBatch(b._id)} />
-                    <span className="text-sm">{b.name}</span>
-                  </label>
-                ))}
-                {batches.length===0 && <p className="text-sm text-gray-600">No batches available.</p>}
-              </div>
-            </div>
-          </form>
-        </div>
 
-        {/* Library Questions Section */}
-        <div className="bg-white rounded-2xl shadow p-6 ring-1 ring-gray-50 border-l-4 border-blue-500">
-          <h3 className="text-lg font-semibold mb-2 flex items-center justify-between">
-            <span className="text-blue-700">📚 Library Questions</span>
-            <span className="text-xs font-normal text-gray-500 bg-blue-50 px-3 py-1 rounded-full">Reusable across tests</span>
-          </h3>
-          <p className="text-sm text-gray-600 mb-4 bg-blue-50 p-3 rounded border border-blue-200">
-            ℹ️ Library questions are contributor-created and approved. Select questions to include in this test. Editing library questions updates all tests using them.
-          </p>
-          
-          <div className="mb-4">
-            <label className="block font-medium mb-2">Filter by Category</label>
-            <div className="flex space-x-2">
-              <select value={type} onChange={(e) => setType(e.target.value as any)} className="border border-gray-200 px-3 py-2 rounded-lg flex-1 shadow-sm">
-                <option value="aptitude">Aptitude</option>
-                <option value="technical">Technical</option>
-                <option value="psychometric">psychometric</option>
-              </select>
-              <button onClick={() => load()} className="px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50">Refresh</button>
-            </div>
-          </div>
-          
-          <div className="mb-3 text-sm font-medium text-gray-700">
-            Selected: {selectedQuestionIds.length} question(s)
-          </div>
-          
-          <div className="space-y-2 max-h-80 overflow-auto border border-gray-100 rounded-lg p-3 bg-gray-50">
-            {questions.map((q) => {
-              // Get correct answer indices from all possible sources
-              const getCorrectIndices = (question: any): number[] => {
-                if (Array.isArray(question.correctIndices) && question.correctIndices.length > 0) {
-                  return question.correctIndices;
-                }
-                if (question.correctIndex !== undefined && question.correctIndex !== null) {
-                  return [question.correctIndex];
-                }
-                const indices: number[] = [];
-                (question.options || []).forEach((opt: any, idx: number) => {
-                  if (opt.isCorrect) indices.push(idx);
-                });
-                return indices;
-              };
-              
-              const correctIndices = getCorrectIndices(q);
-              
-              return (
-                <label key={q._id} className="flex items-start space-x-3 p-3 bg-white rounded-lg border hover:border-blue-400 cursor-pointer">
-                  <input type="checkbox" checked={selectedQuestionIds.includes(q._id)} onChange={() => toggleSelectQuestion(q._id)} className="mt-1" />
-                  <div className="flex-1">
-                    <div className="font-medium text-gray-800">{q.text}</div>
-                    <div className="text-sm text-gray-600 mt-1 space-y-1">
-                      {(q.options||[]).map((o:any,i:number)=> {
-                        const isCorrect = correctIndices.includes(i);
-                        return (
-                          <div key={i} className={`${isCorrect ? 'font-semibold text-green-700' : ''}`}>
-                            {String.fromCharCode(65 + i)}) {o.text} {isCorrect && '✓'}
-                          </div>
-                        );
-                      })}
+          {/* Create Test Modal (opened from + Create Test) */}
+          {showCreateModal && (
+            <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center p-4 z-50">
+              <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-h-screen overflow-auto ring-1 ring-gray-100" style={{ maxWidth: '960px' }}>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold mb-0 text-red-700">📋 Test Configuration</h3>
+                  <button onClick={() => setShowCreateModal(false)} className="text-gray-500">✕</button>
+                </div>
+                <p className="text-sm text-gray-600 mb-4">Configure basic test details before selecting questions.</p>
+                <form onSubmit={(e) => { createTest(e); setShowCreateModal(false); }} className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block font-medium mb-1">Test Name</label>
+                      <input value={name} onChange={(e)=>setName(e.target.value)} placeholder="Test name" className="border border-gray-200 px-3 py-2 w-full rounded-lg shadow-sm focus:outline-none" required />
                     </div>
-                    <div className="text-xs text-gray-500 mt-1">
-                      Difficulty: {q.difficulty || 'medium'} | Category: {q.category}
-                      {correctIndices.length > 1 && <span className="ml-2 text-blue-600 font-semibold">ℹ️ Multiple correct answers</span>}
+                    <div>
+                      <label className="block font-medium mb-1">Test Type</label>
+                      <select value={type} onChange={(e)=>setType(e.target.value as any)} className="border border-gray-200 px-3 py-2 w-full rounded-lg shadow-sm">
+                        <option value="aptitude">Aptitude</option>
+                        <option value="technical">Technical</option>
+                        <option value="psychometric">psychometric</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block font-medium mb-1">Assigned Faculty</label>
+                      <select value={assignedFacultyId} onChange={(e)=>setAssignedFacultyId(e.target.value)} className="border border-gray-200 px-3 py-2 w-full rounded-lg shadow-sm">
+                        <option value="">-- No faculty assigned --</option>
+                        {faculties.map((f)=> <option key={f._id} value={f._id}>{f.username} ({f.role})</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block font-medium mb-1">Duration (minutes)</label>
+                      <input type="number" value={durationMinutes} onChange={(e)=>setDurationMinutes(Number(e.target.value)||30)} className="border border-gray-200 px-3 py-2 w-full rounded-lg shadow-sm" />
+                    </div>
+                    <div>
+                      <label className="block font-medium mb-1">Start Time</label>
+                      <input type="datetime-local" value={startTime} onChange={(e)=>handleStartTimeChange(e.target.value)} className="border border-gray-200 px-3 py-2 w-full rounded-lg shadow-sm" />
+                    </div>
+                    <div>
+                      <label className="block font-medium mb-1">End Time</label>
+                      <input type="datetime-local" value={endTime} onChange={(e)=>setEndTime(e.target.value)} className="border border-gray-200 px-3 py-2 w-full rounded-lg shadow-sm" />
                     </div>
                   </div>
-                </label>
-              );
-            })}
-            {questions.length === 0 && (
-              <p className="text-sm text-gray-600 text-center py-4">No library questions available for this category.</p>
-            )}
-          </div>
-        </div>
-
-        {/* Custom Questions Section */}
-        <div className="bg-white rounded shadow p-6 border-l-4 border-green-500">
-          <h3 className="text-xl font-semibold mb-2 flex items-center justify-between">
-            <span className="text-green-700">✏️ Custom Questions</span>
-            <span className="text-xs font-normal text-gray-500 bg-green-50 px-3 py-1 rounded-full">Test-specific only</span>
-          </h3>
-          <p className="text-sm text-gray-600 mb-4 bg-green-50 p-3 rounded border border-green-200">
-            ✓ Custom questions exist only for this test and will not be added to the library. Use these for one-time or test-specific questions.
-          </p>
-          
-            <div className="mb-4">
-            <label className="block font-medium mb-2">Question Text</label>
-            <input value={customQText} onChange={(e)=>setCustomQText(e.target.value)} placeholder="Enter your custom question" className="border border-gray-200 px-3 py-2 w-full rounded-lg shadow-sm" />
-          </div>
-          
-          <div className="mb-4">
-            <label className="block font-medium mb-2">Options</label>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-              {customOptions.map((opt, idx) => (
-                <input key={idx} value={opt} onChange={(e)=>{
-                  const next=[...customOptions]; next[idx]=e.target.value; setCustomOptions(next);
-                }} placeholder={`Option ${idx+1}`} className="border border-gray-200 px-3 py-2 rounded-lg shadow-sm" />
-              ))}
-            </div>
-          </div>
-          
-          <div className="mb-4">
-            <label className="block font-medium mb-2">Correct Answers (select one or more)</label>
-            <div className="space-y-2 bg-gray-50 p-3 rounded border">
-              {customOptions.map((opt, idx) => (
-                <label key={idx} className={`flex items-center space-x-2 p-2 rounded ${opt ? 'cursor-pointer hover:bg-gray-100' : 'opacity-50'}`}>
-                  <input 
-                    type="checkbox" 
-                    checked={customCorrectIndices.includes(idx)}
-                    onChange={() => toggleCorrectAnswer(idx)}
-                    disabled={!opt}
-                    className="w-4 h-4"
-                  />
-                  <span className="text-sm">{opt || `Option ${idx+1} (not set)`}</span>
-                </label>
-              ))}
-            </div>
-            <p className="text-xs text-gray-500 mt-1">✓ Check all correct answers. Multiple selections allowed.</p>
-          </div>
-          
-          <button type="button" onClick={addCustomQuestion} className="px-4 py-2 border border-green-600 text-green-700 rounded-lg hover:bg-green-50">
-            + Add Custom Question
-          </button>
-          
-          {customQuestions.length > 0 && (
-            <div className="mt-4">
-              <div className="font-medium mb-2">Added Custom Questions: {customQuestions.length}</div>
-              <div className="space-y-2 max-h-60 overflow-auto border border-gray-100 rounded-lg p-3 bg-gray-50">
-                {customQuestions.map((cq, idx) => (
-                  <div key={idx} className="bg-white p-3 rounded-lg border">
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <div className="font-medium">Q{idx + 1}. {cq.text}</div>
-                        <div className="text-sm text-gray-600 mt-1">
-                          {cq.options.map((o: string, i: number) => `${i + 1}. ${o}`).join(' | ')}
-                        </div>
-                        <div className="text-xs text-green-600 mt-1">
-                          ✓ Correct: {Array.isArray(cq.correctIndices) 
-                            ? cq.correctIndices.map((ci: number) => `Option ${ci + 1}`).join(', ')
-                            : `Option ${cq.correctIndex + 1}`}
-                        </div>
-                      </div>
-                      <button type="button" onClick={() => setCustomQuestions(prev => prev.filter((_, i) => i !== idx))} className="text-red-600 text-sm ml-2">
-                        Remove
-                      </button>
+                  
+                  <div>
+                    <label className="block font-medium mb-2">Assign Batches</label>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-32 overflow-auto border border-gray-100 rounded-lg p-3 bg-gray-50">
+                      {batches.map((b)=> (
+                        <label key={b._id} className="flex items-center space-x-2">
+                          <input type="checkbox" checked={selectedBatchIds.includes(b._id)} onChange={()=>toggleBatch(b._id)} />
+                          <span className="text-sm">{b.name}</span>
+                        </label>
+                      ))}
+                      {batches.length===0 && <p className="text-sm text-gray-600">No batches available.</p>}
                     </div>
                   </div>
-                ))}
+                  
+                  <div className="flex justify-end gap-2 mt-2">
+                    <button type="button" onClick={() => setShowCreateModal(false)} className="px-4 py-2 border border-gray-200 rounded-lg">Cancel</button>
+                    <button type="submit" className="px-4 py-2 bg-red-600 text-white rounded-lg">Create Test</button>
+                  </div>
+                </form>
               </div>
             </div>
           )}
-        </div>
+
+        {/* Library Questions removed per request */}
+
+        {/* Custom Questions removed per request */}
     
-        {/* Existing Tests */}
+        {/* Existing Tests (card list) */}
         <div className="bg-white rounded-2xl shadow p-6 ring-1 ring-gray-50">
-          <h3 className="text-lg font-semibold mb-4">Existing Tests</h3>
-          <div className="overflow-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b-2">
-                  <th className="p-3 text-left">Name</th>
-                  <th className="text-left">Type</th>
-                  <th className="text-left">Faculty</th>
-                  <th className="text-left">Questions</th>
-                  <th className="text-left">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {tests.map((t) => (
-                  <tr key={t._id} className="border-t hover:bg-gray-50">
-                    <td className="p-3">{t.name}</td>
-                    <td className="capitalize">{t.type}</td>
-                    <td>{t.assignedFaculty?.username || '-'}</td>
-                    <td>{t.questions?.length || 0}</td>
-                    <td className="p-3 space-x-2">
-                      <button className="text-blue-600 hover:underline" onClick={() => openEditModal(t._id)}>Edit</button>
-                      <button className="text-red-600 hover:underline" onClick={() => removeTest(t._id)}>Delete</button>
-                    </td>
-                  </tr>
-                ))}
-                {tests.length===0 && (
-                  <tr><td className="p-3 text-center text-gray-600" colSpan={5}>No tests created yet.</td></tr>
-                )}
-              </tbody>
-            </table>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold">All Tests ({tests.length})</h3>
+            <div className="text-sm text-gray-500">Manage created tests</div>
+          </div>
+
+          <div className="space-y-4">
+            {tests.length === 0 && (
+              <div className="p-6 bg-gray-50 rounded-lg text-center text-gray-600">No tests created yet.</div>
+            )}
+
+            {tests.map((t) => (
+              <div key={t._id} className="bg-white rounded-lg shadow-sm border border-gray-100 p-6 flex items-center justify-between">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 flex-1">
+                  <div>
+                    <div className="text-lg font-semibold text-gray-900">{t.name}</div>
+                    <div className="text-sm text-gray-500 mt-1">{t.type ? String(t.type).charAt(0).toUpperCase() + String(t.type).slice(1) : '—'}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium text-gray-800">{t.assignedFaculty?.username || '-'}</div>
+                    <div className="text-xs text-gray-400">Assigned Faculty</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-gray-800">{(t.questions && t.questions.length) || 0} question(s)</div>
+                    <div className="text-xs text-gray-400">Questions</div>
+                  </div>
+                </div>
+
+                <div className="flex items-center space-x-3 ml-4">
+                  <button onClick={() => openEditModal(t._id)} className="text-gray-500 hover:text-blue-600 p-2 rounded-full hover:bg-gray-50" title="Edit">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5h6M5 7v12a2 2 0 002 2h10a2 2 0 002-2V7" />
+                    </svg>
+                  </button>
+                  <button onClick={() => removeTest(t._id)} className="text-gray-500 hover:text-red-600 p-2 rounded-full hover:bg-gray-50" title="Delete">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 
@@ -547,3 +428,13 @@ const TestManagement: React.FC = () => {
 };
 
 export default TestManagement;
+
+// small navigation button component to avoid cluttering above
+function CreateTestButton() {
+  const navigate = useNavigate();
+  return (
+    <button onClick={() => navigate('/institution/tests/create')} className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">
+      + Create Test
+    </button>
+  );
+}
