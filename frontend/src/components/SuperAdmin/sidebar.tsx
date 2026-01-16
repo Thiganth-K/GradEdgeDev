@@ -63,7 +63,7 @@ const Sidebar: React.FC = () => {
   ];
 
   return (
-    <div className="w-64 bg-gradient-to-b from-red-800 to-red-900 min-h-screen flex flex-col">
+    <div className="w-64 bg-gradient-to-b from-red-800 to-red-900 sticky top-0 h-screen flex flex-col">
       {/* Logo */}
       <div className="p-6 border-b border-red-700">
         <div className="flex items-center gap-3">
