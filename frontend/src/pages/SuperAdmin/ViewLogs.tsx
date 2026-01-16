@@ -1,4 +1,13 @@
 import React, { useEffect, useState } from 'react';
+import Sidebar from '../../components/SuperAdmin/sidebar';
+import SuperAdminTable, {type  Column, StatusBadge, PriorityBadge } from '../../components/SuperAdmin/SuperAdminTable';
+import SuperAdminPageHeader from '../../components/SuperAdmin/SuperAdminPageHeader';
+
+const BACKEND = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+
+const ViewLogs: React.FC = () => {
+  const [logs, setLogs] = useState<any[]>([]);
+
 import Sidebar from '../../components/SuperAdmin/sidebar'
 
 const BACKEND = import.meta.env.VITE_API_URL || 'http://localhost:5001';
@@ -8,6 +17,8 @@ const ViewLogs: React.FC = () => {
   const [logs, setLogs] = useState<any[]>([]);
   const [role, setRole] = useState<(typeof roles)[number]>('All');
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(0);
+  const PAGE_SIZE = 10;
 
   const load = async (r: (typeof roles)[number]) => {
     setLoading(true);
@@ -17,8 +28,10 @@ const ViewLogs: React.FC = () => {
       const b = await res.json().catch(() => ({}));
       if (b.success) setLogs(b.data || []);
     } catch (_) {}
+    setPage(0);
     setLoading(false);
   };
+
 
   useEffect(() => {
     const role = localStorage.getItem('gradedge_role');
@@ -26,10 +39,68 @@ const ViewLogs: React.FC = () => {
       window.location.href = '/login';
       return;
     }
+
+    fetch(`${BACKEND}/superadmin/logs`).then((r) => r.json()).then((b) => {
+      if (b.success) setLogs(b.data || []);
+    }).catch(() => {});
+
     load('All');
+
   }, []);
 
+  const columns: Column<Log>[] = [
+    {
+        header: 'Endpoint',
+        accessor: (row) => (
+            <div className="flex flex-col max-w-[200px]">
+                <span className="font-mono text-xs text-gray-900 truncate" title={row.url}>{row.url}</span>
+                <span className="text-[10px] text-gray-500">{row.method}</span>
+            </div>
+        )
+    },
+    {
+        header: 'Role',
+        accessor: (row) => <span className="text-gray-700 text-xs px-2 py-1 bg-gray-100 rounded border border-gray-200">{row.roleGroup || 'Unknown'}</span>
+    },
+    {
+        header: 'Status',
+        accessor: (row) => (
+             <StatusBadge status={row.status >= 200 && row.status < 300 ? 'Active' : 'Failed'} />
+        )
+    },
+    {
+        header: 'Severity',
+        accessor: (row) => <PriorityBadge priority={row.status >= 400 ? 'High' : 'Low'} />
+    },
+    {
+        header: 'Timestamp',
+        accessor: (row) => <span className="text-gray-500 text-xs">{new Date(row.time).toLocaleString()}</span>
+    }
+  ];
+
   return (
+    <div className="flex h-screen w-full bg-gray-50 overflow-hidden">
+      <Sidebar />
+      <div className="flex-1 bg-gray-50 p-8">
+        <main className="max-w-7xl mx-auto">
+          <div className="mb-8">
+            <h2 className="text-3xl font-bold text-gray-900">View Logs</h2>
+            <p className="text-gray-600">This section provides recent system logs.</p>
+          </div>
+
+          <div className="bg-white p-6 rounded-xl shadow">
+            <div className="text-sm text-gray-600 mb-4">Under development — log viewer coming soon.</div>
+            <div className="space-y-3">
+              {logs.map((l) => (
+                <div key={l.id} className="p-3 bg-gray-50 rounded">
+                  <div className="text-sm text-gray-500">{new Date(l.time).toLocaleString()}</div>
+                  <div className="font-medium">{l.message}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </main>
+
     <div className="flex min-h-screen">
       <Sidebar />
       <div className="flex-1 bg-gray-50 p-8">
@@ -58,7 +129,7 @@ const ViewLogs: React.FC = () => {
             <div className="divide-y">
               {loading && (<div className="p-6 text-sm text-gray-500">Loading...</div>)}
               {!loading && logs.length === 0 && (<div className="p-6 text-sm text-gray-500">No logs.</div>)}
-              {logs.map((l, idx) => (
+              {logs.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE).map((l, idx) => (
                 <div key={idx} className="grid grid-cols-12 gap-4 px-6 py-4">
                   <div className="col-span-3 text-sm text-gray-800">{new Date(l.time).toLocaleString()}</div>
                   <div className="col-span-2 text-sm"><span className="inline-block px-2 py-1 rounded-full bg-gray-100 text-gray-700 text-xs font-medium">{l.roleGroup || 'Unknown'}</span></div>
@@ -68,8 +139,31 @@ const ViewLogs: React.FC = () => {
                 </div>
               ))}
             </div>
+            {/* Pagination */}
+            <div className="px-6 py-4 bg-gray-50 border-t flex items-center justify-between">
+              <div className="text-sm text-gray-600">
+                Showing {Math.min(page * PAGE_SIZE + 1, logs.length === 0 ? 0 : logs.length)} - {Math.min((page + 1) * PAGE_SIZE, logs.length)} of {logs.length}
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setPage((p) => Math.max(0, p - 1))}
+                  disabled={page === 0}
+                  className={`px-3 py-1 rounded ${page === 0 ? 'bg-gray-100 text-gray-400' : 'bg-white border'}`}
+                >
+                  Previous
+                </button>
+                <button
+                  onClick={() => setPage((p) => p + 1)}
+                  disabled={(page + 1) * PAGE_SIZE >= logs.length}
+                  className={`px-3 py-1 rounded ${(page + 1) * PAGE_SIZE >= logs.length ? 'bg-gray-100 text-gray-400' : 'bg-white border'}`}
+                >
+                  Next
+                </button>
+              </div>
+            </div>
           </div>
         </main>
+
       </div>
     </div>
   );

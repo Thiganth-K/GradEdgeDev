@@ -1,7 +1,7 @@
 # Contributor Feature - Testing Guide
 
 ## Prerequisites
-- Backend server running on `http://localhost:5000`
+- Backend server running on `http://localhost:5001`
 - Frontend running on `http://localhost:5173` (Vite default)
 - Database seeded with admin and contributor accounts
 
@@ -54,7 +54,7 @@ Expected:
 - Status shows "PENDING"
 
 API Call:
-POST http://localhost:5000/contributor/requests
+POST http://localhost:5001/contributor/requests
 Body: {
   "questionRequests": [
     { "topic": "Array Algorithms", "category": "technical", "difficulty": "medium", "count": 10 },
@@ -90,7 +90,7 @@ Expected:
 - Tags displayed
 
 API Call:
-POST http://localhost:5000/contributor/contributions
+POST http://localhost:5001/contributor/contributions
 Body: {
   "text": "What is the time complexity of binary search?",
   "options": [
@@ -125,8 +125,8 @@ Expected:
 - Unread badge decrements after viewing
 
 API Calls:
-GET http://localhost:5000/contributor/chat (every 5s)
-POST http://localhost:5000/contributor/chat/send
+GET http://localhost:5001/contributor/chat (every 5s)
+POST http://localhost:5001/contributor/chat/send
 Body: { "text": "I've submitted a request for array questions" }
 ```
 
@@ -170,8 +170,8 @@ Expected:
   - Timestamps
 
 API Calls:
-GET http://localhost:5000/admin/contributor-requests?status=pending
-PUT http://localhost:5000/admin/contributor-requests/:id/status
+GET http://localhost:5001/admin/contributor-requests?status=pending
+PUT http://localhost:5001/admin/contributor-requests/:id/status
 Body: { "status": "in-progress" }
 ```
 
@@ -195,10 +195,10 @@ Expected:
 - Polls every 5 seconds
 
 API Calls:
-GET http://localhost:5000/admin/contributor-chats (every 5s)
-POST http://localhost:5000/admin/contributor-chats/:contributorId/send
+GET http://localhost:5001/admin/contributor-chats (every 5s)
+POST http://localhost:5001/admin/contributor-chats/:contributorId/send
 Body: { "text": "I've approved your request..." }
-POST http://localhost:5000/admin/contributor-chats/:chatId/mark-read
+POST http://localhost:5001/admin/contributor-chats/:chatId/mark-read
 ```
 
 ## Edge Cases to Test
@@ -229,7 +229,7 @@ POST http://localhost:5000/admin/contributor-chats/:chatId/mark-read
 
 ### Create Request
 ```bash
-curl -X POST http://localhost:5000/contributor/requests \
+curl -X POST http://localhost:5001/contributor/requests \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer <contributor_token>" \
   -d '{
@@ -247,7 +247,7 @@ curl -X POST http://localhost:5000/contributor/requests \
 
 ### Create Question
 ```bash
-curl -X POST http://localhost:5000/contributor/contributions \
+curl -X POST http://localhost:5001/contributor/contributions \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer <contributor_token>" \
   -d '{
@@ -268,7 +268,7 @@ curl -X POST http://localhost:5000/contributor/contributions \
 
 ### Update Request Status (Admin)
 ```bash
-curl -X PUT http://localhost:5000/admin/contributor-requests/<request_id>/status \
+curl -X PUT http://localhost:5001/admin/contributor-requests/<request_id>/status \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer <admin_token>" \
   -d '{"status": "completed"}'
@@ -276,7 +276,7 @@ curl -X PUT http://localhost:5000/admin/contributor-requests/<request_id>/status
 
 ### Send Message (Contributor)
 ```bash
-curl -X POST http://localhost:5000/contributor/chat/send \
+curl -X POST http://localhost:5001/contributor/chat/send \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer <contributor_token>" \
   -d '{"text": "When will my request be approved?"}'
@@ -284,7 +284,7 @@ curl -X POST http://localhost:5000/contributor/chat/send \
 
 ### Send Message (Admin)
 ```bash
-curl -X POST http://localhost:5000/admin/contributor-chats/<contributor_id>/send \
+curl -X POST http://localhost:5001/admin/contributor-chats/<contributor_id>/send \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer <admin_token>" \
   -d '{"text": "Your request has been approved"}'

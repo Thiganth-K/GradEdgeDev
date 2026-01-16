@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { FaEye, FaEyeSlash, FaLock, FaUser } from 'react-icons/fa';
 import { HiAcademicCap } from 'react-icons/hi2';
 
 const BACKEND = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+
+const AcademicCapIcon = HiAcademicCap as React.ElementType;
 
 const Login: React.FC = () => {
   const [username, setUsername] = useState('');
@@ -28,7 +29,7 @@ const Login: React.FC = () => {
 
     try {
       // Try SuperAdmin first
-      let res = await fetch(`${BACKEND}/superadmin/login`, {
+      let res = await apiFetch('/superadmin/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),
@@ -44,7 +45,7 @@ const Login: React.FC = () => {
       }
 
       // If not admin, try regular admin (stored in DB)
-      res = await fetch(`${BACKEND}/admin/login`, {
+      res = await apiFetch('/admin/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),
@@ -59,7 +60,7 @@ const Login: React.FC = () => {
       }
 
       // If not admin, try institution login using the same username as institutionId
-      res = await fetch(`${BACKEND}/institution/login`, {
+      res = await apiFetch('/institution/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ institutionId: username, password }),
@@ -89,7 +90,7 @@ const Login: React.FC = () => {
       }
 
       // If not institution, try faculty login
-      res = await fetch(`${BACKEND}/institution/faculty/login`, {
+      res = await apiFetch('/institution/faculty/login', {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password }),
       });
       body = await safeJson(res);
@@ -102,7 +103,7 @@ const Login: React.FC = () => {
       }
 
       // If not faculty, try student login
-      res = await fetch(`${BACKEND}/institution/student/login`, {
+      res = await apiFetch('/institution/student/login', {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password }),
       });
       body = await safeJson(res);
@@ -133,7 +134,7 @@ const Login: React.FC = () => {
               <div>
                 <div className="glass-card inline-flex items-center gap-3 px-4 py-2 ring-1 ring-white/20">
                   <span className="grid h-9 w-9 place-items-center rounded-full bg-white text-red-700">
-                    <HiAcademicCap className="h-5 w-5" />
+                    <AcademicCapIcon className="h-5 w-5" />
                   </span>
                   <div className="leading-tight">
                     <div className="text-sm font-semibold tracking-wide">GradEdgeDev</div>
@@ -169,7 +170,7 @@ const Login: React.FC = () => {
               <div>
                 <div className="inline-flex items-center gap-3">
                   <span className="grid h-10 w-10 place-items-center rounded-xl bg-red-50 text-red-700 ring-1 ring-red-100 md:hidden">
-                    <HiAcademicCap className="h-5 w-5" />
+                    <AcademicCapIcon className="h-5 w-5" />
                   </span>
                   <div>
                     <h1 className="text-2xl font-bold text-gray-900" style={{ fontFamily: 'Poppins, Inter, system-ui, sans-serif' }}>Sign in</h1>

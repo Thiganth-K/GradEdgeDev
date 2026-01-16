@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import Sidebar from '../../components/Admin/Sidebar';
 
 const BACKEND = import.meta.env.VITE_API_URL || 'http://localhost:5001';
 
@@ -312,6 +313,7 @@ const AnnouncementManagement: React.FC = () => {
           </div>
         </div>
       </div>
+      </main>
     </div>
   );
 };

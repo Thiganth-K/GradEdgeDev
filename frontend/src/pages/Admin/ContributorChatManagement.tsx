@@ -128,7 +128,7 @@ const ContributorChatManagement: React.FC = () => {
       if (selectedChat) {
         fetchChatDetails(selectedChat.contributorId);
       }
-    }, 5000);
+    }, 5001);
 
     return () => {
       if (pollIntervalRef.current) {

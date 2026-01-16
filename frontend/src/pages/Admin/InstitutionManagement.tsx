@@ -29,6 +29,7 @@ const EditModal: React.FC<EditModalProps> = ({ item, onClose, onSave }) => {
     location: item.location || '',
     contactNo: item.contactNo || '',
     email: item.email || '',
+    password: '',
     facultyLimit: item.facultyLimit?.toString() || '',
     studentLimit: item.studentLimit?.toString() || '',
     batchLimit: item.batchLimit?.toString() || '',
@@ -45,6 +46,9 @@ const EditModal: React.FC<EditModalProps> = ({ item, onClose, onSave }) => {
       contactNo: form.contactNo,
       email: form.email,
     };
+    if ((form as any).password && (form as any).password.trim() !== '') {
+      payload.password = (form as any).password;
+    }
     
     ['facultyLimit', 'studentLimit', 'batchLimit', 'testLimit'].forEach((k) => {
       const v = (form as any)[k];
@@ -280,6 +284,7 @@ const InstitutionManagement: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [editingItem, setEditingItem] = useState<Institution | null>(null);
   const [menuOpen, setMenuOpen] = useState<string | null>(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
   useEffect(() => {
     console.log('[InstitutionManagement] COMPONENT MOUNTED');
@@ -534,6 +539,51 @@ const InstitutionManagement: React.FC = () => {
         )}
         </div>
       </div>
+
+      {/* Batches Modal */}
+      {viewingBatchesFor && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[80vh] flex flex-col">
+            <div className="p-4 border-b flex justify-between items-center">
+              <h3 className="text-xl font-bold text-gray-800">Institution Batches</h3>
+              <button onClick={closeBatchesModal} className="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+            </div>
+            <div className="p-4 overflow-y-auto flex-1">
+              {batchesLoading ? (
+                <div className="text-center py-8 text-gray-500">Loading batches...</div>
+              ) : batches.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">No batches found for this institution.</div>
+              ) : (
+                <div className="space-y-3">
+                  {batches.map((batch) => (
+                    <div key={batch._id} className="border rounded p-3 bg-gray-50">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h4 className="font-semibold text-gray-800">{batch.name}</h4>
+                          <div className="text-sm text-gray-600 mt-1">
+                            Created: {new Date(batch.createdAt).toLocaleDateString()}
+                          </div>
+                        </div>
+                        <div className="text-right text-sm">
+                          <div className="text-gray-700">
+                            Faculty: <span className="font-medium">{batch.faculty?.name || 'Unassigned'}</span>
+                          </div>
+                          <div className="text-gray-700 mt-1">
+                            Students: <span className="font-medium">{batch.students?.length || 0}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="p-4 border-t bg-gray-50 rounded-b-lg text-right">
+              <button onClick={closeBatchesModal} className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded text-gray-800">Close</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -21,6 +21,9 @@ router.put('/institutions/:id', verifyAdmin, AdminControllers.updateInstitution)
 console.log('[AdminRoutes] DELETE /institutions/:id - Delete institution (admin)');
 router.delete('/institutions/:id', verifyAdmin, AdminControllers.deleteInstitution);
 
+console.log('[AdminRoutes] GET /institution/:id/batches - Get institution batches (admin)');
+router.get('/institution/:id/batches', verifyAdmin, AdminControllers.getInstitutionBatches);
+
 // Sample data endpoints
 console.log('[AdminRoutes] GET /sample-institutions - Get sample institutions');
 router.get('/sample-institutions', AdminControllers.getInstitutions);
