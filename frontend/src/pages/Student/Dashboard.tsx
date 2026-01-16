@@ -26,6 +26,28 @@ const StudentDashboard: React.FC = () => {
             <div className="flex items-center justify-between">
               <h1 className="text-2xl font-bold">Student Dashboard</h1>
             </div>
+            {/* Quick actions matching sidebar components */}
+            <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {[
+                { name: 'Announcements', slug: 'announcements' },
+                { name: 'Tests', slug: 'tests' },
+                { name: 'Results', slug: 'results' },
+                { name: 'Library', slug: 'library' },
+                { name: 'Chat', slug: 'chat' },
+                { name: 'Profile', slug: 'profile' },
+                { name: 'Settings', slug: 'settings' },
+                { name: 'Support', slug: 'support' },
+              ].map((it) => (
+                <button
+                  key={it.slug}
+                  onClick={() => navigate(`/student/wip/${it.slug}`)}
+                  className="text-left p-4 border rounded hover:bg-gray-50"
+                >
+                  <div className="font-medium">{it.name}</div>
+                  <div className="text-xs text-gray-600">Work in progress</div>
+                </button>
+              ))}
+            </div>
             <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="bg-gray-50 rounded p-4 border">
                 <p className="text-sm text-gray-600">Username</p>
