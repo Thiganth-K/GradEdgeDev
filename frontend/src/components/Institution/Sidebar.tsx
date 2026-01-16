@@ -25,8 +25,7 @@ const InstitutionSidebar: React.FC = () => {
     { name: 'Tests', path: '/institution/tests', icon: <FaClipboardList className="w-5 h-5" /> },
     { name: 'Announcements', path: '/institution/announcements', icon: <FaBullhorn className="w-5 h-5" /> },
     { name: 'Chats', path: '/institution/chat', icon: <FaComments className="w-5 h-5" /> },
-    { name: 'Library', path: '/institution/library', icon: <FaBook className="w-5 h-5" /> },
-    { name: 'Settings', path: '/institution/settings', icon: <FaCog className="w-5 h-5" /> }
+    { name: 'Library', path: '/institution/library', icon: <FaBook className="w-5 h-5" /> }
   ];
 
   return (

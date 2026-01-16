@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
+import Sidebar from '../../components/Faculty/Sidebar';
 
 const BACKEND = import.meta.env.VITE_API_URL || 'http://localhost:5001';
 
@@ -31,21 +32,26 @@ const FacultyChat: React.FC = () => {
   };
 
   return (
-    <div className="p-6">
-      <h2 className="text-2xl font-bold mb-3">Chat with Institution Admin</h2>
-      <div className="bg-white rounded shadow p-4 max-w-3xl">
-        <div ref={ref} className="max-h-80 overflow-y-auto space-y-2 mb-3">
-          {msgs.map((m:any) => (
-            <div key={m._id} className={`p-2 rounded ${m.fromRole === 'faculty' ? 'bg-green-50' : 'bg-gray-100'}`}>
-              <div className="text-xs text-gray-500">{m.fromRole} • {new Date(m.createdAt).toLocaleString()}</div>
-              <div className="mt-1">{m.message}</div>
+    <div className="flex min-h-screen bg-gray-50">
+      <Sidebar />
+      <div className="flex-1 h-screen overflow-y-auto">
+        <div className="p-6">
+          <h2 className="text-2xl font-bold mb-3">Chat with Institution Admin</h2>
+          <div className="bg-white rounded shadow p-4 max-w-3xl">
+            <div ref={ref} className="max-h-80 overflow-y-auto space-y-2 mb-3">
+              {msgs.map((m:any) => (
+                <div key={m._id} className={`p-2 rounded ${m.fromRole === 'faculty' ? 'bg-green-50' : 'bg-gray-100'}`}>
+                  <div className="text-xs text-gray-500">{m.fromRole} • {new Date(m.createdAt).toLocaleString()}</div>
+                  <div className="mt-1">{m.message}</div>
+                </div>
+              ))}
             </div>
-          ))}
+            <form onSubmit={send} className="flex gap-2">
+              <input value={text} onChange={(e)=>setText(e.target.value)} className="flex-1 border p-2 rounded" placeholder="Type a message to institution admin" />
+              <button type="submit" className="px-3 py-2 bg-red-600 text-white rounded">Send</button>
+            </form>
+          </div>
         </div>
-        <form onSubmit={send} className="flex gap-2">
-          <input value={text} onChange={(e)=>setText(e.target.value)} className="flex-1 border p-2 rounded" placeholder="Type a message to institution admin" />
-          <button type="submit" className="px-3 py-2 bg-red-600 text-white rounded">Send</button>
-        </form>
       </div>
     </div>
   );

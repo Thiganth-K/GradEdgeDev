@@ -22,6 +22,8 @@ const ViewLogs: React.FC = () => {
   const [filterRole, setFilterRole] = useState<string>('all');
   const [filterMethod, setFilterMethod] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [page, setPage] = useState(0);
+  const PAGE_SIZE = 10;
 
   useEffect(() => {
     const role = localStorage.getItem('gradedge_role');
@@ -72,6 +74,7 @@ const ViewLogs: React.FC = () => {
     }
 
     setFilteredLogs(filtered);
+    setPage(0);
   };
 
   const getRoleIcon = (role: string) => {
@@ -221,7 +224,7 @@ const ViewLogs: React.FC = () => {
 
             <div className="mt-4 flex items-center justify-between">
               <p className="text-sm text-gray-600">
-                Showing <span className="font-semibold">{filteredLogs.length}</span> of <span className="font-semibold">{logs.length}</span> logs
+                Showing {Math.min(page * PAGE_SIZE + 1, filteredLogs.length === 0 ? 0 : filteredLogs.length)} - {Math.min((page + 1) * PAGE_SIZE, filteredLogs.length)} of <span className="font-semibold">{filteredLogs.length}</span> logs
               </p>
               <button
                 onClick={fetchLogs}
@@ -253,7 +256,7 @@ const ViewLogs: React.FC = () => {
               </div>
             ) : (
               <div className="divide-y divide-gray-200">
-                {filteredLogs.map((log) => (
+                {filteredLogs.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE).map((log) => (
                   <div key={log.id} className="p-4 hover:bg-gray-50 transition-colors">
                     <div className="flex items-start gap-4">
                       {/* Role Icon */}
@@ -304,6 +307,28 @@ const ViewLogs: React.FC = () => {
                 ))}
               </div>
             )}
+            {/* Pagination */}
+            <div className="px-6 py-4 bg-gray-50 border-t flex items-center justify-between">
+              <div className="text-sm text-gray-600">
+                Showing {Math.min(page * PAGE_SIZE + 1, filteredLogs.length === 0 ? 0 : filteredLogs.length)} - {Math.min((page + 1) * PAGE_SIZE, filteredLogs.length)} of {filteredLogs.length}
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setPage((p) => Math.max(0, p - 1))}
+                  disabled={page === 0}
+                  className={`px-3 py-1 rounded ${page === 0 ? 'bg-gray-100 text-gray-400' : 'bg-white border'}`}
+                >
+                  Previous
+                </button>
+                <button
+                  onClick={() => setPage((p) => p + 1)}
+                  disabled={(page + 1) * PAGE_SIZE >= filteredLogs.length}
+                  className={`px-3 py-1 rounded ${(page + 1) * PAGE_SIZE >= filteredLogs.length ? 'bg-gray-100 text-gray-400' : 'bg-white border'}`}
+                >
+                  Next
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
