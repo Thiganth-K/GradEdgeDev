@@ -58,6 +58,7 @@ const InstitutionManagement: React.FC = () => {
   const navigate = useNavigate();
 
   const query = new URLSearchParams(location.search);
+
   const selectedId = query.get('id');
 
   useEffect(() => {
@@ -67,23 +68,9 @@ const InstitutionManagement: React.FC = () => {
       return;
     }
 
-    const load = async () => {
-      setLoading(true);
-      try {
-        const token = localStorage.getItem('superadmin_token');
-        const headers: Record<string, string> = {};
-        if (token) headers.Authorization = `Bearer ${token}`;
-        const res = await fetch(`${BACKEND}/superadmin/institutions`, { headers });
-        const b = await res.json().catch(() => ({}));
-        if (res.ok && b.success) setItems(b.data || []);
-      } catch (err) {
-        // ignore
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    load();
+    fetch(`${BACKEND}/superadmin/institutions`).then((r) => r.json()).then((b) => {
+      if (b.success) setItems(b.data || []);
+    }).catch(() => {});
   }, []);
 
   // helper to refresh list from other actions
@@ -164,6 +151,11 @@ const InstitutionManagement: React.FC = () => {
                 <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</p>
               </div>
             </div>
+          ))}
+        </div>
+        <div className="mt-6">
+          <button onClick={() => (window.location.href = '/superadmin/dashboard')} className="px-4 py-2 bg-white border rounded">Back</button>
+
 
             {/* Table Body */}
             <div className="divide-y divide-gray-200">
@@ -251,6 +243,7 @@ const InstitutionManagement: React.FC = () => {
               <span>Add Institution</span>
             </button>
           )}
+
         </div>
       </div>
     </div>
