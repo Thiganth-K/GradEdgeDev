@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
-
-const BACKEND = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+import Sidebar from '../../components/Student/Sidebar';
+import { apiFetch } from '../../lib/api';
+import { makeHeaders } from '../../lib/makeHeaders';
 
 const StudentAnnouncements: React.FC = () => {
   const [anns, setAnns] = useState<any[]>([]);
@@ -13,29 +14,53 @@ const StudentAnnouncements: React.FC = () => {
     if (!token) return;
     setLoading(true);
     try {
-      const res = await fetch(`${BACKEND}/institution/student/announcements`, { headers: { Authorization: `Bearer ${token}` } });
+      const res = await apiFetch('/institution/student/announcements', {
+        headers: makeHeaders('student_token')
+      });
       const body = await res.json().catch(() => ({}));
-      if (res.ok && body.success) setAnns(body.data || []);
+      if (res.ok) {
+        // Accept multiple possible payload shapes from backend
+        const list = body.data || body.anns || body.announcements || [];
+        setAnns(Array.isArray(list) ? list : []);
+      }
     } catch (err) {
       console.error(err);
     } finally { setLoading(false); }
   };
 
   return (
-    <div className="p-6">
-      <h2 className="text-2xl font-bold mb-4">Student Announcements</h2>
-      <div className="bg-white p-4 rounded shadow">
-        {loading && <p className="text-sm text-gray-600">Loading...</p>}
-        {!loading && anns.length === 0 && <p className="text-sm text-gray-600">No announcements</p>}
-        <div className="space-y-3">
-          {anns.map((a:any) => (
-            <div key={a._id} className="border rounded p-3">
-              <div className="text-xs text-gray-500">{new Date(a.createdAt).toLocaleString()}</div>
-              <p className="mt-2 text-sm">{a.message}</p>
-            </div>
-          ))}
+    <div className="min-h-screen flex bg-gray-50">
+      <Sidebar />
+      <main className="flex-1 p-8">
+        <div className="max-w-4xl mx-auto">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-2xl font-bold">Announcements</h2>
+            <button
+              onClick={load}
+              className="px-3 py-1.5 text-sm border rounded hover:bg-gray-50"
+              disabled={loading}
+            >
+              {loading ? 'Refreshing…' : 'Refresh'}
+            </button>
+          </div>
+          <div className="bg-white p-4 rounded shadow">
+            {loading && <p className="text-sm text-gray-600">Loading...</p>}
+            {!loading && anns.length === 0 && (
+              <p className="text-sm text-gray-600">No announcements</p>
+            )}
+            {!loading && anns.length > 0 && (
+              <ul className="divide-y">
+                {anns.map((a: any) => (
+                  <li key={a._id} className="py-3">
+                    <div className="text-xs text-gray-500">{new Date(a.createdAt).toLocaleString()}</div>
+                    <p className="mt-1 text-sm leading-relaxed">{a.message}</p>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 };

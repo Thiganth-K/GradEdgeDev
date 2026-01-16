@@ -9,6 +9,7 @@ const Question = require('../../models/Question');
 const Library = require('../../models/Library');
 const TestAttempt = require('../../models/TestAttempt');
 const Announcement = require('../../models/Announcement');
+const InstitutionAnnouncement = require('../../models/InstitutionAnnouncement');
 
 // =====================
 // AUTH
@@ -1395,6 +1396,42 @@ const markAnnouncementAsRead = async (req, res) => {
   }
 };
 
+// =====================
+// STUDENT RESULTS
+// =====================
+
+const listStudentResults = async (req, res) => {
+  try {
+    const studentId = req.student && req.student.id;
+    if (!studentId) return res.status(401).json({ success: false, message: 'unauthorized' });
+
+    // Find attempts by this student, include related test summary
+    const attempts = await TestAttempt.find({ studentId })
+      .sort({ completedAt: -1, startedAt: -1 })
+      .populate({ path: 'testId', select: 'name type durationMinutes startTime endTime' });
+
+    const data = attempts.map((a) => ({
+      _id: a._id,
+      testId: a.testId?._id || a.testId,
+      testName: a.testId?.name,
+      testType: a.testId?.type,
+      durationMinutes: a.testId?.durationMinutes,
+      startedAt: a.startedAt,
+      completedAt: a.completedAt || null,
+      timeTakenSeconds: a.timeTakenSeconds || null,
+      correctCount: a.correctCount,
+      total: a.total,
+      score: a.score,
+      status: a.completedAt ? 'completed' : 'in-progress',
+    }));
+
+    return res.json({ success: true, data });
+  } catch (err) {
+    console.error('[Institution.listStudentResults] ✗ error:', err && err.message);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 const createInstitutionAnnouncement = async (req, res) => {
   try {
     const instId = req.institution && req.institution.id;
@@ -1429,22 +1466,16 @@ const createInstitutionAnnouncement = async (req, res) => {
       batchTargets = batches.map((b) => b._id);
     }
 
-    // If no granular targets provided, treat as institution-wide announcement
-    const instTargets = [instId];
-
-    const announcement = await Announcement.create({
+    // Store institution-passed announcements for students/batches in dedicated collection
+    const studentAnnouncement = await InstitutionAnnouncement.create({
       message: message.trim(),
-      createdByRef: instId,
-      createdByRole: 'institution',
-      targetInstitutions: instTargets,
-      targetFaculty: facultyTargets,
+      institution: instId,
       targetStudents: studentTargets,
       targetBatches: batchTargets,
-      readBy: [],
     });
 
-    console.log('[Institution.createAnnouncement] ✓ created announcement - id:', announcement._id.toString());
-    return res.status(201).json({ success: true, data: announcement });
+    console.log('[Institution.createAnnouncement] ✓ created student announcement - id:', studentAnnouncement._id.toString());
+    return res.status(201).json({ success: true, data: studentAnnouncement });
   } catch (err) {
     console.error('[Institution.createAnnouncement] ✗ error:', err && err.message);
     return res.status(500).json({ success: false, message: err.message });
@@ -1493,13 +1524,18 @@ const listAnnouncementsForStudent = async (req, res) => {
     const batches = await Batch.find({ students: studentId }).select('_id');
     const batchIds = batches.map((b) => b._id);
 
-    const anns = await Announcement.find({
+    // Fetch from dedicated InstitutionAnnouncement collection
+    const anns = await InstitutionAnnouncement.find({
+      institution: instId,
       $or: [
-        { targetInstitutions: instId },
         { targetStudents: studentId },
         { targetBatches: { $in: batchIds } },
+        // If no explicit targets, treat as institution-wide to all students
+        { $and: [ { targetStudents: { $size: 0 } }, { targetBatches: { $size: 0 } } ] },
       ],
-    }).sort({ createdAt: -1 });
+    })
+      .sort({ createdAt: -1 })
+      .select('_id message createdAt');
 
     return res.json({ success: true, data: anns });
   } catch (err) {
@@ -1552,6 +1588,7 @@ module.exports = {
   getStudentTest,
   startTestAttempt,
   submitTestAttempt,
+  listStudentResults,
 
   // Faculty views
   listAssignedTestsForFaculty,

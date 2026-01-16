@@ -29,6 +29,8 @@ import FacultyAnnouncements from './pages/Faculty/Announcements'
 import StudentDashboard from './pages/Student/Dashboard'
 import StudentTest from './pages/Student/Test'
 import StudentAnnouncements from './pages/Student/Announcements'
+import StudentTests from './pages/Student/Tests'
+import StudentResults from './pages/Student/Results'
 import StudentWorkInProgress from './pages/Student/WorkInProgress'
 import ContributorDashboard from './pages/Contributor/Dashboard'
 import UnifiedContributionRequest from './pages/Contributor/UnifiedContributionRequest'
@@ -76,8 +78,10 @@ const App: React.FC = () => {
         <Route path="/faculty/announcements" element={<FacultyAnnouncements />} />
         <Route path="/faculty/chat" element={<FacultyChat />} />
         <Route path="/student/dashboard" element={<StudentDashboard />} />
+        <Route path="/student/tests" element={<StudentTests />} />
         <Route path="/student/test/:id" element={<StudentTest />} />
         <Route path="/student/announcements" element={<StudentAnnouncements />} />
+        <Route path="/student/results" element={<StudentResults />} />
         <Route path="/student/wip/:section" element={<StudentWorkInProgress />} />
         <Route path="/contributor/dashboard" element={<ContributorDashboard />} />
         <Route path="/contributor/create-request" element={<UnifiedContributionRequest />} />

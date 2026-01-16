@@ -31,10 +31,9 @@ const Sidebar: React.FC = () => {
 
   const menuItems = [
     { name: 'Dashboard', path: '/student/dashboard', icon: <FaHome className="w-5 h-5" /> },
-    { name: 'Announcements', path: '/student/wip/announcements', icon: <FaBullhorn className="w-5 h-5" /> },
-    { name: 'Tests', path: '/student/wip/tests', icon: <FaClipboardList className="w-5 h-5" /> },
-    { name: 'Results', path: '/student/wip/results', icon: <FaChartBar className="w-5 h-5" /> },
-    { name: 'Library', path: '/student/wip/library', icon: <FaBook className="w-5 h-5" /> },
+    { name: 'Announcements', path: '/student/announcements', icon: <FaBullhorn className="w-5 h-5" /> },
+    { name: 'Tests', path: '/student/tests', icon: <FaClipboardList className="w-5 h-5" /> },
+    { name: 'Results', path: '/student/results', icon: <FaChartBar className="w-5 h-5" /> },
     { name: 'Chat', path: '/student/wip/chat', icon: <FaComments className="w-5 h-5" /> },
     { name: 'Profile', path: '/student/wip/profile', icon: <FaUser className="w-5 h-5" /> },
     { name: 'Settings', path: '/student/wip/settings', icon: <FaCog className="w-5 h-5" /> },
