@@ -35,7 +35,7 @@ const Sidebar: React.FC = () => {
     { name: 'Tests', path: '/student/tests', icon: <FaClipboardList className="w-5 h-5" /> },
     { name: 'Results', path: '/student/results', icon: <FaChartBar className="w-5 h-5" /> },
     { name: 'Chat', path: '/student/wip/chat', icon: <FaComments className="w-5 h-5" /> },
-    { name: 'Profile', path: '/student/wip/profile', icon: <FaUser className="w-5 h-5" /> },
+    { name: 'Profile', path: '/student/profile', icon: <FaUser className="w-5 h-5" /> },
     { name: 'Settings', path: '/student/wip/settings', icon: <FaCog className="w-5 h-5" /> },
     { name: 'Support', path: '/student/wip/support', icon: <FaLifeRing className="w-5 h-5" /> },
   ];
