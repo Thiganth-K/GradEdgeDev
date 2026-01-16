@@ -1,6 +1,7 @@
 const Test = require('../../models/Test');
 const TestAttempt = require('../../models/TestAttempt');
 const Batch = require('../../models/Batch');
+const AdminLog = require('../../controllers/Admin/AdminLogController');
 
 // Get test results with correct answers for faculty evaluation
 const getTestResultsWithAnswers = async (req, res) => {
@@ -84,6 +85,7 @@ const getTestResultsWithAnswers = async (req, res) => {
     };
     
     console.log('[Faculty.getTestResultsWithAnswers] ✓ found results - students:', studentIds.length, ', completed:', attempts.filter(a => a.completedAt).length, ', questions:', testWithAnswers.questions.length);
+    try { await AdminLog.createLog({ actorId: facultyId, actorUsername: facultyUsername, role: 'faculty', actionType: 'view', message: `${facultyUsername} viewed results of ${t.name}`, refs: { entity: 'Test', id: t._id } }); } catch (e) {}
     res.json({ success: true, data: { test: testWithAnswers, status } });
   } catch (err) {
     console.error('[Faculty.getTestResultsWithAnswers] ✗ error:', err.message);

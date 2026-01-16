@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const AdminControllers = require('../../controllers/Admin/AdminControllers');
+const AdminLogController = require('../../controllers/Admin/AdminLogController');
 const verifyAdmin = require('../../middleware/verifyAdmin');
 
 // Authentication
@@ -25,7 +26,10 @@ console.log('[AdminRoutes] GET /sample-institutions - Get sample institutions');
 router.get('/sample-institutions', AdminControllers.getInstitutions);
 
 console.log('[AdminRoutes] GET /logs - Get admin logs');
-router.get('/logs', AdminControllers.getLogs);
+router.get('/logs', verifyAdmin, AdminLogController.getLogs);
+
+console.log('[AdminRoutes] POST /logs/clear - Archive and clear admin logs');
+router.post('/logs/clear', verifyAdmin, AdminLogController.clearLogs);
 
 console.log('[AdminRoutes] POST /contributors - Create contributor (admin)');
 router.post('/contributors', verifyAdmin, AdminControllers.createContributor);

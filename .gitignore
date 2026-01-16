@@ -32,3 +32,4 @@ dist-ssr
 /frontend/.env.production
 .env
 .env.local
+backend/archives
