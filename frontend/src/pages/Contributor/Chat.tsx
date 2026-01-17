@@ -89,7 +89,7 @@ const ContributorChat: React.FC = () => {
 
   useEffect(() => {
     loadChat();
-    const interval = setInterval(loadChat, 5001); // Poll every 5 seconds
+    const interval = setInterval(loadChat, 5000); // Poll every 5 seconds
     return () => clearInterval(interval);
   }, []);
 

@@ -3,7 +3,7 @@ import API_BASE_URL from '../../lib/api';
 import InstitutionSidebar from '../../components/Institution/Sidebar';
 import { useNavigate } from 'react-router-dom';
 
-const BACKEND = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+const BACKEND = API_BASE_URL || import.meta.env.VITE_API_URL || 'http://localhost:5001';
 
 const TestManagement: React.FC = () => {
   const [tests, setTests] = useState<any[]>([]);

@@ -27,7 +27,7 @@ const ChatWithAdmin: React.FC = () => {
     } catch (err) { console.error(err); }
   };
 
-  useEffect(() => { load(1); let id: any = null; if (page === 1) id = setInterval(()=>load(1), 5001); return () => { if (id) clearInterval(id); }; }, [page]);
+  useEffect(() => { load(1); let id: any = null; if (page === 1) id = setInterval(()=>load(1), 5000); return () => { if (id) clearInterval(id); }; }, [page]);
   useEffect(()=>{ if (ref.current) ref.current.scrollTop = ref.current.scrollHeight; }, [msgs]);
 
   const send = async (e?: React.FormEvent) => {

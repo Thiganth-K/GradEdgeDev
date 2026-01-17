@@ -27,7 +27,7 @@ try {
 let workingBaseUrl: string | null = null; // Cache the working URL to avoid repeated retries
 
 /**
- * Smart fetch that automatically falls back to localhost:5001 if the primary API fails with 404.
+ * Smart fetch that automatically falls back to localhost:5000 if the primary API fails with 404.
  * Use this instead of native fetch for API calls to enable automatic fallback.
  */
 export const apiFetch = async (input: string | URL | Request, init?: RequestInit): Promise<Response> => {

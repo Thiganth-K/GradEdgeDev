@@ -97,7 +97,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onClose }) => {
     fetchChat();
     
     // Poll for new messages every 5 seconds
-    pollIntervalRef.current = setInterval(fetchChat, 5001);
+    pollIntervalRef.current = setInterval(fetchChat, 5000);
 
     return () => {
       if (pollIntervalRef.current) {
