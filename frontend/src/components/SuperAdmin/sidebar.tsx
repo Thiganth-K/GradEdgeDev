@@ -14,7 +14,16 @@ import {
 const Sidebar: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    const saved = localStorage.getItem('superadmin_sidebar_collapsed');
+    return saved === 'true';
+  });
+
+  const toggleCollapse = () => {
+    const newState = !isCollapsed;
+    setIsCollapsed(newState);
+    localStorage.setItem('superadmin_sidebar_collapsed', String(newState));
+  };
 
   const handleSignOut = () => {
     localStorage.removeItem('superadmin_token');
@@ -45,7 +54,7 @@ const Sidebar: React.FC = () => {
 
         {/* Collapse toggle - circular red button overlapping edge */}
         <button
-          onClick={() => setIsCollapsed(!isCollapsed)}
+          onClick={toggleCollapse}
           aria-label={isCollapsed ? 'Open sidebar' : 'Close sidebar'}
           className="absolute -right-3 top-4 w-7 h-7 rounded-full bg-red-600 flex items-center justify-center text-white shadow-lg border-2 border-[#0d0d0d]"
         >
@@ -61,12 +70,14 @@ const Sidebar: React.FC = () => {
             <button
               key={item.path}
               onClick={() => navigate(item.path)}
-              className={`relative flex items-center gap-4 w-full px-3 py-3 transition-all duration-200 ${
-                isActive 
-                  ? isCollapsed 
+              className={`relative flex items-center gap-4 transition-all duration-200 ${
+                isCollapsed 
+                  ? isActive 
                     ? 'bg-gradient-to-r from-red-600 to-red-700 text-white shadow-lg rounded-full w-12 h-12 mx-auto justify-center' 
-                    : 'bg-gradient-to-r from-red-600 to-red-700 text-white shadow-lg rounded-full'
-                  : 'text-white/70 hover:bg-red-700/20 hover:text-white rounded-lg'
+                    : 'text-white/70 hover:bg-red-700/20 hover:text-white rounded-lg w-12 h-12 mx-auto justify-center'
+                  : isActive 
+                    ? 'bg-gradient-to-r from-red-600 to-red-700 text-white shadow-lg rounded-full w-full px-3 py-3'
+                    : 'text-white/70 hover:bg-red-700/20 hover:text-white rounded-lg w-full px-3 py-3'
               }`} 
             >
               {/* active left marker */}
