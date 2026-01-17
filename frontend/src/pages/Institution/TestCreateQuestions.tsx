@@ -31,7 +31,7 @@ const TestCreateQuestions: React.FC = () => {
 
   const fetchLib = async (t: string = 'aptitude') => {
     try {
-      const res = await fetch(`${BACKEND}/institution/questions?category=${t}`, { headers });
+      const res = await fetch(`${BACKEND}/institution/questions?category=${t}`, { headers: headers as HeadersInit });
       const body = await res.json().catch(()=>({}));
       if (res.ok) setLibraryQuestions(body.data || []);
     } catch (e) {}
@@ -54,7 +54,7 @@ const TestCreateQuestions: React.FC = () => {
       questionIds: selectedIds,
       customQuestions,
     };
-    await fetch(`${BACKEND}/institution/tests`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...headers }, body: JSON.stringify(payload) });
+    await fetch(`${BACKEND}/institution/tests`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...(headers as any) }, body: JSON.stringify(payload) });
     sessionStorage.removeItem(STORAGE_KEY);
     navigate('/institution/tests');
   };

@@ -27,6 +27,7 @@ import TestManagement from './pages/Institution/TestManagement'
 import TestCreateDetails from './pages/Institution/TestCreateDetails'
 import TestCreateQuestions from './pages/Institution/TestCreateQuestions'
 import FacultyDashboard from './pages/Faculty/Dashboard'
+import FacultyAssignedTests from './pages/Faculty/AssignedTests'
 import FacultyChat from './pages/Faculty/Chat'
 import FacultyTestResults from './pages/Faculty/TestResults'
 import FacultyAnnouncements from './pages/Faculty/Announcements'
@@ -83,6 +84,7 @@ const App: React.FC = () => {
         <Route path="/institution/tests/create" element={<TestCreateDetails />} />
         <Route path="/institution/tests/create/questions" element={<TestCreateQuestions />} />
         <Route path="/faculty/dashboard" element={<FacultyDashboard />} />
+        <Route path="/faculty/assignedtests" element={<FacultyAssignedTests />} />
         <Route path="/faculty/test/:id/results" element={<FacultyTestResults />} />
         <Route path="/faculty/announcements" element={<FacultyAnnouncements />} />
         <Route path="/faculty/chat" element={<FacultyChat />} />

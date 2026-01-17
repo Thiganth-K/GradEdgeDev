@@ -49,8 +49,7 @@ const InstitutionChat: React.FC = () => {
         .then(async (r) => {
           const b = await r.json().catch(() => ({}));
           if (r.ok) setFaculties(b.data || []);
-        })
-        .catch(() => {});
+        }).catch(() => {});
     }
   }, [chatType]);
 
@@ -115,13 +114,20 @@ const InstitutionChat: React.FC = () => {
                 <div ref={ref} className="max-h-80 overflow-y-auto space-y-3 mb-4">
                   {msgs.map((m:any) => (
                     <div key={m._id} className="flex items-start gap-3">
-                      <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold ${m.fromRole==='institution' ? 'bg-red-100 text-red-700 ml-auto' : 'bg-gray-200 text-gray-700'}`}>
-                        { (m.fromName || m.fromRole || '').charAt(0) }
-                      </div>
-                      <div className={`p-3 rounded-lg max-w-xl ${m.fromRole === 'institution' ? 'bg-red-50 ml-auto text-right' : 'bg-gray-100'}`}>
-                        <div className="text-xs text-gray-500">{m.fromName || m.fromRole} • {new Date(m.createdAt).toLocaleString()}</div>
-                        <div className="mt-1 text-sm text-gray-800">{m.message}</div>
-                      </div>
+                          {(() => {
+                            const displayName = (chatType === 'admin' && m.fromRole !== 'faculty') ? 'Admin' : (m.fromName || m.fromRole || '');
+                            return (
+                              <>
+                                <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold ${m.fromRole==='institution' ? 'bg-red-100 text-red-700 ml-auto' : 'bg-gray-200 text-gray-700'}`}>
+                                  { (displayName || '').charAt(0) }
+                                </div>
+                                <div className={`p-3 rounded-lg max-w-xl ${m.fromRole === 'institution' ? 'bg-red-50 ml-auto text-right' : 'bg-gray-100'}`}>
+                                  <div className="text-xs text-gray-500">{displayName} • {new Date(m.createdAt).toLocaleString()}</div>
+                                  <div className="mt-1 text-sm text-gray-800">{m.message}</div>
+                                </div>
+                              </>
+                            );
+                          })()}
                     </div>
                   ))}
                   {msgs.length === 0 && (
