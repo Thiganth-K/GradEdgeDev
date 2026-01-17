@@ -14,7 +14,16 @@ import {
 const Sidebar: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    const saved = localStorage.getItem('superadmin_sidebar_collapsed');
+    return saved === 'true';
+  });
+
+  const toggleCollapse = () => {
+    const newState = !isCollapsed;
+    setIsCollapsed(newState);
+    localStorage.setItem('superadmin_sidebar_collapsed', String(newState));
+  };
 
   const handleSignOut = () => {
     localStorage.removeItem('superadmin_token');
@@ -33,93 +42,86 @@ const Sidebar: React.FC = () => {
   ];
 
   return (
-    <div className="w-64 bg-gradient-to-b from-red-800 to-red-900 min-h-screen flex flex-col">
-      {/* Logo */}
-      <div className="p-6 border-b border-red-700">
+    <div className={`min-h-screen flex flex-col bg-[#0d0d0d] ${isCollapsed ? 'w-20' : 'w-64'} transition-all duration-300 shadow-lg`}>
+      {/* Top: logo + collapse control */}
+      <div className="relative p-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center">
-            <svg className="w-6 h-6 text-red-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-            </svg>
+          <div className="w-10 h-10 rounded-full bg-red-600 flex items-center justify-center shadow-md">
+            <span className="text-white font-bold">G</span>
           </div>
-          {!isCollapsed && (
-            <span className="text-white text-xl font-bold tracking-wide">GradEdge</span>
-          )}
-
-          </div>
-          <span className="text-white text-xl font-bold">GradEdge</span>
-
+          {!isCollapsed && <span className="text-white text-lg font-semibold tracking-tight">GradEdge</span>}
         </div>
+
+        {/* Collapse toggle - circular red button overlapping edge */}
+        <button
+          onClick={toggleCollapse}
+          aria-label={isCollapsed ? 'Open sidebar' : 'Close sidebar'}
+          className="absolute -right-3 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-red-600 flex items-center justify-center text-white shadow-lg border-2 border-[#0d0d0d]"
+        >
+          {isCollapsed ? <FaChevronRight size={12} /> : <FaChevronLeft size={12} />}
+        </button>
       </div>
 
+      {/* Red separating line */}
+      <div className="mx-4 h-[1px] bg-red-600"></div>
+
       {/* Menu Items */}
-      <nav className="flex-1 px-3 space-y-2">
+      <nav className="flex-1 px-2 py-4 space-y-1">
         {menuItems.map((item) => {
-          const isActive = location.pathname === item.path || 
-                          (item.path !== '/superadmin/dashboard' && location.pathname.startsWith(item.path));
-          
+          const isActive = location.pathname === item.path || (item.path !== '/superadmin/dashboard' && location.pathname.startsWith(item.path));
           return (
             <button
               key={item.path}
               onClick={() => navigate(item.path)}
-              className={`
-                w-full flex items-center gap-4 px-3 py-3 rounded-lg transition-all duration-200 group relative
-                ${isActive 
-                  ? 'bg-gradient-to-r from-red-600 to-red-900 text-white shadow-lg shadow-red-900/20' 
-                  : 'hover:bg-gray-800 hover:text-white'
-                }
-                ${isCollapsed ? 'justify-center' : ''}
-              `}
+              className={`relative flex items-center gap-4 transition-all duration-200 ${
+                isCollapsed 
+                  ? isActive 
+                    ? 'bg-gradient-to-r from-red-600 to-red-700 text-white shadow-lg rounded-full w-12 h-12 mx-auto justify-center' 
+                    : 'text-white/70 hover:bg-red-700/20 hover:text-white rounded-lg w-12 h-12 mx-auto justify-center'
+                  : isActive 
+                    ? 'bg-gradient-to-r from-red-600 to-red-700 text-white shadow-lg rounded-full w-full px-3 py-3'
+                    : 'text-white/70 hover:bg-red-700/20 hover:text-white rounded-lg w-full px-3 py-3'
+              }`} 
             >
-              <div className={`text-lg ${isActive ? 'text-white' : 'text-gray-400 group-hover:text-white'}`}>
-                {item.icon}
-              </div>
-              
-              {!isCollapsed && (
-                <span className="font-medium text-sm whitespace-nowrap">{item.name}</span>
+              {/* active left marker */}
+              {isActive && !isCollapsed && (
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 w-2 h-2 bg-white/30 rounded-full" />
               )}
 
-              {/* Tooltip for collapsed state */}
-              {isCollapsed && (
-                <div className="absolute left-full ml-4 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50">
-                  {item.name}
-                </div>
-              )}
+              <div className={`shrink-0 flex items-center justify-center ${isCollapsed ? '' : 'w-8 h-8 rounded-md'}`}>
+                <span className={`text-white ${isActive ? 'text-lg' : 'text-lg'}`}>{item.icon}</span>
+              </div>
+
+              {!isCollapsed && <span className="text-sm font-medium pl-1">{item.name}</span>}
             </button>
           );
         })}
       </nav>
 
-      {/* User Profile Section */}
-      <div className="p-4 border-t border-gray-800 mt-auto">
+      {/* Footer / profile */}
+
+      {/* Red separating line above footer */}
+      <div className="mx-4 h-[1px] bg-red-600"></div>
+
+      <div className="p-4 border-t border-black/40 mt-auto">
         <div className={`flex items-center gap-3 ${isCollapsed ? 'justify-center' : ''}`}>
-          <div className="w-9 h-9 bg-gray-700 rounded-full flex items-center justify-center shrink-0 text-white font-semibold">
-            S
-          </div>
-          
+          <div className="w-9 h-9 bg-gray-800 rounded-full flex items-center justify-center text-white font-semibold">S</div>
           {!isCollapsed && (
-            <div className="flex-1 min-w-0">
-              <p className="text-white text-sm font-medium truncate">Super Admin</p>
-              <button 
-                onClick={handleSignOut}
-                className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-red-400 mt-1 transition-colors"
-              >
-                <FaSignOutAlt size={10} />
-                <span>Sign Out</span>
+            <div className="flex-1">
+              <div className="text-sm text-white font-medium">Super Admin</div>
+              <button onClick={handleSignOut} className="mt-1 text-xs text-gray-300 hover:text-white flex items-center gap-2">
+                <FaSignOutAlt size={12} /> Sign Out
               </button>
             </div>
           )}
         </div>
 
-        {/* Collapsed Sign Out */}
         {isCollapsed && (
-            <button 
-            onClick={handleSignOut}
-            className="w-full mt-4 flex justify-center text-gray-400 hover:text-red-500 transition-colors"
-            title="Sign Out"
-            >
-            <FaSignOutAlt size={16} />
+          <div className="mt-3 flex justify-center">
+            <button onClick={handleSignOut} className="text-gray-300 hover:text-white text-sm" title="Sign out">
+              <FaSignOutAlt />
             </button>
+          </div>
         )}
       </div>
     </div>

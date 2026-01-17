@@ -26,7 +26,7 @@ const Sidebar: React.FC = () => {
     { name: 'Chat', path: '/faculty/chat', icon: (
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
     )},
-    { name: 'Assigned Tests', path: '/faculty/dashboard', icon: (
+    { name: 'Assigned Tests', path: '/faculty/assignedtests', icon: (
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
     )}
   ];
@@ -44,7 +44,7 @@ const Sidebar: React.FC = () => {
 
       <nav className="flex-1 py-6">
         {menuItems.map((item) => {
-          const isActive = location.pathname === item.path || (item.path !== '/faculty/dashboard' && location.pathname.startsWith(item.path));
+          const isActive = location.pathname === item.path || location.pathname.startsWith(item.path + '/');
           return (
             <button
               key={item.path}

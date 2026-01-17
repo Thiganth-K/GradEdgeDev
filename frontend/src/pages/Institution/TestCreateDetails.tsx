@@ -20,15 +20,25 @@ const TestCreateDetails: React.FC = () => {
 
   const navigate = useNavigate();
   const token = typeof window !== 'undefined' ? localStorage.getItem('institution_token') : null;
-  const headers = token ? { Authorization: `Bearer ${token}` } : {};
+  const headers: Record<string, string> = {};
+  if (token) headers.Authorization = `Bearer ${token}`;
 
   useEffect(() => { loadLists(); loadDraft(); }, []);
+
+  const toLocalInput = (iso?: string) => {
+    if (!iso) return '';
+    try {
+      const d = new Date(iso);
+      const pad = (n: number) => n.toString().padStart(2, '0');
+      return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    } catch (e) { return ''; }
+  };
 
   const loadLists = async () => {
     try {
       const [fRes, bRes] = await Promise.all([
-        fetch(`${BACKEND}/institution/faculties`, { headers }),
-        fetch(`${BACKEND}/institution/batches`, { headers }),
+        fetch(`${BACKEND}/institution/faculties`, { headers: headers as HeadersInit }),
+        fetch(`${BACKEND}/institution/batches`, { headers: headers as HeadersInit }),
       ]);
       const f = await fRes.json().catch(()=>({}));
       const b = await bRes.json().catch(()=>({}));
@@ -44,12 +54,16 @@ const TestCreateDetails: React.FC = () => {
       const d = JSON.parse(raw);
       setName(d.name || ''); setType(d.type || 'aptitude'); setAssignedFacultyId(d.assignedFacultyId || '');
       setSelectedBatchIds(d.batchIds || []); setDurationMinutes(d.durationMinutes || 30);
-      setStartTime(d.startTime || ''); setEndTime(d.endTime || '');
+      setStartTime(d.startTime ? toLocalInput(d.startTime) : ''); setEndTime(d.endTime ? toLocalInput(d.endTime) : '');
     } catch (e) {}
   };
 
   const saveDraft = () => {
-    const draft = { name, type, assignedFacultyId, batchIds: selectedBatchIds, durationMinutes, startTime, endTime };
+    const toISO = (local?: string) => {
+      if (!local) return null;
+      try { return new Date(local).toISOString(); } catch (e) { return null; }
+    };
+    const draft = { name, type, assignedFacultyId, batchIds: selectedBatchIds, durationMinutes, startTime: toISO(startTime), endTime: toISO(endTime) };
     sessionStorage.setItem(STORAGE_KEY, JSON.stringify(draft));
   };
 
@@ -85,6 +99,17 @@ const TestCreateDetails: React.FC = () => {
                 <div>
                   <label className="block font-medium">Duration (minutes)</label>
                   <input type="number" value={durationMinutes} onChange={e=>setDurationMinutes(Number(e.target.value)||30)} className="border px-3 py-2 rounded w-full" />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+                <div>
+                  <label className="block font-medium">Start</label>
+                  <input type="datetime-local" value={startTime} onChange={e=>setStartTime(e.target.value)} className="border px-3 py-2 rounded w-full" />
+                </div>
+                <div>
+                  <label className="block font-medium">End</label>
+                  <input type="datetime-local" value={endTime} onChange={e=>setEndTime(e.target.value)} className="border px-3 py-2 rounded w-full" />
                 </div>
               </div>
 

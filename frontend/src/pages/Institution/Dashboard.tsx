@@ -450,7 +450,6 @@ const InstitutionDashboard: React.FC = () => {
 
         {/* Announcements card removed (use bell icon popup in header) */}
       </div>
-      </main>
     </div>
   );
 };

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import API_BASE_URL from '../../lib/api';
+import InstitutionSidebar from '../../components/Institution/Sidebar';
 
 const BACKEND = API_BASE_URL || import.meta.env.VITE_API_URL || 'http://localhost:5001';
 
@@ -113,9 +114,11 @@ const InstitutionLibrary: React.FC = () => {
   if (error) return <div className="min-h-screen bg-gray-50 p-6"><div className="max-w-6xl mx-auto"><div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">{error}</div></div></div>;
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-6xl mx-auto">
-        <h1 className="text-3xl font-bold text-red-700 mb-6">Library Questions</h1>
+    <div className="flex min-h-screen bg-gray-50">
+      <InstitutionSidebar />
+      <main className="flex-1 p-6">
+        <div className="max-w-6xl mx-auto">
+          <h1 className="text-3xl font-bold text-red-700 mb-6">Library Questions</h1>
 
         <div className="flex gap-2 mb-6 border-b border-gray-200">
           {topics.map((topic) => (
@@ -163,7 +166,8 @@ const InstitutionLibrary: React.FC = () => {
             </div>
           </div>
         )}
-      </div>
+        </div>
+      </main>
     </div>
   );
 };

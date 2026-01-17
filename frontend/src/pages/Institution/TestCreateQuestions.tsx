@@ -16,7 +16,8 @@ const TestCreateQuestions: React.FC = () => {
 
   const navigate = useNavigate();
   const token = typeof window !== 'undefined' ? localStorage.getItem('institution_token') : null;
-  const headers = token ? { Authorization: `Bearer ${token}` } : {};
+  const headers: Record<string, string> = {};
+  if (token) headers.Authorization = `Bearer ${token}`;
 
   useEffect(() => { loadDraft(); fetchLib(); }, []);
 
@@ -30,7 +31,7 @@ const TestCreateQuestions: React.FC = () => {
 
   const fetchLib = async (t: string = 'aptitude') => {
     try {
-      const res = await fetch(`${BACKEND}/institution/questions?category=${t}`, { headers });
+      const res = await fetch(`${BACKEND}/institution/questions?category=${t}`, { headers: headers as HeadersInit });
       const body = await res.json().catch(()=>({}));
       if (res.ok) setLibraryQuestions(body.data || []);
     } catch (e) {}
@@ -53,7 +54,7 @@ const TestCreateQuestions: React.FC = () => {
       questionIds: selectedIds,
       customQuestions,
     };
-    await fetch(`${BACKEND}/institution/tests`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...headers }, body: JSON.stringify(payload) });
+    await fetch(`${BACKEND}/institution/tests`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...(headers as any) }, body: JSON.stringify(payload) });
     sessionStorage.removeItem(STORAGE_KEY);
     navigate('/institution/tests');
   };

@@ -5,6 +5,17 @@ import makeHeaders from '../../lib/makeHeaders';
 
 const BACKEND = import.meta.env.VITE_API_URL || 'http://localhost:5001';
 
+interface LogEntry {
+  id: string;
+  roleGroup?: string;
+  method?: string;
+  url?: string;
+  actor?: string;
+  status?: number;
+  durationMs?: number;
+  time?: string | number;
+}
+
 const ViewLogs: React.FC = () => {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [filteredLogs, setFilteredLogs] = useState<LogEntry[]>([]);
@@ -12,6 +23,8 @@ const ViewLogs: React.FC = () => {
   const [filterRole, setFilterRole] = useState<string>('all');
   const [filterMethod, setFilterMethod] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   useEffect(() => {
     const role = localStorage.getItem('gradedge_role');
@@ -62,6 +75,7 @@ const ViewLogs: React.FC = () => {
     }
 
     setFilteredLogs(filtered);
+    setCurrentPage(1); // Reset to first page when filters change
   };
 
   const getRoleIcon = (role: string) => {
@@ -141,40 +155,52 @@ const ViewLogs: React.FC = () => {
     }
   };
 
-  const uniqueRoles = Array.from(new Set(logs.map(l => l.roleGroup).filter(Boolean)));
-  const uniqueMethods = Array.from(new Set(logs.map(l => l.method).filter(Boolean)));
+  const uniqueRoles = Array.from(new Set(logs.map(l => l.roleGroup || '').filter((r) => !!r))) as string[];
+  const uniqueMethods = Array.from(new Set(logs.map(l => l.method || '').filter((m) => !!m))) as string[];
+
+  // Calculate pagination
+  const totalPages = Math.ceil(filteredLogs.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentLogs = filteredLogs.slice(startIndex, endIndex);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex min-h-screen bg-gray-100">
       <Sidebar />
-      <div className="flex-1 h-screen overflow-y-auto">
+      <div className="flex-1 flex flex-col">
+        <div className="flex-1 p-8 overflow-y-auto">
         {/* Header */}
-        <div className="bg-gradient-to-r from-red-600 to-red-700 shadow-lg">
-          <div className="max-w-7xl mx-auto px-6 py-6">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-white bg-opacity-20 rounded-xl flex items-center justify-center">
-                <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
+          <div className="max-w-7xl mx-auto px-8 py-6">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-[#0d0d0d] rounded-2xl flex items-center justify-center shadow-lg">
+                <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-white">System Activity Logs</h1>
-                <p className="text-red-100 text-sm">Monitor all actions performed across the platform</p>
+                <h1 className="text-2xl font-bold text-gray-900">System Activity Logs</h1>
+                <p className="text-gray-600 text-sm">Monitor all actions performed across the platform</p>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="max-w-7xl mx-auto px-6 py-8">
+          <div className="max-w-7xl mx-auto px-8 py-2">
           {/* Filters */}
-          <div className="bg-white rounded-xl shadow-md p-6 mb-6">
+          <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Filter by Role</label>
+                <label className="block text-sm font-bold text-gray-900 mb-2">Filter by Role</label>
                 <select
                   value={filterRole}
                   onChange={(e) => setFilterRole(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#0d0d0d] focus:border-transparent transition-colors"
                 >
                   <option value="all">All Roles</option>
                   {uniqueRoles.map(role => (
@@ -184,11 +210,11 @@ const ViewLogs: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Filter by Method</label>
+                <label className="block text-sm font-bold text-gray-900 mb-2">Filter by Method</label>
                 <select
                   value={filterMethod}
                   onChange={(e) => setFilterMethod(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#0d0d0d] focus:border-transparent transition-colors"
                 >
                   <option value="all">All Methods</option>
                   {uniqueMethods.map(method => (
@@ -198,25 +224,28 @@ const ViewLogs: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Search</label>
+                <label className="block text-sm font-bold text-gray-900 mb-2">Search</label>
                 <input
                   type="text"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder="Search URL, actor, or role..."
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#0d0d0d] focus:border-transparent transition-colors"
                 />
               </div>
             </div>
 
-            <div className="mt-4 flex items-center justify-between">
+            <div className="mt-4 flex items-center justify-between pt-4 border-t border-gray-200">
               <p className="text-sm text-gray-600">
-                Showing <span className="font-semibold">{filteredLogs.length}</span> of <span className="font-semibold">{logs.length}</span> logs
+                Showing <span className="font-bold text-gray-900">{startIndex + 1}-{Math.min(endIndex, filteredLogs.length)}</span> of <span className="font-bold text-gray-900">{filteredLogs.length}</span> logs
+                {filteredLogs.length !== logs.length && (
+                  <span className="text-gray-500"> (filtered from {logs.length})</span>
+                )}
               </p>
               <button
                 onClick={fetchLogs}
                 disabled={loading}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+                className="px-5 py-2.5 bg-[#0d0d0d] text-white rounded-xl hover:bg-gray-800 transition-colors disabled:opacity-50 flex items-center gap-2 font-medium shadow-md"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -227,61 +256,61 @@ const ViewLogs: React.FC = () => {
           </div>
 
           {/* Logs List */}
-          <div className="bg-white rounded-xl shadow-md overflow-hidden">
+          <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
             {loading && filteredLogs.length === 0 ? (
               <div className="p-12 text-center">
-                <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-red-200 border-t-red-600"></div>
-                <p className="text-gray-600 mt-4">Loading logs...</p>
+                <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-gray-200 border-t-[#0d0d0d]"></div>
+                <p className="text-gray-600 mt-4 font-medium">Loading logs...</p>
               </div>
             ) : filteredLogs.length === 0 ? (
               <div className="p-12 text-center">
-                <svg className="mx-auto h-16 w-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                <svg className="mx-auto h-20 w-20 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
-                <h3 className="text-lg font-semibold text-gray-700 mt-4 mb-2">No logs found</h3>
+                <h3 className="text-lg font-bold text-gray-700 mt-4 mb-2">No logs found</h3>
                 <p className="text-gray-500 text-sm">No activity logs match your current filters</p>
               </div>
             ) : (
               <div className="divide-y divide-gray-200">
-                {filteredLogs.map((log) => (
-                  <div key={log.id} className="p-4 hover:bg-gray-50 transition-colors">
+                {currentLogs.map((log) => (
+                  <div key={log.id} className="p-5 hover:bg-gray-50 transition-colors">
                     <div className="flex items-start gap-4">
                       {/* Role Icon */}
-                      <div className={`mt-1 p-2 rounded-lg border ${getRoleBadgeColor(log.roleGroup)}`}>
-                        {getRoleIcon(log.roleGroup)}
+                      <div className={`mt-1 p-2.5 rounded-xl border shadow-sm ${getRoleBadgeColor(log.roleGroup ?? '')}`}>
+                        {getRoleIcon(log.roleGroup ?? '')}
                       </div>
 
                       {/* Log Details */}
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getMethodBadge(log.method)}`}>
-                            {log.method}
+                        <div className="flex items-center gap-2 mb-2 flex-wrap">
+                          <span className={`inline-flex items-center px-3 py-1 rounded-lg text-xs font-bold shadow-sm ${getMethodBadge(log.method ?? '')}`}>
+                            {log.method || 'N/A'}
                           </span>
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getRoleBadgeColor(log.roleGroup)}`}>
+                          <span className={`inline-flex items-center px-3 py-1 rounded-lg text-xs font-bold border shadow-sm ${getRoleBadgeColor(log.roleGroup ?? '')}`}>
                             {log.roleGroup || 'Unknown'}
                           </span>
-                          <span className={`text-sm font-semibold ${getStatusColor(log.status)}`}>
-                            {log.status}
+                          <span className={`text-sm font-bold ${getStatusColor(log.status ?? 0)}`}>
+                            {log.status ?? '-'}
                           </span>
-                          <span className="text-xs text-gray-500">
+                          <span className="text-xs text-gray-500 font-medium bg-gray-100 px-2 py-1 rounded-lg">
                             {log.durationMs}ms
                           </span>
                         </div>
 
-                        <div className="mb-1">
+                        <div className="mb-2 bg-gray-50 px-3 py-2 rounded-xl border border-gray-200">
                           <code className="text-sm text-gray-800 font-mono break-all">{log.url}</code>
                         </div>
 
-                        <div className="flex items-center gap-4 text-xs text-gray-500">
-                          <span className="flex items-center gap-1">
-                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div className="flex items-center gap-4 text-xs text-gray-600">
+                          <span className="flex items-center gap-1.5 font-medium">
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
-                            {new Date(log.time).toLocaleString()}
+                            {log.time ? new Date(log.time as any).toLocaleString() : '-'}
                           </span>
                           {log.actor && (
-                            <span className="flex items-center gap-1">
-                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <span className="flex items-center gap-1.5 font-medium">
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                               </svg>
                               {log.actor}
@@ -294,10 +323,104 @@ const ViewLogs: React.FC = () => {
                 ))}
               </div>
             )}
+            {/* Pagination */}
+            <div className="px-6 py-4 bg-gray-50 border-t flex items-center justify-between">
+              <div className="text-sm text-gray-600">
+                Showing {Math.min(page * PAGE_SIZE + 1, filteredLogs.length === 0 ? 0 : filteredLogs.length)} - {Math.min((page + 1) * PAGE_SIZE, filteredLogs.length)} of {filteredLogs.length}
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setPage((p) => Math.max(0, p - 1))}
+                  disabled={page === 0}
+                  className={`px-3 py-1 rounded ${page === 0 ? 'bg-gray-100 text-gray-400' : 'bg-white border'}`}
+                >
+                  Previous
+                </button>
+                <button
+                  onClick={() => setPage((p) => p + 1)}
+                  disabled={(page + 1) * PAGE_SIZE >= filteredLogs.length}
+                  className={`px-3 py-1 rounded ${(page + 1) * PAGE_SIZE >= filteredLogs.length ? 'bg-gray-100 text-gray-400' : 'bg-white border'}`}
+                >
+                  Next
+                </button>
+              </div>
+            </div>
           </div>
+
+          {/* Pagination */}
+          {filteredLogs.length > 0 && totalPages > 1 && (
+            <div className="bg-white rounded-2xl shadow-lg p-4 mt-6">
+              <div className="flex items-center justify-between">
+                <div className="text-sm text-gray-600">
+                  Page <span className="font-bold text-gray-900">{currentPage}</span> of <span className="font-bold text-gray-900">{totalPages}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handlePageChange(1)}
+                    disabled={currentPage === 1}
+                    className="px-3 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    First
+                  </button>
+                  <button
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className="px-3 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Previous
+                  </button>
+                  
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                      let pageNum;
+                      if (totalPages <= 5) {
+                        pageNum = i + 1;
+                      } else if (currentPage <= 3) {
+                        pageNum = i + 1;
+                      } else if (currentPage >= totalPages - 2) {
+                        pageNum = totalPages - 4 + i;
+                      } else {
+                        pageNum = currentPage - 2 + i;
+                      }
+                      
+                      return (
+                        <button
+                          key={pageNum}
+                          onClick={() => handlePageChange(pageNum)}
+                          className={`w-10 h-10 rounded-lg text-sm font-medium transition-colors ${
+                            currentPage === pageNum
+                              ? 'bg-[#0d0d0d] text-white shadow-md'
+                              : 'border border-gray-300 text-gray-700 hover:bg-gray-50'
+                          }`}
+                        >
+                          {pageNum}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <button
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    className="px-3 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Next
+                  </button>
+                  <button
+                    onClick={() => handlePageChange(totalPages)}
+                    disabled={currentPage === totalPages}
+                    className="px-3 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Last
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
+  </div>
   );
 };
 

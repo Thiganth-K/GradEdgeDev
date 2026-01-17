@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import Sidebar from '../../components/Faculty/Sidebar';
 
 const BACKEND = import.meta.env.VITE_API_URL || 'http://localhost:5001';
 
@@ -22,18 +23,23 @@ const FacultyAnnouncements: React.FC = () => {
   };
 
   return (
-    <div className="p-6">
-      <h2 className="text-2xl font-bold mb-4">Faculty Announcements</h2>
-      <div className="bg-white p-4 rounded shadow">
-        {loading && <p className="text-sm text-gray-600">Loading...</p>}
-        {!loading && anns.length === 0 && <p className="text-sm text-gray-600">No announcements</p>}
-        <div className="space-y-3">
-          {anns.map((a:any) => (
-            <div key={a._id} className="border rounded p-3">
-              <div className="text-xs text-gray-500">{new Date(a.createdAt).toLocaleString()}</div>
-              <p className="mt-2 text-sm">{a.message}</p>
+    <div className="flex min-h-screen bg-gray-50">
+      <Sidebar />
+      <div className="flex-1 h-screen overflow-y-auto">
+        <div className="p-6">
+          <h2 className="text-2xl font-bold mb-4">Faculty Announcements</h2>
+          <div className="bg-white p-4 rounded shadow">
+            {loading && <p className="text-sm text-gray-600">Loading...</p>}
+            {!loading && anns.length === 0 && <p className="text-sm text-gray-600">No announcements</p>}
+            <div className="space-y-3">
+              {anns.map((a:any) => (
+                <div key={a._id} className="border rounded p-3">
+                  <div className="text-xs text-gray-500">{new Date(a.createdAt).toLocaleString()}</div>
+                  <p className="mt-2 text-sm">{a.message}</p>
+                </div>
+              ))}
             </div>
-          ))}
+          </div>
         </div>
       </div>
     </div>

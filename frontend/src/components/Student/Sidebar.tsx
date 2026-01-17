@@ -41,7 +41,7 @@ const Sidebar: React.FC = () => {
   ];
 
   return (
-    <div className="w-64 bg-gradient-to-b from-red-800 to-red-900 min-h-screen flex flex-col">
+    <div className="w-64 bg-gradient-to-b from-red-800 to-red-900 sticky top-0 self-start h-screen flex flex-col">
       {/* Logo */}
       <div className="p-6 border-b border-red-700">
         <div className="flex items-center gap-3">
@@ -55,7 +55,7 @@ const Sidebar: React.FC = () => {
       </div>
 
       {/* Menu Items */}
-      <nav className="flex-1 py-6">
+      <nav className="flex-1 py-6 overflow-y-auto">
         {menuItems.map((item) => {
           const isActive = location.pathname === item.path || 
                           (item.path !== '/student/dashboard' && location.pathname.startsWith(item.path));

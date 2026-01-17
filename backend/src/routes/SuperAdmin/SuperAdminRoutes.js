@@ -33,4 +33,7 @@ router.delete('/admins/:id', SuperAdminControllers.deleteAdmin);
 console.log('[SuperAdminRoutes] GET /system-vitals - Get system vitals');
 router.get('/system-vitals', SuperAdminControllers.getSystemVitals);
 
+console.log('[SuperAdminRoutes] GET /me - Get superadmin profile');
+router.get('/me', verifySuperAdmin, SuperAdminControllers.getProfile);
+
 module.exports = router;

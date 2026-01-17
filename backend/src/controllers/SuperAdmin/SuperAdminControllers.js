@@ -226,7 +226,6 @@ const deleteAdmin = async (req, res) => {
   }
 };
 
-<<<<<<< Updated upstream
 const os = require('os');
 const mongoose = require('mongoose');
 
@@ -258,7 +257,19 @@ const getSystemVitals = async (req, res) => {
   }
 };
 
-module.exports = { login, getInstitutions, getLogs, listAdmins, createAdmin, updateAdmin, deleteAdmin, getSystemVitals };
-=======
-module.exports = { login, getInstitutions, getLogs, listAdmins, createAdmin, updateAdmin, deleteAdmin, getDashboardStats };
->>>>>>> Stashed changes
+module.exports = { login, getInstitutions, getLogs, getDashboardStats, listAdmins, createAdmin, updateAdmin, deleteAdmin, getSystemVitals };
+
+// Return basic superadmin profile (from token and env)
+const getProfile = (req, res) => {
+  try {
+    const username = req.superadmin?.username || process.env.SUPERADMIN_USERNAME || 'superadmin';
+    const name = process.env.SUPERADMIN_NAME || username;
+    res.json({ success: true, data: { username, name } });
+  } catch (err) {
+    console.error('[SuperAdmin.getProfile] error:', err.message);
+    res.status(500).json({ success: false, message: 'failed to get profile' });
+  }
+};
+
+// add getProfile to exports
+module.exports.getProfile = getProfile;

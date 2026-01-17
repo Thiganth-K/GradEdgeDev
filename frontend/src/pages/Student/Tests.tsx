@@ -39,21 +39,66 @@ const StudentTests: React.FC = () => {
             {!loading && tests.length === 0 && (
               <p className="text-sm text-gray-600">No tests assigned currently.</p>
             )}
+
             {!loading && tests.length > 0 && (
-              <ul className="divide-y">
-                {tests.map((t: any) => (
-                  <li key={t._id} className="py-3 flex items-center justify-between">
-                    <div>
-                      <div className="font-medium">{t.name} <span className="text-gray-500">({t.type})</span></div>
-                      <div className="text-xs text-gray-600">Questions: {t.questions?.length || 0} • Duration: {t.durationMinutes} min</div>
+              <div className="grid grid-cols-1 gap-4">
+                {tests.map((t: any) => {
+                  const completed = !!t.completed;
+                  const score = t.score ?? null;
+                  const attempts = typeof t.attempts === 'number' ? t.attempts : (t.attemptedCount || 0);
+                  const maxAttempts = t.maxAttempts || t.allowedAttempts || null;
+                  const due = t.dueDate ? new Date(t.dueDate) : null;
+                  const dueLabel = due ? due.toLocaleString() : '—';
+
+                  const actionLabel = completed ? (t.resultAvailable ? 'View Result' : 'Completed') : (attempts > 0 ? 'Continue' : 'Start');
+
+                  return (
+                    <div key={t._id} className="p-4 border rounded-lg flex items-center justify-between bg-white">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3">
+                          <h3 className="text-lg font-semibold text-gray-800">{t.name}</h3>
+                          <span className="text-sm text-gray-500">{t.type || ''}</span>
+                          {t.priority && <span className="ml-2 inline-block text-xs bg-red-600 text-white px-2 py-0.5 rounded">{t.priority}</span>}
+                        </div>
+                        <div className="mt-2 text-sm text-gray-600">
+                          Questions: <strong className="text-gray-800">{t.questions?.length || t.questionCount || '—'}</strong>
+                          <span className="mx-2">•</span>
+                          Duration: <strong className="text-gray-800">{t.durationMinutes ?? t.duration ?? '—'} min</strong>
+                          <span className="mx-2">•</span>
+                          Due: <strong className="text-gray-800">{dueLabel}</strong>
+                        </div>
+                        <div className="mt-2 flex items-center gap-3 text-sm">
+                          <div className="text-gray-600">Attempts: <span className="text-gray-800">{attempts}{maxAttempts ? ` / ${maxAttempts}` : ''}</span></div>
+                          {score !== null && (
+                            <div className="text-gray-600">Score: <span className="font-medium text-red-600">{score}%</span></div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="ml-4 flex flex-col items-end">
+                        <div className="mb-2">
+                          {!completed && (
+                            <button
+                              onClick={() => navigate(`/student/test/${t._id}`)}
+                              className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+                            >{actionLabel}</button>
+                          )}
+                          {completed && t.resultAvailable && (
+                            <button
+                              onClick={() => navigate(`/student/test/${t._id}/result`)}
+                              className="px-4 py-2 border border-red-200 text-red-600 rounded hover:bg-red-50"
+                            >View Result</button>
+                          )}
+                          {completed && !t.resultAvailable && (
+                            <div className="text-sm text-gray-500">Completed</div>
+                          )}
+                        </div>
+                        <div className="text-xs text-gray-400">Assigned on: {t.assignedAt ? new Date(t.assignedAt).toLocaleDateString() : '—'}</div>
+                      </div>
                     </div>
-                    <button
-                      onClick={() => navigate(`/student/test/${t._id}`)}
-                      className="px-3 py-2 border rounded hover:bg-gray-50"
-                    >Take Test</button>
-                  </li>
-                ))}
-              </ul>
+                  );
+                })}
+              </div>
             )}
           </div>
         </div>
