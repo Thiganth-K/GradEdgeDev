@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { apiFetch } from '../lib/api';
 import { HiAcademicCap } from 'react-icons/hi2';
 
 const BACKEND = import.meta.env.VITE_API_URL || 'http://localhost:5001';

@@ -5,6 +5,17 @@ import makeHeaders from '../../lib/makeHeaders';
 
 const BACKEND = import.meta.env.VITE_API_URL || 'http://localhost:5001';
 
+interface LogEntry {
+  id: string;
+  roleGroup?: string;
+  method?: string;
+  url?: string;
+  actor?: string;
+  status?: number;
+  durationMs?: number;
+  time?: string | number;
+}
+
 const ViewLogs: React.FC = () => {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [filteredLogs, setFilteredLogs] = useState<LogEntry[]>([]);
@@ -141,8 +152,8 @@ const ViewLogs: React.FC = () => {
     }
   };
 
-  const uniqueRoles = Array.from(new Set(logs.map(l => l.roleGroup).filter(Boolean)));
-  const uniqueMethods = Array.from(new Set(logs.map(l => l.method).filter(Boolean)));
+  const uniqueRoles = Array.from(new Set(logs.map(l => l.roleGroup || '').filter((r) => !!r))) as string[];
+  const uniqueMethods = Array.from(new Set(logs.map(l => l.method || '').filter((m) => !!m))) as string[];
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -247,21 +258,21 @@ const ViewLogs: React.FC = () => {
                   <div key={log.id} className="p-4 hover:bg-gray-50 transition-colors">
                     <div className="flex items-start gap-4">
                       {/* Role Icon */}
-                      <div className={`mt-1 p-2 rounded-lg border ${getRoleBadgeColor(log.roleGroup)}`}>
-                        {getRoleIcon(log.roleGroup)}
+                      <div className={`mt-1 p-2 rounded-lg border ${getRoleBadgeColor(log.roleGroup ?? '')}`}>
+                        {getRoleIcon(log.roleGroup ?? '')}
                       </div>
 
                       {/* Log Details */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-2">
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getMethodBadge(log.method)}`}>
-                            {log.method}
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getMethodBadge(log.method ?? '')}`}>
+                            {log.method || 'N/A'}
                           </span>
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getRoleBadgeColor(log.roleGroup)}`}>
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getRoleBadgeColor(log.roleGroup ?? '')}`}>
                             {log.roleGroup || 'Unknown'}
                           </span>
-                          <span className={`text-sm font-semibold ${getStatusColor(log.status)}`}>
-                            {log.status}
+                          <span className={`text-sm font-semibold ${getStatusColor(log.status ?? 0)}`}>
+                            {log.status ?? '-'}
                           </span>
                           <span className="text-xs text-gray-500">
                             {log.durationMs}ms
@@ -277,7 +288,7 @@ const ViewLogs: React.FC = () => {
                             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
-                            {new Date(log.time).toLocaleString()}
+                            {log.time ? new Date(log.time as any).toLocaleString() : '-'}
                           </span>
                           {log.actor && (
                             <span className="flex items-center gap-1">

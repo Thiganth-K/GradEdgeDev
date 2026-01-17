@@ -43,40 +43,18 @@ const ContributorManagement: React.FC = () => {
 
   const onDelete = async (id: string) => {
     setMsg(null);
+    if (!confirm('Delete this contributor?')) return;
     try {
-      if (initial) {
-        // update
-        const res = await apiFetch(`/admin/contributors/${initial.id}`, {
-          method: 'PUT',
-          headers: makeHeadersLocal(true),
-          body: JSON.stringify({ username, fname, lname, contact, email, password: password || undefined }),
-        });
-        const body = await res.json().catch(() => ({}));
-        if (!res.ok) {
-          setError(body.message || 'Failed to update contributor');
-          setLoading(false);
-          return;
-        }
-        onUpdated && onUpdated();
-      } else {
-        // create
-        const res = await apiFetch('/admin/contributors', {
-          method: 'POST',
-          headers: makeHeadersLocal(true),
-          body: JSON.stringify({ username, password, fname, lname, contact, email }),
-        });
-        const body = await res.json().catch(() => ({}));
-        if (!res.ok) {
-          setError(body.message || 'Failed to create contributor');
-          setLoading(false);
-          return;
-        }
-        onCreated && onCreated();
+      const res = await apiFetch(`/admin/contributors/${id}`, { method: 'DELETE', headers: makeHeaders(true) });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setMsg(body.message || 'Failed to delete contributor');
+        return;
       }
+      setList((prev) => prev.filter((c) => c.id !== id));
+      setMsg('Contributor deleted');
     } catch (err: any) {
-      setError(err.message || 'Network error');
-      setLoading(false);
-      return;
+      setMsg(err.message || 'Network error');
     }
   };
 
@@ -238,3 +216,5 @@ const ContributorManagement: React.FC = () => {
     </div>
   );
 };
+
+export default ContributorManagement;

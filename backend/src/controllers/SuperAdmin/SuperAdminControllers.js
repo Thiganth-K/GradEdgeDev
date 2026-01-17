@@ -226,7 +226,6 @@ const deleteAdmin = async (req, res) => {
   }
 };
 
-<<<<<<< Updated upstream
 const os = require('os');
 const mongoose = require('mongoose');
 
@@ -258,7 +257,4 @@ const getSystemVitals = async (req, res) => {
   }
 };
 
-module.exports = { login, getInstitutions, getLogs, listAdmins, createAdmin, updateAdmin, deleteAdmin, getSystemVitals };
-=======
-module.exports = { login, getInstitutions, getLogs, listAdmins, createAdmin, updateAdmin, deleteAdmin, getDashboardStats };
->>>>>>> Stashed changes
+module.exports = { login, getInstitutions, getLogs, getDashboardStats, listAdmins, createAdmin, updateAdmin, deleteAdmin, getSystemVitals };

@@ -285,6 +285,9 @@ const InstitutionManagement: React.FC = () => {
   const [editingItem, setEditingItem] = useState<Institution | null>(null);
   const [menuOpen, setMenuOpen] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [viewingBatchesFor, setViewingBatchesFor] = useState<string | null>(null);
+  const [batchesLoading, setBatchesLoading] = useState(false);
+  const [batches, setBatches] = useState<any[]>([]);
 
   useEffect(() => {
     console.log('[InstitutionManagement] COMPONENT MOUNTED');
@@ -333,6 +336,33 @@ const InstitutionManagement: React.FC = () => {
     if (res.ok && b.success) setItems((s) => s.filter((it) => it.id !== id));
     else alert(b.message || 'Could not delete');
   };
+
+  const closeBatchesModal = () => {
+    setViewingBatchesFor(null);
+    setBatches([]);
+    setBatchesLoading(false);
+  };
+
+  useEffect(() => {
+    const id = viewingBatchesFor;
+    if (!id) return;
+    (async () => {
+      setBatchesLoading(true);
+      try {
+        const token = localStorage.getItem('admin_token');
+        const headers: Record<string, string> = {};
+        if (token) headers.Authorization = `Bearer ${token}`;
+        const res = await fetch(`${BACKEND}/admin/institutions/${id}/batches`, { headers });
+        const b = await res.json().catch(() => ({}));
+        if (res.ok && b.success) setBatches(b.data || []);
+        else setBatches([]);
+      } catch (err) {
+        setBatches([]);
+      } finally {
+        setBatchesLoading(false);
+      }
+    })();
+  }, [viewingBatchesFor]);
 
   console.log('[InstitutionManagement] RENDERING - items:', items.length, 'loading:', loading, 'error:', error);
 
@@ -500,6 +530,15 @@ const InstitutionManagement: React.FC = () => {
                               </svg>
                               <span>Chat</span>
                             </Link>
+                            <button
+                              onClick={() => { setViewingBatchesFor(it.id); setMenuOpen(null); }}
+                              className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors font-medium"
+                            >
+                              <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7h18M3 12h18M3 17h18" />
+                              </svg>
+                              <span>Batches</span>
+                            </button>
                             <button
                               onClick={() => {
                                 setMenuOpen(null);

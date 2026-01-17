@@ -16,7 +16,8 @@ const TestCreateQuestions: React.FC = () => {
 
   const navigate = useNavigate();
   const token = typeof window !== 'undefined' ? localStorage.getItem('institution_token') : null;
-  const headers = token ? { Authorization: `Bearer ${token}` } : {};
+  const headers: Record<string, string> = {};
+  if (token) headers.Authorization = `Bearer ${token}`;
 
   useEffect(() => { loadDraft(); fetchLib(); }, []);
 

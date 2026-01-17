@@ -45,10 +45,6 @@ const Sidebar: React.FC = () => {
           {!isCollapsed && (
             <span className="text-white text-xl font-bold tracking-wide">GradEdge</span>
           )}
-
-          </div>
-          <span className="text-white text-xl font-bold">GradEdge</span>
-
         </div>
       </div>
 

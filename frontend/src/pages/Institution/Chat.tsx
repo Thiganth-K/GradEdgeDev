@@ -46,7 +46,11 @@ const InstitutionChat: React.FC = () => {
       // load faculty list
       if (!token) return;
       fetch(`${BACKEND}/institution/faculties`, { headers: { Authorization: `Bearer ${token}` } })
-        .then(r => r.json()).then(b => { if (r.ok) setFaculties(b.data || []); }).catch(() => {});
+        .then(async (r) => {
+          const b = await r.json().catch(() => ({}));
+          if (r.ok) setFaculties(b.data || []);
+        })
+        .catch(() => {});
     }
   }, [chatType]);
 

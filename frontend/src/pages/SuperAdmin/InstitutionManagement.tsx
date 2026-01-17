@@ -151,7 +151,6 @@ const InstitutionManagement: React.FC = () => {
                 <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</p>
               </div>
             </div>
-          ))}
         </div>
         <div className="mt-6">
           <button onClick={() => (window.location.href = '/superadmin/dashboard')} className="px-4 py-2 bg-white border rounded">Back</button>

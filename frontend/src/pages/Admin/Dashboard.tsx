@@ -33,16 +33,25 @@ const Dashboard: React.FC = () => {
     fetchAnnouncements();
   }, []);
 
+  // Placeholder: fetch recent announcements for the header/bell (keeps current UI behavior)
+  const fetchAnnouncements = async () => {
+    try {
+      const headers = makeHeaders('admin');
+      const BACKEND = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+      await fetch(`${BACKEND}/admin/announcements`, { headers });
+    } catch (err) {
+      // swallow - non-critical for dashboard stats
+      console.debug('fetchAnnouncements error', err);
+    }
+  };
+
   const fetchDashboardStats = async () => {
     try {
       const headers = makeHeaders('admin');
-      
-      // Fetch all stats in parallel
+      const BACKEND = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+
+      // Fetch all stats in parallel from configured backend
       const [institutionsRes, contributorsRes, requestsRes, chatsRes] = await Promise.all([
-        fetch('http://localhost:5000/admin/institutions', { headers }),
-        fetch('http://localhost:5000/admin/contributors', { headers }),
-        fetch('http://localhost:5000/admin/contributor-requests', { headers }),
-        fetch('http://localhost:5000/admin/contributor-chats', { headers })
         fetch(`${BACKEND}/admin/institutions`, { headers }),
         fetch(`${BACKEND}/admin/contributors`, { headers }),
         fetch(`${BACKEND}/admin/contributor-requests`, { headers }),
