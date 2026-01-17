@@ -347,12 +347,12 @@ const UnifiedContributionRequest: React.FC = () => {
       } else {
         setSuccess(`Successfully added ${data.validQuestions} question(s) from file!`);
       }
-      setTimeout(() => { setError(''); setSuccess(''); }, 5000);
+      setTimeout(() => { setError(''); setSuccess(''); }, 5001);
     } catch (error) {
       console.error('Error parsing file:', error);
       setError(`Error: ${error instanceof Error ? error.message : 'Failed to parse file'}`);
       setUploadedFile(null);
-      setTimeout(() => setError(''), 5000);
+      setTimeout(() => setError(''), 5001);
     } finally {
       setIsProcessingBulk(false);
     }

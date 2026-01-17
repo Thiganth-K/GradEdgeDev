@@ -147,91 +147,98 @@ const ContributorRequestManagement: React.FC = () => {
   };
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex min-h-screen">
       <Sidebar />
-      <div className="flex-1 h-screen overflow-y-auto p-8">
+      <div className="flex-1 bg-gray-100 p-8">
         <div className="max-w-7xl mx-auto">
           {/* Header */}
-          <div className="bg-gradient-to-r from-red-600 to-red-800 text-white rounded-xl shadow-lg p-6 mb-6">
-            <h1 className="text-3xl font-bold">Contributor Request Management</h1>
-            <p className="text-red-100 mt-1">Review and manage question contribution requests</p>
+          <div className="mb-8">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-12 h-12 bg-[#0d0d0d] rounded-2xl flex items-center justify-center shadow-lg">
+                <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </div>
+              <h1 className="text-3xl font-bold text-gray-900">Contributor Requests</h1>
+            </div>
+            <p className="text-gray-600">Review and manage question contribution requests from contributors.</p>
           </div>
 
         {/* Messages */}
         {successMessage && (
-          <div className="bg-green-100 border-2 border-green-500 text-green-800 px-4 py-3 rounded-lg mb-6 font-semibold">
+          <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-2xl mb-6 font-medium shadow-lg">
             {successMessage}
           </div>
         )}
 
         {error && (
-          <div className="bg-red-100 border-2 border-red-500 text-red-800 px-4 py-3 rounded-lg mb-6 font-semibold">
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-2xl mb-6 font-medium shadow-lg">
             {error}
           </div>
         )}
 
         {/* Stats */}
         <div className="grid grid-cols-5 gap-4 mb-6">
-          <div className="bg-white border-2 border-gray-300 rounded-lg p-4 text-center">
-            <div className="text-3xl font-bold text-black">{counts.all}</div>
+          <div className="bg-white rounded-2xl shadow-lg p-5 text-center border border-gray-200">
+            <div className="text-3xl font-bold text-gray-900">{counts.all}</div>
             <div className="text-sm text-gray-600 mt-1">Total Requests</div>
           </div>
-          <div className="bg-white border-2 border-yellow-300 rounded-lg p-4 text-center">
+          <div className="bg-white rounded-2xl shadow-lg p-5 text-center border border-gray-200">
             <div className="text-3xl font-bold text-gray-600">{counts.pending}</div>
             <div className="text-sm text-gray-600 mt-1">Pending</div>
           </div>
-          <div className="bg-white border-2 border-yellow-300 rounded-lg p-4 text-center">
+          <div className="bg-white rounded-2xl shadow-lg p-5 text-center border border-yellow-200">
             <div className="text-3xl font-bold text-yellow-600">{counts.inProgress}</div>
             <div className="text-sm text-gray-600 mt-1">In Progress</div>
           </div>
-          <div className="bg-white border-2 border-green-300 rounded-lg p-4 text-center">
+          <div className="bg-white rounded-2xl shadow-lg p-5 text-center border border-green-200">
             <div className="text-3xl font-bold text-green-600">{counts.completed}</div>
             <div className="text-sm text-gray-600 mt-1">Completed</div>
           </div>
-          <div className="bg-white border-2 border-red-300 rounded-lg p-4 text-center">
+          <div className="bg-white rounded-2xl shadow-lg p-5 text-center border border-red-200">
             <div className="text-3xl font-bold text-red-600">{counts.rejected}</div>
             <div className="text-sm text-gray-600 mt-1">Rejected</div>
           </div>
         </div>
 
         {/* Filters */}
-        <div className="bg-white border-2 border-gray-300 rounded-lg p-4 mb-6 flex space-x-2">
+        <div className="bg-white rounded-2xl shadow-lg p-4 mb-6 flex space-x-2">
           <button
             onClick={() => setFilterStatus('all')}
-            className={`px-4 py-2 rounded font-semibold ${
-              filterStatus === 'all' ? 'bg-red-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+            className={`px-5 py-2.5 rounded-xl font-medium transition-colors ${
+              filterStatus === 'all' ? 'bg-[#0d0d0d] text-white shadow-md' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
             All ({counts.all})
           </button>
           <button
             onClick={() => setFilterStatus('pending')}
-            className={`px-4 py-2 rounded font-semibold ${
-              filterStatus === 'pending' ? 'bg-red-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+            className={`px-5 py-2.5 rounded-xl font-medium transition-colors ${
+              filterStatus === 'pending' ? 'bg-[#0d0d0d] text-white shadow-md' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
             Pending ({counts.pending})
           </button>
           <button
             onClick={() => setFilterStatus('in-progress')}
-            className={`px-4 py-2 rounded font-semibold ${
-              filterStatus === 'in-progress' ? 'bg-red-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+            className={`px-5 py-2.5 rounded-xl font-medium transition-colors ${
+              filterStatus === 'in-progress' ? 'bg-[#0d0d0d] text-white shadow-md' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
             In Progress ({counts.inProgress})
           </button>
           <button
             onClick={() => setFilterStatus('completed')}
-            className={`px-4 py-2 rounded font-semibold ${
-              filterStatus === 'completed' ? 'bg-red-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+            className={`px-5 py-2.5 rounded-xl font-medium transition-colors ${
+              filterStatus === 'completed' ? 'bg-[#0d0d0d] text-white shadow-md' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
             Completed ({counts.completed})
           </button>
           <button
             onClick={() => setFilterStatus('rejected')}
-            className={`px-4 py-2 rounded font-semibold ${
-              filterStatus === 'rejected' ? 'bg-red-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+            className={`px-5 py-2.5 rounded-xl font-medium transition-colors ${
+              filterStatus === 'rejected' ? 'bg-[#0d0d0d] text-white shadow-md' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
             Rejected ({counts.rejected})
@@ -241,13 +248,19 @@ const ContributorRequestManagement: React.FC = () => {
         {/* Request List */}
         {loading && (
           <div className="text-center py-12">
-            <div className="text-gray-600">Loading requests...</div>
+            <div className="text-gray-600 text-lg">Loading requests...</div>
           </div>
         )}
 
         {!loading && filteredRequests.length === 0 && (
-          <div className="bg-white border-2 border-gray-300 rounded-lg p-12 text-center">
-            <p className="text-gray-500 text-lg">No requests found</p>
+          <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
+            <div className="text-gray-400 mb-4">
+              <svg className="mx-auto h-24 w-24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-semibold text-gray-700 mb-2">No Requests Found</h3>
+            <p className="text-gray-500">There are no contributor requests matching your filters.</p>
           </div>
         )}
 
@@ -257,33 +270,33 @@ const ContributorRequestManagement: React.FC = () => {
               <div
                 key={request._id}
                 onClick={() => setSelectedRequest(request)}
-                className="bg-white border-2 border-gray-300 rounded-lg p-4 hover:border-red-600 cursor-pointer transition-colors"
+                className="bg-white rounded-2xl shadow-lg p-5 hover:shadow-xl cursor-pointer transition-all border border-gray-200 hover:border-gray-300"
               >
                 <div className="flex justify-between items-start mb-3">
                   <div>
-                    <h3 className="font-semibold text-lg text-black">
-                      Request by {request.contributorName}
+                    <h3 className="font-bold text-lg text-gray-900">
+                      {request.contributorName}
                     </h3>
                     <p className="text-sm text-gray-500">{formatDate(request.submittedAt)}</p>
                   </div>
-                  <span className={`px-3 py-1 rounded-full text-sm font-semibold ${getStatusColor(request.status)}`}>
-                    {request.status.toUpperCase()}
+                  <span className={`px-3 py-1.5 rounded-xl text-xs font-semibold ${getStatusColor(request.status)}`}>
+                    {request.status.replace('-', ' ').toUpperCase()}
                   </span>
                 </div>
 
                 <div className="space-y-2">
                   {request.questionRequests.map((qr, index) => (
                     <div key={index} className="flex items-center space-x-3 text-sm">
-                      <span className="font-semibold text-black">{qr.topic}</span>
-                      <span className="px-2 py-1 bg-gray-200 text-gray-700 rounded">{qr.category}</span>
-                      <span className="px-2 py-1 bg-gray-200 text-gray-700 rounded">{qr.difficulty}</span>
-                      <span className="text-gray-600">×{qr.count}</span>
+                      <span className="font-semibold text-gray-900">{qr.topic}</span>
+                      <span className="px-2.5 py-1 bg-blue-50 text-blue-700 rounded-lg font-medium">{qr.category}</span>
+                      <span className="px-2.5 py-1 bg-purple-50 text-purple-700 rounded-lg font-medium">{qr.difficulty}</span>
+                      <span className="text-gray-600 font-medium">×{qr.count}</span>
                     </div>
                   ))}
                 </div>
 
                 {request.notes && (
-                  <div className="mt-3 text-sm text-gray-600 italic">
+                  <div className="mt-3 text-sm text-gray-600 italic bg-gray-50 p-3 rounded-xl">
                     "{request.notes}"
                   </div>
                 )}
@@ -295,11 +308,11 @@ const ContributorRequestManagement: React.FC = () => {
 
       {/* Request Detail Modal */}
       {selectedRequest && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="bg-red-600 text-white px-6 py-4 flex justify-between items-center rounded-t-lg">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="bg-[#0d0d0d] text-white px-6 py-5 flex justify-between items-center rounded-t-2xl sticky top-0 z-10">
               <h2 className="text-2xl font-bold">Request Details</h2>
-              <button onClick={() => setSelectedRequest(null)} className="text-white hover:text-gray-200">
+              <button onClick={() => setSelectedRequest(null)} className="text-white hover:text-gray-300 transition-colors">
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
@@ -309,25 +322,25 @@ const ContributorRequestManagement: React.FC = () => {
             <div className="p-6 space-y-6">
               <div className="flex justify-between items-start">
                 <div>
-                  <h3 className="text-xl font-semibold text-black">{selectedRequest.contributorName}</h3>
-                  <p className="text-sm text-gray-600">Submitted: {formatDate(selectedRequest.submittedAt)}</p>
+                  <h3 className="text-xl font-bold text-gray-900">{selectedRequest.contributorName}</h3>
+                  <p className="text-sm text-gray-600 mt-1">Submitted: {formatDate(selectedRequest.submittedAt)}</p>
                   <p className="text-sm text-gray-600">Updated: {formatDate(selectedRequest.updatedAt)}</p>
                 </div>
-                <span className={`px-3 py-1 rounded-full text-sm font-semibold ${getStatusColor(selectedRequest.status)}`}>
-                  {selectedRequest.status.toUpperCase()}
+                <span className={`px-4 py-2 rounded-xl text-sm font-semibold ${getStatusColor(selectedRequest.status)}`}>
+                  {selectedRequest.status.replace('-', ' ').toUpperCase()}
                 </span>
               </div>
 
               <div>
-                <h4 className="font-semibold text-lg mb-3">Question Requests:</h4>
+                <h4 className="font-bold text-lg mb-3 text-gray-900">Question Requests:</h4>
                 <div className="space-y-3">
                   {selectedRequest.questionRequests.map((qr, index) => (
-                    <div key={index} className="bg-gray-50 border-2 border-gray-300 rounded-lg p-3">
-                      <div className="font-semibold text-black text-lg">{qr.topic}</div>
-                      <div className="flex space-x-2 mt-2">
-                        <span className="px-3 py-1 bg-gray-200 text-gray-700 rounded font-semibold">{qr.category}</span>
-                        <span className="px-3 py-1 bg-gray-200 text-gray-700 rounded font-semibold">{qr.difficulty}</span>
-                        <span className="px-3 py-1 bg-red-600 text-white rounded font-semibold">{qr.count} questions</span>
+                    <div key={index} className="bg-gray-50 rounded-2xl p-4 border border-gray-200">
+                      <div className="font-bold text-gray-900 text-lg mb-2">{qr.topic}</div>
+                      <div className="flex space-x-2">
+                        <span className="px-3 py-1.5 bg-blue-100 text-blue-700 rounded-lg font-semibold text-sm">{qr.category}</span>
+                        <span className="px-3 py-1.5 bg-purple-100 text-purple-700 rounded-lg font-semibold text-sm">{qr.difficulty}</span>
+                        <span className="px-3 py-1.5 bg-red-600 text-white rounded-lg font-semibold text-sm">{qr.count} questions</span>
                       </div>
                     </div>
                   ))}
@@ -336,8 +349,8 @@ const ContributorRequestManagement: React.FC = () => {
 
               {selectedRequest.notes && (
                 <div>
-                  <h4 className="font-semibold text-lg mb-2">Contributor Notes:</h4>
-                  <p className="bg-gray-50 border border-gray-300 rounded-lg p-3 text-gray-700">
+                  <h4 className="font-bold text-lg mb-2 text-gray-900">Contributor Notes:</h4>
+                  <p className="bg-gray-50 rounded-2xl p-4 text-gray-700 border border-gray-200">
                     {selectedRequest.notes}
                   </p>
                 </div>
@@ -345,15 +358,15 @@ const ContributorRequestManagement: React.FC = () => {
 
               {selectedRequest.draftedQuestions && selectedRequest.draftedQuestions.length > 0 && (
                 <div>
-                  <h4 className="font-semibold text-lg mb-3">Drafted Questions ({selectedRequest.draftedQuestions.length}):</h4>
+                  <h4 className="font-bold text-lg mb-3 text-gray-900">Drafted Questions ({selectedRequest.draftedQuestions.length}):</h4>
                   <div className="space-y-4 max-h-96 overflow-y-auto">
                     {selectedRequest.draftedQuestions.map((q, index) => (
-                      <div key={index} className="bg-gray-50 border-2 border-gray-300 rounded-lg p-4">
+                      <div key={index} className="bg-gray-50 rounded-2xl p-5 border border-gray-200">
                         <div className="flex justify-between items-start mb-3">
-                          <h5 className="font-semibold text-black">Question {index + 1}</h5>
+                          <h5 className="font-bold text-gray-900">Question {index + 1}</h5>
                           <div className="flex space-x-2">
-                            <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-semibold">{q.category}</span>
-                            <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs font-semibold">{q.difficulty}</span>
+                            <span className="px-2.5 py-1 bg-blue-100 text-blue-700 rounded-lg text-xs font-semibold">{q.category}</span>
+                            <span className="px-2.5 py-1 bg-purple-100 text-purple-700 rounded-lg text-xs font-semibold">{q.difficulty}</span>
                           </div>
                         </div>
                         
@@ -365,15 +378,15 @@ const ContributorRequestManagement: React.FC = () => {
                             return (
                               <div
                                 key={optIndex}
-                                className={`px-3 py-2 rounded ${
+                                className={`px-4 py-2.5 rounded-xl ${
                                   isCorrect
-                                    ? 'bg-green-100 border-2 border-green-500 text-green-800 font-semibold'
+                                    ? 'bg-green-50 border-2 border-green-500 text-green-800 font-semibold'
                                     : 'bg-white border border-gray-300 text-gray-700'
                                 }`}
                               >
                                 {String.fromCharCode(65 + optIndex)}. {opt.text}
                                 {isCorrect && (
-                                  <span className="ml-2 text-green-600">✓ Correct</span>
+                                  <span className="ml-2 text-green-600 font-bold">✓ Correct</span>
                                 )}
                               </div>
                             );
@@ -383,7 +396,7 @@ const ContributorRequestManagement: React.FC = () => {
                         {q.tags && q.tags.length > 0 && (
                           <div className="flex flex-wrap gap-2 mb-2">
                             {q.tags.map((tag, tagIndex) => (
-                              <span key={tagIndex} className="px-2 py-1 bg-gray-200 text-gray-600 rounded text-xs">
+                              <span key={tagIndex} className="px-2.5 py-1 bg-gray-200 text-gray-700 rounded-lg text-xs font-medium">
                                 #{tag}
                               </span>
                             ))}
@@ -391,7 +404,7 @@ const ContributorRequestManagement: React.FC = () => {
                         )}
 
                         {q.details && (
-                          <div className="mt-2 text-sm text-gray-600 italic border-t border-gray-300 pt-2">
+                          <div className="mt-3 text-sm text-gray-600 italic border-t border-gray-300 pt-3">
                             <strong>Details:</strong> {q.details}
                           </div>
                         )}
@@ -402,34 +415,34 @@ const ContributorRequestManagement: React.FC = () => {
               )}
 
               <div>
-                <h4 className="font-semibold text-lg mb-2">Update Status:</h4>
-                <div className="space-y-3">
-                  <div className="flex space-x-2">
+                <h4 className="font-bold text-lg mb-3 text-gray-900">Update Status:</h4>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-4 gap-2">
                     <button
                       onClick={() => updateRequestStatus(selectedRequest._id, 'pending')}
                       disabled={loading}
-                      className="flex-1 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 disabled:bg-gray-300 font-semibold"
+                      className="py-3 bg-gray-500 text-white rounded-xl hover:bg-gray-600 disabled:bg-gray-300 font-semibold shadow-md transition-colors"
                     >
                       Pending
                     </button>
                     <button
                       onClick={() => updateRequestStatus(selectedRequest._id, 'in-progress')}
                       disabled={loading}
-                      className="flex-1 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 disabled:bg-gray-300 font-semibold"
+                      className="py-3 bg-yellow-500 text-white rounded-xl hover:bg-yellow-600 disabled:bg-gray-300 font-semibold shadow-md transition-colors"
                     >
                       In Progress
                     </button>
                     <button
                       onClick={() => updateRequestStatus(selectedRequest._id, 'completed')}
                       disabled={loading}
-                      className="flex-1 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-gray-300 font-semibold"
+                      className="py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 disabled:bg-gray-300 font-semibold shadow-md transition-colors"
                     >
                       Completed
                     </button>
                     <button
                       onClick={() => updateRequestStatus(selectedRequest._id, 'rejected')}
                       disabled={loading}
-                      className="flex-1 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:bg-gray-300 font-semibold"
+                      className="py-3 bg-red-600 text-white rounded-xl hover:bg-red-700 disabled:bg-gray-300 font-semibold shadow-md transition-colors"
                     >
                       Rejected
                     </button>
@@ -440,7 +453,7 @@ const ContributorRequestManagement: React.FC = () => {
                     onChange={(e) => setUpdateNotes(e.target.value)}
                     placeholder="Add notes about this status change (use this to provide a rejection reason when rejecting)..."
                     rows={3}
-                    className="w-full px-3 py-2 border-2 border-gray-300 rounded-md focus:outline-none focus:border-red-600"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-transparent resize-none"
                   />
                 </div>
               </div>

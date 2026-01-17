@@ -1,22 +1,44 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 import React, { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import Sidebar from '../../components/SuperAdmin/sidebar'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { FaSearch, FaFilter, FaTh, FaEllipsisV } from 'react-icons/fa'
 
 const BACKEND = import.meta.env.VITE_API_URL || 'http://localhost:5001'
 
-type Admin = { id: string; username: string; institutionLimit?: number; createdAt?: string }
+type Admin = { id: string; username: string; institutionLimit?: number }
 
 const AdminManagement: React.FC = () => {
   const [admins, setAdmins] = useState<Admin[]>([])
-  const [loading, setLoading] = useState(true)
-  const [modalOpen, setModalOpen] = useState(false)
-  const [editingId, setEditingId] = useState<string | null>(null)
-  const [menuOpen, setMenuOpen] = useState<string | null>(null)
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [institutionLimit, setInstitutionLimit] = useState<number | ''>('')
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [showModal, setShowModal] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 10
+
   const navigate = useNavigate()
-  const location = useLocation()
 
   const load = async () => {
     setLoading(true)
@@ -26,12 +48,12 @@ const AdminManagement: React.FC = () => {
       if (token) headers.Authorization = `Bearer ${token}`
       const res = await fetch(`${BACKEND}/superadmin/admins`, { headers })
       const b = await res.json().catch(() => ({}))
-      if (res.ok && b.success) {
-        const normalized = (b.data || []).map((it: any) => ({ id: it.id || it._id || String(it._id ?? it.username), username: it.username, institutionLimit: it.institutionLimit, createdAt: it.createdAt }))
+      if (res.ok && b && b.data) {
+        const normalized = (b.data || []).map((it: any) => ({ id: it.id || it._id || String(it._id ?? it.username), username: it.username, institutionLimit: it.institutionLimit }))
         setAdmins(normalized)
       }
     } catch (err) {
-      // ignore
+      console.debug('load admins error', err)
     } finally {
       setLoading(false)
     }
@@ -46,41 +68,24 @@ const AdminManagement: React.FC = () => {
     load()
   }, [])
 
-  // Route-driven modal: open on /create and /edit, close otherwise
-  useEffect(() => {
-    const path = location.pathname
-    const params = new URLSearchParams(location.search)
-
-    if (path.endsWith('/superadmin/admins/create')) {
-      setEditingId(null)
-      setUsername('')
-      setPassword('')
-      setInstitutionLimit('')
-      setModalOpen(true)
-      return
-    }
-
-    if (path.endsWith('/superadmin/admins/edit')) {
-      const id = params.get('id')
-      setEditingId(id)
-      const a = admins.find((x) => x.id === id) || null
-      setUsername(a?.username || '')
-      setPassword('')
-      setInstitutionLimit(a?.institutionLimit ?? '')
-      setModalOpen(true)
-      return
-    }
-
-    setModalOpen(false)
-  }, [location.pathname, location.search, admins])
-
-  const closeModal = () => {
-    setModalOpen(false)
-    setEditingId(null)
+  const resetForm = () => {
     setUsername('')
     setPassword('')
     setInstitutionLimit('')
-    navigate('/superadmin/admins')
+    setEditingId(null)
+    setShowModal(false)
+  }
+
+  const openAddModal = () => {
+    resetForm()
+    setShowModal(true)
+  }
+
+  const openEditModal = (a: Admin) => {
+    setUsername(a.username)
+    setEditingId(a.id)
+    setInstitutionLimit(a.institutionLimit ?? '')
+    setShowModal(true)
   }
 
   const submit = async (e?: React.FormEvent) => {
@@ -88,7 +93,7 @@ const AdminManagement: React.FC = () => {
     if (!username) return alert('username required')
 
     const token = localStorage.getItem('superadmin_token')
-    const headers: any = { 'Content-Type': 'application/json' }
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' }
     if (token) headers.Authorization = `Bearer ${token}`
 
     const body: any = { username }
@@ -103,180 +108,235 @@ const AdminManagement: React.FC = () => {
         await fetch(`${BACKEND}/superadmin/admins`, { method: 'POST', headers, body: JSON.stringify(body) })
       }
     } catch (err) {
-      // ignore
+      console.debug('submit error', err)
     }
 
-    closeModal()
+    resetForm()
     load()
+  }
+
+  const edit = (a: Admin) => {
+    openEditModal(a)
   }
 
   const del = async (id: string) => {
     if (!confirm('Delete admin?')) return
-    const token = localStorage.getItem('superadmin_token')
-    const headers: Record<string, string> = {}
-    if (token) headers.Authorization = `Bearer ${token}`
-    await fetch(`${BACKEND}/superadmin/admins/${id}`, { method: 'DELETE', headers })
-    load()
+    try {
+      const token = localStorage.getItem('superadmin_token')
+      const headers: Record<string, string> = {}
+      if (token) headers.Authorization = `Bearer ${token}`
+      await fetch(`${BACKEND}/superadmin/admins/${id}`, { method: 'DELETE', headers })
+      load()
+    } catch (err) {
+      console.debug('delete error', err)
+    }
   }
 
+  const filteredAdmins = admins.filter(a => 
+    a.username.toLowerCase().includes(searchQuery.toLowerCase())
+  )
+
+  const totalPages = Math.ceil(filteredAdmins.length / itemsPerPage)
+  const startIdx = (currentPage - 1) * itemsPerPage
+  const endIdx = startIdx + itemsPerPage
+  const paginatedAdmins = filteredAdmins.slice(startIdx, endIdx)
+
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen bg-gray-50">
       <Sidebar />
 
-      <div className="flex-1 bg-red-50 p-6">
-        <div className="max-w-6xl mx-auto">
-          <div className="mb-6 flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-bold text-red-700">Admin Management</h2>
-              <div className="mt-1 text-sm text-gray-600">Create and manage admin accounts for institutions</div>
-            </div>
-            <div>
-              <button onClick={() => navigate('/superadmin/dashboard')} className="px-4 py-2 bg-white border rounded">Back</button>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-visible">
-            <div className="grid grid-cols-12 gap-4 px-6 py-4 bg-gray-50 border-b border-gray-200">
-              <div className="col-span-3">
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Username</p>
-              </div>
-              <div className="col-span-3">
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Institution Limit</p>
-              </div>
-              <div className="col-span-2">
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</p>
-              </div>
-              <div className="col-span-4 text-right">
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</p>
-              </div>
-            </div>
-
-            <div className="divide-y divide-gray-200">
-              {loading && (
-                <div className="p-6 text-sm text-gray-500">Loading admins...</div>
-              )}
-
-              {!loading && admins.length === 0 && (
-                <div className="p-6 text-sm text-gray-500">No admins created yet.</div>
-              )}
-
-              {admins.map((a) => (
-                <div key={a.id} className="grid grid-cols-12 gap-4 px-6 py-5 hover:bg-gray-50 transition-colors relative">
-                  <div className="col-span-3">
-                    <h3 className="font-semibold text-gray-900 mb-0.5">{a.username}</h3>
-                    <p className="text-sm text-gray-500">Admin account</p>
-                  </div>
-
-                  <div className="col-span-3">
-                    <p className="font-medium text-gray-900 mb-0.5">{a.institutionLimit ?? '—'}</p>
-                    <p className="text-sm text-gray-500">Institutions allowed</p>
-                  </div>
-
-                  <div className="col-span-2 flex items-center">
-                    <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">ACTIVE</span>
-                  </div>
-
-                  <div className="col-span-4 flex items-center justify-end gap-2">
-                    <button
-                      onClick={() => navigate(`/superadmin/admins/edit?id=${a.id}`)}
-                      className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
-                      title="Edit"
-                    >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                      </svg>
-                    </button>
-
-                    <div className="relative">
-                      <button
-                        onClick={() => setMenuOpen(menuOpen === a.id ? null : a.id)}
-                        className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
-                        title="More options"
-                      >
-                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                          <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-                        </svg>
-                      </button>
-
-                      {menuOpen === a.id && (
-                        <>
-                          <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(null)}></div>
-                          <div className="absolute right-0 top-full mt-1 z-50 w-40 bg-white rounded-lg shadow-xl border border-gray-200 py-2">
-                            <button
-                              onClick={() => {
-                                setMenuOpen(null);
-                                if (confirm('Delete admin?')) del(a.id);
-                              }}
-                              className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors font-medium"
-                            >
-                              <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                              </svg>
-                              <span>Delete</span>
-                            </button>
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Floating Action Button */}
-          <button
-            onClick={() => navigate('/superadmin/admins/create')}
-            className="fixed bottom-8 right-8 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-semibold px-6 py-4 rounded-full shadow-2xl transition-all flex items-center gap-2 hover:scale-105"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            <span>Add Admin</span>
-          </button>
-
-          {/* Modal */}
-          {modalOpen && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center">
-              <div className="absolute inset-0 bg-black opacity-30" onClick={closeModal} />
-
-              <div className="relative bg-white rounded-xl shadow-xl w-full max-w-lg mx-4">
-                <div className="px-6 py-4 border-b">
-                  <h3 className="text-lg font-medium text-gray-900">{editingId ? 'Edit Admin' : 'Create Admin'}</h3>
-                </div>
-
-                <form onSubmit={submit} className="px-6 py-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">Username</label>
-                      <input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Username" className="enterprise-input w-full mt-2" />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">Institution Limit</label>
-                      <input value={institutionLimit as any} onChange={(e) => setInstitutionLimit(e.target.value === '' ? '' : Number(e.target.value))} placeholder="Institution Limit" className="enterprise-input w-full mt-2" />
-                    </div>
-
-                    <div className="md:col-span-2">
-                      <label className="block text-sm font-medium text-gray-700">Password</label>
-                      <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password" className="enterprise-input w-full mt-2" />
-                      {!editingId && <div className="mt-1 text-xs text-gray-500">Password required for new admin</div>}
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-end gap-3 mt-4">
-                    <button type="button" onClick={closeModal} className="px-4 py-2 border rounded">Cancel</button>
-                    <button type="submit" className="px-4 py-2 bg-red-600 text-white rounded">{editingId ? 'Update' : 'Create'}</button>
-                  </div>
-                </form>
-              </div>
-            </div>
-          )}
+      <main className="flex-1 p-8">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900">ADMIN MANAGEMENT</h1>
+          <p className="text-sm text-gray-500 mt-1">MANAGE SYSTEM ADMINISTRATORS</p>
         </div>
-      </div>
+
+        {/* Controls Bar */}
+        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+          <div className="flex items-center justify-between gap-4">
+            {/* Search */}
+            <div className="relative flex-1 max-w-md">
+              <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+              />
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex items-center gap-3">
+              <button className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50">
+                <FaFilter className="text-gray-600" />
+              </button>
+              <button className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50">
+                <FaTh className="text-gray-600" />
+              </button>
+              <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700 font-medium">
+                Delete
+              </button>
+              <button
+                onClick={openAddModal}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium flex items-center gap-2"
+              >
+                + ADD
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Table */}
+        <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+          <table className="w-full">
+            <thead className="bg-gray-50 border-b border-gray-200">
+              <tr>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                  ADMIN USER
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                  INSTITUTIONS
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                  ACTION
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {loading && (
+                <tr>
+                  <td colSpan={3} className="px-6 py-8 text-center text-gray-500">
+                    Loading...
+                  </td>
+                </tr>
+              )}
+              {!loading && paginatedAdmins.length === 0 && (
+                <tr>
+                  <td colSpan={3} className="px-6 py-8 text-center text-gray-500">
+                    No admins found.
+                  </td>
+                </tr>
+              )}
+              {!loading && paginatedAdmins.map((admin) => (
+                <tr key={admin.id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-red-500 flex items-center justify-center text-white font-semibold">
+                        {admin.username.substring(0, 2).toUpperCase()}
+                      </div>
+                      <div>
+                        <div className="font-semibold text-gray-900">{admin.username}</div>
+                        <div className="text-sm text-gray-500">Administrator</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 text-gray-700">
+                    {admin.institutionLimit ? `${admin.institutionLimit} Allowed` : 'Unlimited'}
+                  </td>
+                  <td className="px-6 py-4">
+                    <button
+                      onClick={() => edit(admin)}
+                      className="text-gray-700 hover:text-red-600 font-medium"
+                    >
+                      Edit
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          {/* Pagination */}
+          <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
+            <div className="text-sm text-gray-600">
+              Showing {startIdx + 1}-{Math.min(endIdx, filteredAdmins.length)} of {filteredAdmins.length}
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-gray-700"
+              >
+                Prev
+              </button>
+              <button
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages || totalPages === 0}
+                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-gray-700"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      {/* Modal */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
+            <h3 className="text-xl font-bold mb-4">
+              {editingId ? 'Edit Admin' : 'Add Admin'}
+            </h3>
+            <form onSubmit={submit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Username</label>
+                <input
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="Enter username"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter password"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+                />
+                {!editingId && (
+                  <div className="mt-1 text-xs text-gray-500">Password is required for new admin</div>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Institution Limit</label>
+                <input
+                  type="number"
+                  value={institutionLimit}
+                  onChange={(e) => setInstitutionLimit(e.target.value === '' ? '' : Number(e.target.value))}
+                  placeholder="Leave empty for unlimited"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={resetForm}
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700 font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium"
+                >
+                  {editingId ? 'Update' : 'Create'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
 
 export default AdminManagement
-

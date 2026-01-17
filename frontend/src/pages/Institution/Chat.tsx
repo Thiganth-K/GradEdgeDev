@@ -28,6 +28,21 @@ const InstitutionChat: React.FC = () => {
   useEffect(() => { load(); const id = setInterval(load, 5000); return () => clearInterval(id); }, [chatType]);
   useEffect(() => {
     if (chatType === 'faculty') {
+      const loadFaculties = async () => {
+        if (!token) return;
+        try {
+          const r = await fetch(`${BACKEND}/institution/faculties`, { headers: { Authorization: `Bearer ${token}` } });
+          const b = await r.json();
+          if (r.ok) setFaculties(b.data || []);
+        } catch {}
+      };
+      loadFaculties();
+    }
+  }, [chatType]);
+
+  useEffect(() => { load(); const id = setInterval(load, 5000); return () => clearInterval(id); }, [chatType]);
+  useEffect(() => {
+    if (chatType === 'faculty') {
       // load faculty list
       if (!token) return;
       fetch(`${BACKEND}/institution/faculties`, { headers: { Authorization: `Bearer ${token}` } })
@@ -37,6 +52,7 @@ const InstitutionChat: React.FC = () => {
         }).catch(() => {});
     }
   }, [chatType]);
+
 
   useEffect(()=>{ if (ref.current) ref.current.scrollTop = ref.current.scrollHeight; }, [msgs]);
 

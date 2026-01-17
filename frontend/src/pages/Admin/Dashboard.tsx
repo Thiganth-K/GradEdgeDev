@@ -3,8 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import Sidebar from '../../components/Admin/Sidebar';
 import makeHeaders from '../../lib/makeHeaders';
 
-const BACKEND = import.meta.env.VITE_API_URL || 'http://localhost:5001';
-
 interface Stats {
   institutions: number;
   contributors: number;
@@ -21,15 +19,6 @@ const Dashboard: React.FC = () => {
     activeChats: 0
   });
   const [loading, setLoading] = useState(true);
-  const [announcements, setAnnouncements] = useState<any[]>([]);
-  const [seenAnnouncements, setSeenAnnouncements] = useState<string[]>(() => {
-    try {
-      return JSON.parse(localStorage.getItem('admin_seen_announcements') || '[]');
-    } catch (e) {
-      return [];
-    }
-  });
-  const [bellOpen, setBellOpen] = useState(false);
 
   const adminData = localStorage.getItem('admin_data');
   const admin = adminData ? JSON.parse(adminData) : null;
@@ -44,11 +33,24 @@ const Dashboard: React.FC = () => {
     fetchAnnouncements();
   }, []);
 
+  // Placeholder: fetch recent announcements for the header/bell (keeps current UI behavior)
+  const fetchAnnouncements = async () => {
+    try {
+      const headers = makeHeaders('admin');
+      const BACKEND = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+      await fetch(`${BACKEND}/admin/announcements`, { headers });
+    } catch (err) {
+      // swallow - non-critical for dashboard stats
+      console.debug('fetchAnnouncements error', err);
+    }
+  };
+
   const fetchDashboardStats = async () => {
     try {
       const headers = makeHeaders('admin');
-      
-      // Fetch all stats in parallel
+      const BACKEND = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+
+      // Fetch all stats in parallel from configured backend
       const [institutionsRes, contributorsRes, requestsRes, chatsRes] = await Promise.all([
         fetch(`${BACKEND}/admin/institutions`, { headers }),
         fetch(`${BACKEND}/admin/contributors`, { headers }),
@@ -72,33 +74,6 @@ const Dashboard: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const fetchAnnouncements = async () => {
-    try {
-      const headers = makeHeaders('admin');
-      const res = await fetch(`${BACKEND}/admin/announcements`, { headers });
-      if (!res.ok) return setAnnouncements([]);
-      const data = await res.json();
-      if (data && data.success) setAnnouncements(data.data || []);
-      else setAnnouncements(data || []);
-    } catch (err) {
-      console.error('Error fetching announcements:', err);
-      setAnnouncements([]);
-    }
-  };
-
-  const markAsSeen = (id: string) => {
-    if (seenAnnouncements.includes(id)) return;
-    const updated = [...seenAnnouncements, id];
-    setSeenAnnouncements(updated);
-    try { localStorage.setItem('admin_seen_announcements', JSON.stringify(updated)); } catch {}
-  };
-
-  const markAllSeen = () => {
-    const ids = announcements.map((a) => a._id);
-    setSeenAnnouncements(ids);
-    try { localStorage.setItem('admin_seen_announcements', JSON.stringify(ids)); } catch {}
   };
 
   const statCards = [
@@ -155,73 +130,50 @@ const Dashboard: React.FC = () => {
   ];
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex min-h-screen bg-gray-100">
       <Sidebar />
-      <div className="flex-1 h-screen overflow-y-auto">
-        <div className="p-8">
+      <div className="flex-1 flex flex-col">
+        <div className="flex-1 p-8">
+          {/* Header */}
+          <div className="mb-8">
+            <h1 className="text-4xl font-bold text-gray-900 tracking-tight">ADMIN DASHBOARD</h1>
+            <p className="text-gray-500 text-sm mt-1 uppercase tracking-wider">Overview — system analytics and management</p>
+          </div>
+
+          {/* Welcome Card (syncs visually with sidebar) */}
+          <div className="mb-6">
+            <div className="relative rounded-2xl overflow-hidden bg-[#0d0d0d] text-white shadow-lg p-6 flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-full bg-red-600 flex items-center justify-center text-white font-semibold">G</div>
+                <div>
+                  <p className="text-sm text-gray-300 uppercase opacity-80">Welcome back</p>
+                  <p className="text-2xl font-semibold">{adminName}</p>
+                </div>
+              </div>
+
+              <div className="text-right">
+                <p className="text-sm text-gray-300">Good to see you — here's the system at a glance</p>
+                <p className="text-xs text-gray-400 mt-1">Manage institutions, contributors, and system settings</p>
+              </div>
+            </div>
+          </div>
+
           {/* Welcome Header with Bell Icon */}
           <div className="mb-8 flex justify-between items-center">
             <div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-red-600 to-red-800 bg-clip-text text-transparent">
-                Welcome back, {adminName}!
-              </h1>
-              <p className="text-gray-600 mt-2">Here's an overview of your system analytics</p>
+              <h2 className="text-2xl font-bold text-gray-800">System Analytics</h2>
+              <p className="text-gray-600 mt-1">Monitor platform activity and performance</p>
             </div>
-            <div className="relative">
-              <button onClick={() => setBellOpen(!bellOpen)} className="relative p-3 bg-gradient-to-r from-red-600 to-red-800 text-white rounded-full hover:shadow-lg transition-all duration-300 transform hover:scale-110">
+            <button className="relative p-3 bg-gradient-to-r from-red-600 to-red-800 text-white rounded-full hover:shadow-lg transition-all duration-300 transform hover:scale-110">
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
               </svg>
-              {/* badge: show unread announcements count and existing counts */}
-              {(() => {
-                const unseen = announcements.filter((a) => !seenAnnouncements.includes(a._id)).length;
-                const other = stats.pendingRequests + stats.activeChats;
-                const total = unseen + other;
-                return total > 0 ? (
-                  <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none transform translate-x-1/2 -translate-y-1/2 bg-white text-red-600 rounded-full">
-                    {total}
-                  </span>
-                ) : null;
-              })()}
-              </button>
-
-              {bellOpen && (
-                <div className="absolute right-0 mt-2 w-96 bg-white rounded-lg shadow-lg p-3 z-50">
-                  <div className="flex items-center justify-between mb-3">
-                    <strong className="text-sm">Announcements</strong>
-                    <div className="flex items-center gap-2">
-                      <button onClick={markAllSeen} className="text-xs text-red-600 hover:underline">Mark all seen</button>
-                      <button onClick={() => { setBellOpen(false); }} className="text-xs text-gray-500">Close</button>
-                    </div>
-                  </div>
-                  <div className="max-h-64 overflow-y-auto space-y-2">
-                    {announcements.length === 0 ? (
-                      <p className="text-xs text-gray-500">No announcements</p>
-                    ) : (
-                      announcements.map((a) => {
-                        const unseen = !seenAnnouncements.includes(a._id);
-                        return (
-                          <div key={a._id} className={`p-3 rounded-lg border ${unseen ? 'bg-red-50 border-red-100' : 'bg-gray-50 border-gray-100'}`}>
-                            <div className="flex items-start justify-between gap-3">
-                              <div className="flex-1">
-                                <p className="text-sm font-medium text-gray-800">{a.message.length > 120 ? a.message.slice(0, 120) + '…' : a.message}</p>
-                                <p className="text-xs text-gray-500 mt-1">{new Date(a.createdAt).toLocaleString()}</p>
-                              </div>
-                              <div className="flex flex-col items-end gap-2">
-                                {unseen && (
-                                  <button onClick={() => markAsSeen(a._id)} className="text-xs text-red-600">Mark seen</button>
-                                )}
-                                <a href="/admin/announcements" className="text-xs text-gray-600 hover:underline">Open</a>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })
-                    )}
-                  </div>
-                </div>
+              {(stats.pendingRequests > 0 || stats.activeChats > 0) && (
+                <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none transform translate-x-1/2 -translate-y-1/2 bg-white text-red-600 rounded-full">
+                  {stats.pendingRequests + stats.activeChats}
+                </span>
               )}
-            </div>
+            </button>
           </div>
 
           {/* Stats Grid */}
