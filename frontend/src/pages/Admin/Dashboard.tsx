@@ -130,17 +130,39 @@ const Dashboard: React.FC = () => {
   ];
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex min-h-screen bg-gray-100">
       <Sidebar />
       <div className="flex-1 flex flex-col">
         <div className="flex-1 p-8">
+          {/* Header */}
+          <div className="mb-8">
+            <h1 className="text-4xl font-bold text-gray-900 tracking-tight">ADMIN DASHBOARD</h1>
+            <p className="text-gray-500 text-sm mt-1 uppercase tracking-wider">Overview — system analytics and management</p>
+          </div>
+
+          {/* Welcome Card (syncs visually with sidebar) */}
+          <div className="mb-6">
+            <div className="relative rounded-2xl overflow-hidden bg-[#0d0d0d] text-white shadow-lg p-6 flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-full bg-red-600 flex items-center justify-center text-white font-semibold">G</div>
+                <div>
+                  <p className="text-sm text-gray-300 uppercase opacity-80">Welcome back</p>
+                  <p className="text-2xl font-semibold">{adminName}</p>
+                </div>
+              </div>
+
+              <div className="text-right">
+                <p className="text-sm text-gray-300">Good to see you — here's the system at a glance</p>
+                <p className="text-xs text-gray-400 mt-1">Manage institutions, contributors, and system settings</p>
+              </div>
+            </div>
+          </div>
+
           {/* Welcome Header with Bell Icon */}
           <div className="mb-8 flex justify-between items-center">
             <div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-red-600 to-red-800 bg-clip-text text-transparent">
-                Welcome back, {adminName}!
-              </h1>
-              <p className="text-gray-600 mt-2">Here's an overview of your system analytics</p>
+              <h2 className="text-2xl font-bold text-gray-800">System Analytics</h2>
+              <p className="text-gray-600 mt-1">Monitor platform activity and performance</p>
             </div>
             <button className="relative p-3 bg-gradient-to-r from-red-600 to-red-800 text-white rounded-full hover:shadow-lg transition-all duration-300 transform hover:scale-110">
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">

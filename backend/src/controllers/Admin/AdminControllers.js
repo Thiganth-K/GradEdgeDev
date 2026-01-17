@@ -9,6 +9,9 @@ const AdminContributorChat = require('../../models/AdminContributorChat');
 const Question = require('../../models/Question');
 const Library = require('../../models/Library');
 const Batch = require('../../models/Batch');
+const Faculty = require('../../models/Faculty');
+const Student = require('../../models/Student');
+const Test = require('../../models/Test');
 
 const login = async (req, res) => {
   const { username, password } = req.body || {};
@@ -58,8 +61,31 @@ const listInstitutions = async (req, res) => {
     const query = adminId ? { createdBy: adminId } : {};
     const list = await Institution.find(query, { passwordHash: 0 }).lean();
     
-    console.log('[Admin.listInstitutions] ✓ found', list.length, 'institutions');
-    res.json({ success: true, data: list });
+    // Calculate actual counts for each institution
+    const institutionsWithCounts = await Promise.all(
+      list.map(async (institution) => {
+        const institutionId = institution._id;
+        
+        // Count faculty, students, batches, and tests for this institution
+        const [facultyCount, studentCount, batchCount, testCount] = await Promise.all([
+          Faculty.countDocuments({ createdBy: institutionId }),
+          Student.countDocuments({ createdBy: institutionId }),
+          Batch.countDocuments({ createdBy: institutionId }),
+          Test.countDocuments({ createdBy: institutionId })
+        ]);
+        
+        return {
+          ...institution,
+          facultyCount,
+          studentCount,
+          batchCount,
+          testCount
+        };
+      })
+    );
+    
+    console.log('[Admin.listInstitutions] ✓ found', institutionsWithCounts.length, 'institutions with counts');
+    res.json({ success: true, data: institutionsWithCounts });
   } catch (err) {
     console.error('[Admin.listInstitutions] ✗ error:', err.message);
     res.status(500).json({ success: false, message: err.message });
@@ -336,8 +362,24 @@ const listContributors = async (req, res) => {
     console.log('[Admin.listContributors] called by admin:', req.admin && req.admin.username);
     const query = adminId ? { createdBy: adminId } : {};
     const list = await Contributor.find(query, { passwordHash: 0 }).lean();
-    console.log('[Admin.listContributors] ✓ found', list.length, 'contributors');
-    return res.json({ success: true, data: list });
+    
+    // Calculate question count for each contributor
+    const contributorsWithCounts = await Promise.all(
+      list.map(async (contributor) => {
+        const contributorId = contributor._id;
+        
+        // Count questions contributed by this contributor
+        const questionCount = await Question.countDocuments({ contributorId: contributorId });
+        
+        return {
+          ...contributor,
+          questionCount
+        };
+      })
+    );
+    
+    console.log('[Admin.listContributors] ✓ found', contributorsWithCounts.length, 'contributors with question counts');
+    return res.json({ success: true, data: contributorsWithCounts });
   } catch (err) {
     console.error('[Admin.listContributors] ✗ error:', err && err.message);
     return res.status(500).json({ success: false, message: err.message });

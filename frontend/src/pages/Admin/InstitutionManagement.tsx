@@ -15,6 +15,10 @@ interface Institution {
   studentLimit: number | null;
   batchLimit: number | null;
   testLimit: number | null;
+  facultyCount?: number;
+  studentCount?: number;
+  batchCount?: number;
+  testCount?: number;
 }
 
 interface EditModalProps {
@@ -452,46 +456,90 @@ const InstitutionManagement: React.FC = () => {
         ) : (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-visible">
             {/* Table Header */}
-            <div className="grid grid-cols-12 gap-4 px-6 py-4 bg-gray-50 border-b border-gray-200">
-              <div className="col-span-3">
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Institution</p>
-              </div>
-              <div className="col-span-3">
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Contact</p>
+            <div className="grid grid-cols-12 gap-3 px-6 py-4 bg-[#0d0d0d] border-b border-gray-200">
+              <div className="col-span-2">
+                <p className="text-xs font-semibold text-white uppercase tracking-wider">Institution</p>
               </div>
               <div className="col-span-2">
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</p>
+                <p className="text-xs font-semibold text-white uppercase tracking-wider">Contact</p>
               </div>
-              <div className="col-span-4 text-right">
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</p>
+              <div className="col-span-1 text-center">
+                <p className="text-xs font-semibold text-white uppercase tracking-wider">Faculty</p>
+              </div>
+              <div className="col-span-1 text-center">
+                <p className="text-xs font-semibold text-white uppercase tracking-wider">Students</p>
+              </div>
+              <div className="col-span-1 text-center">
+                <p className="text-xs font-semibold text-white uppercase tracking-wider">Batches</p>
+              </div>
+              <div className="col-span-1 text-center">
+                <p className="text-xs font-semibold text-white uppercase tracking-wider">Tests</p>
+              </div>
+              <div className="col-span-1 text-center">
+                <p className="text-xs font-semibold text-white uppercase tracking-wider">Status</p>
+              </div>
+              <div className="col-span-3 text-right">
+                <p className="text-xs font-semibold text-white uppercase tracking-wider">Actions</p>
               </div>
             </div>
 
             {/* Table Body */}
             <div className="divide-y divide-gray-200">
               {items.map((it) => (
-                <div key={it.id} className="grid grid-cols-12 gap-4 px-6 py-5 hover:bg-gray-50 transition-colors relative">
+                <div key={it.id} className="grid grid-cols-12 gap-3 px-6 py-5 hover:bg-gray-50 transition-colors relative">
                   {/* Institution Info */}
-                  <div className="col-span-3">
-                    <h3 className="font-semibold text-gray-900 mb-0.5">{it.name}</h3>
-                    <p className="text-sm text-gray-500 uppercase">{it.location || 'N/A'}</p>
+                  <div className="col-span-2">
+                    <h3 className="font-semibold text-gray-900 mb-0.5 text-sm">{it.name}</h3>
+                    <p className="text-xs text-gray-500 uppercase">{it.location || 'N/A'}</p>
                   </div>
 
                   {/* Contact Info */}
-                  <div className="col-span-3">
-                    <p className="font-medium text-gray-900 mb-0.5">{it.contactNo || 'Not available'}</p>
-                    <p className="text-sm text-gray-500">{it.email || 'No email'}</p>
+                  <div className="col-span-2">
+                    <p className="font-medium text-gray-900 mb-0.5 text-xs">{it.contactNo || 'Not available'}</p>
+                    <p className="text-xs text-gray-500 truncate">{it.email || 'No email'}</p>
+                  </div>
+
+                  {/* Faculty Count */}
+                  <div className="col-span-1 flex items-center justify-center">
+                    <div className="text-center">
+                      <p className="text-sm font-bold text-gray-900">{it.facultyCount ?? 0}</p>
+                      <p className="text-xs text-gray-500">/ {it.facultyLimit ?? '∞'}</p>
+                    </div>
+                  </div>
+
+                  {/* Student Count */}
+                  <div className="col-span-1 flex items-center justify-center">
+                    <div className="text-center">
+                      <p className="text-sm font-bold text-gray-900">{it.studentCount ?? 0}</p>
+                      <p className="text-xs text-gray-500">/ {it.studentLimit ?? '∞'}</p>
+                    </div>
+                  </div>
+
+                  {/* Batch Count */}
+                  <div className="col-span-1 flex items-center justify-center">
+                    <div className="text-center">
+                      <p className="text-sm font-bold text-gray-900">{it.batchCount ?? 0}</p>
+                      <p className="text-xs text-gray-500">/ {it.batchLimit ?? '∞'}</p>
+                    </div>
+                  </div>
+
+                  {/* Test Count */}
+                  <div className="col-span-1 flex items-center justify-center">
+                    <div className="text-center">
+                      <p className="text-sm font-bold text-gray-900">{it.testCount ?? 0}</p>
+                      <p className="text-xs text-gray-500">/ {it.testLimit ?? '∞'}</p>
+                    </div>
                   </div>
 
                   {/* Status */}
-                  <div className="col-span-2 flex items-center">
-                    <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                  <div className="col-span-1 flex items-center justify-center">
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
                       ACTIVE
                     </span>
                   </div>
 
                   {/* Actions */}
-                  <div className="col-span-4 flex items-center justify-end gap-2">
+                  <div className="col-span-3 flex items-center justify-end gap-2">
                     <button
                       onClick={() => setEditingItem(it)}
                       className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
