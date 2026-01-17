@@ -8,6 +8,7 @@ const ContributorRequest = require('../../models/ContributorRequest');
 const AdminContributorChat = require('../../models/AdminContributorChat');
 const Question = require('../../models/Question');
 const Library = require('../../models/Library');
+const Batch = require('../../models/Batch');
 
 const login = async (req, res) => {
   const { username, password } = req.body || {};
@@ -857,6 +858,34 @@ const getLibraryStructure = async (req, res) => {
   }
 };
 
+// Get batches for a specific institution
+const getInstitutionBatches = async (req, res) => {
+  try {
+    const adminUser = req.admin && req.admin.username;
+    const { id } = req.params; // institution ID
+    console.log('[Admin.getInstitutionBatches] called by', adminUser, 'for institution', id);
+
+    // Verify admin has access to this institution
+    const institution = await Institution.findOne({ _id: id, createdBy: req.admin.id });
+    if (!institution) {
+      console.log('[Admin.getInstitutionBatches] ✗ institution not found or unauthorized:', id);
+      return res.status(404).json({ success: false, message: 'Institution not found or unauthorized' });
+    }
+
+    const batches = await Batch.find({ createdBy: id })
+      .select('name createdAt students faculty')
+      .populate('faculty', 'name')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    console.log('[Admin.getInstitutionBatches] ✓ found', batches.length, 'batches');
+    return res.json({ success: true, data: batches });
+  } catch (err) {
+    console.error('[Admin.getInstitutionBatches] ✗ error:', err.message);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 module.exports = { 
   login, 
   listInstitutions, 
@@ -884,6 +913,7 @@ module.exports = {
   getLibraryQuestionsByContributorId,
   addQuestionToLibrary,
   removeQuestionFromLibrary,
-  getLibraryStructure
+  getLibraryStructure,
+  getInstitutionBatches
 };
 

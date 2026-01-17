@@ -270,7 +270,7 @@ VITE_API_URL=https://gradedgedev.onrender.com
 **`frontend/.env.development`:**
 ```env
 # Development environment - point to local backend
-VITE_API_URL=http://localhost:5000
+VITE_API_URL=http://localhost:5001
 ```
 
 **`frontend/.env`:**
@@ -305,10 +305,10 @@ VITE_API_URL=
 
 1. **Port Configuration:**
 ```javascript
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 ```
 - Uses Render's dynamic PORT environment variable
-- Fallback to 5000 for local development
+- Fallback to 5001 for local development
 
 2. **MongoDB Connection:**
 ```javascript
@@ -466,10 +466,10 @@ error TS2688: Cannot find type definition file for 'node'
 #### Issue 2: Connection Refused Errors
 **Problem:**
 ```
-POST http://localhost:5000/superadmin/login net::ERR_CONNECTION_REFUSED
+POST http://localhost:5001/superadmin/login net::ERR_CONNECTION_REFUSED
 ```
 
-**Cause:** Frontend built with `localhost:5000` URL instead of production URL
+**Cause:** Frontend built with `localhost:5001` URL instead of production URL
 
 **Solution:** Created `.env.production` with proper URL:
 ```env
@@ -492,7 +492,7 @@ VITE_API_URL=https://gradedgedev.onrender.com
 
 **Solution:** 
 - Removed `PORT` from `.env` file
-- Server code already uses: `const PORT = process.env.PORT || 5000`
+- Server code already uses: `const PORT = process.env.PORT || 5001`
 - Render sets `PORT` automatically
 
 ---
