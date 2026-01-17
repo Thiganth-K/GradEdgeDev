@@ -56,11 +56,14 @@ const Sidebar: React.FC = () => {
         <button
           onClick={toggleCollapse}
           aria-label={isCollapsed ? 'Open sidebar' : 'Close sidebar'}
-          className="absolute -right-3 top-4 w-7 h-7 rounded-full bg-red-600 flex items-center justify-center text-white shadow-lg border-2 border-[#0d0d0d]"
+          className="absolute -right-3 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-red-600 flex items-center justify-center text-white shadow-lg border-2 border-[#0d0d0d]"
         >
           {isCollapsed ? <FaChevronRight size={12} /> : <FaChevronLeft size={12} />}
         </button>
       </div>
+
+      {/* Red separating line */}
+      <div className="mx-4 h-[1px] bg-red-600"></div>
 
       {/* Menu Items */}
       <nav className="flex-1 px-2 py-4 space-y-1">
@@ -96,6 +99,10 @@ const Sidebar: React.FC = () => {
       </nav>
 
       {/* Footer / profile */}
+
+      {/* Red separating line above footer */}
+      <div className="mx-4 h-[1px] bg-red-600"></div>
+
       <div className="p-4 border-t border-black/40 mt-auto">
         <div className={`flex items-center gap-3 ${isCollapsed ? 'justify-center' : ''}`}>
           <div className="w-9 h-9 bg-gray-800 rounded-full flex items-center justify-center text-white font-semibold">S</div>

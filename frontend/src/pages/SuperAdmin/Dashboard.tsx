@@ -8,6 +8,15 @@ const Dashboard: React.FC = () => {
     logs: 0
   });
 
+  // display name state; initial value prefers Vite env then stored admin_data
+  const envName = (import.meta.env.VITE_SUPERADMIN_NAME as string) || (import.meta.env.VITE_SUPERADMIN_USERNAME as string) || '';
+  const adminDataRaw = typeof window !== 'undefined' ? localStorage.getItem('admin_data') : null;
+  const initialName = envName || (() => {
+    if (!adminDataRaw) return 'Super Admin';
+    try { const p = JSON.parse(adminDataRaw || '{}'); return p.name || p.fullName || p.username || 'Super Admin'; } catch { return 'Super Admin'; }
+  })();
+  const [displayName, setDisplayName] = React.useState<string>(initialName);
+
   useEffect(() => {
     const role = localStorage.getItem('gradedge_role');
     if (role !== 'SuperAdmin') {
@@ -33,7 +42,25 @@ const Dashboard: React.FC = () => {
       }
     };
 
+    const fetchProfile = async () => {
+      try {
+        const token = localStorage.getItem('superadmin_token');
+        const headers: Record<string, string> = {};
+        if (token) headers.Authorization = `Bearer ${token}`;
+        const BACKEND = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+        const res = await fetch(`${BACKEND}/superadmin/me`, { headers });
+        const body = await res.json();
+        if (body && body.success && body.data) {
+          setDisplayName(body.data.name || body.data.username || initialName);
+        }
+      } catch (err) {
+        // ignore profile fetch errors; keep initialName
+        console.warn('Failed to fetch superadmin profile', err);
+      }
+    };
+
     fetchStats();
+    fetchProfile();
   }, []);
 
   return (
@@ -44,6 +71,24 @@ const Dashboard: React.FC = () => {
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-gray-900 tracking-tight">SUPERADMIN DASHBOARD</h1>
           <p className="text-gray-500 text-sm mt-1 uppercase tracking-wider">Overview — quick links and system summary</p>
+        </div>
+
+        {/* Welcome Card (syncs visually with sidebar) */}
+        <div className="mb-6">
+          <div className="relative rounded-2xl overflow-hidden bg-[#0d0d0d] text-white shadow-lg p-6 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-full bg-red-600 flex items-center justify-center text-white font-semibold">G</div>
+              <div>
+                <p className="text-sm text-gray-300 uppercase opacity-80">Welcome back</p>
+                <p className="text-2xl font-semibold">{displayName}</p>
+              </div>
+            </div>
+
+            <div className="text-right">
+              <p className="text-sm text-gray-300">Good to see you — here's the system at a glance</p>
+              <p className="text-xs text-gray-400 mt-1">Manage admins, institutions, and system settings</p>
+            </div>
+          </div>
         </div>
 
         {/* Stats Cards */}
