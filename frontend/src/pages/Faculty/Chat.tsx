@@ -17,7 +17,7 @@ const FacultyChat: React.FC = () => {
     } catch (err) { console.error(err); }
   };
 
-  useEffect(() => { load(); const idt = setInterval(load, 5001); return () => clearInterval(idt); }, []);
+  useEffect(() => { load(); const idt = setInterval(load, 5000); return () => clearInterval(idt); }, []);
   useEffect(()=>{ if (ref.current) ref.current.scrollTop = ref.current.scrollHeight; }, [msgs]);
 
   const send = async (e?: React.FormEvent) => {

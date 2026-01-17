@@ -3,7 +3,17 @@ import Sidebar from '../../components/Admin/Sidebar';
 import { apiFetch } from '../../lib/api';
 import makeHeaders from '../../lib/makeHeaders';
 
-const BACKEND = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+interface LogEntry {
+  id: number;
+  time: string;
+  method: string;
+  url: string;
+  base: string;
+  status: number;
+  durationMs: number;
+  roleGroup: string;
+  actor: string | null;
+}
 
 const ViewLogs: React.FC = () => {
   const [logs, setLogs] = useState<LogEntry[]>([]);

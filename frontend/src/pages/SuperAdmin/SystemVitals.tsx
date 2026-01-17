@@ -1,24 +1,5 @@
 import React, { useEffect, useState } from 'react'
 import Sidebar from '../../components/SuperAdmin/sidebar'
-import SuperAdminTable, { type Column, StatusBadge, PriorityBadge } from '../../components/SuperAdmin/SuperAdminTable'
-import SuperAdminPageHeader from '../../components/SuperAdmin/SuperAdminPageHeader'
-
-const BACKEND = import.meta.env.VITE_API_URL || 'http://localhost:5001'
-
-const Indicator: React.FC<{ok: boolean; label: string}> = ({ ok, label }) => (
-  <div className="flex items-center justify-between bg-white/5 rounded-lg p-4">
-    <div className="flex items-center gap-3">
-      <div className={`w-3 h-3 rounded-full ${ok ? 'bg-green-400' : 'bg-red-400'}`} />
-      <div className="text-sm text-white/90 font-medium">{label}</div>
-    </div>
-    <div className="text-xs text-white/70">{ok ? 'OK' : 'Issue'}</div>
-  </div>
-)
-
-const SystemVitals: React.FC = () => {
-  const [mongoOk, setMongoOk] = useState<boolean | null>(null)
-  const [envOk, setEnvOk] = useState<boolean | null>(null)
-
 
 const BACKEND = import.meta.env.VITE_API_URL || 'http://localhost:5001'
 
@@ -53,32 +34,11 @@ const SystemVitals: React.FC = () => {
   const [frontendFound, setFrontendFound] = useState<boolean | null>(null)
   const [details, setDetails] = useState<Health['details']>({})
 
-
   useEffect(() => {
     const role = localStorage.getItem('gradedge_role')
     if (role !== 'SuperAdmin') { window.location.href = '/login'; return }
 
     const check = async () => {
-      setLoading(true)
-      try {
-        const res = await fetch(`${BACKEND}/health`)
-        if (res.ok) {
-          try {
-            const body = await res.json()
-            // Expect optional shape { mongodb: true, env: true }
-            setMongoOk(Boolean(body.mongodb ?? true))
-            setEnvOk(Boolean(body.env ?? true))
-            return
-          } catch { }
-          // fallback: 200 = healthy
-          setMongoOk(true); setEnvOk(true)
-          return
-        }
-      } catch (err) {
-         setData([{ id: 'err', topic: 'Health Check', status: 'Failed', priority: 'High', details: 'Network Error' }])
-      }
-      setMongoOk(false); setEnvOk(false)
-
       try {
         const res = await fetch(`${BACKEND}/health`)
         if (res.ok) {
@@ -95,34 +55,11 @@ const SystemVitals: React.FC = () => {
       }
       setMongoOk(false); setEnvOk(false)
       setFrontendFound(false); setPort(null)
-
     }
 
     check()
   }, [])
 
-  const columns: Column<Vital>[] = [
-    {
-        header: 'Service Check',
-        accessor: (row) => <span className="text-gray-900 font-medium">{row.topic}</span>
-    },
-    {
-        header: 'Details',
-        accessor: 'details'
-    },
-    {
-        header: 'Priority',
-        accessor: (row) => <PriorityBadge priority={row.priority} />
-    },
-    {
-        header: 'Status',
-        accessor: (row) => <StatusBadge status={row.status} />
-    }
-  ];
-
-  return (
-    <div className="flex h-screen w-full bg-gray-50 overflow-hidden">
-      <Sidebar />
   const lines = [
     port ? `Server running on port ${port}` : 'Server port unavailable',
     mongoOk ? 'Connected to MongoDB' : 'MongoDB connection issue',
@@ -145,13 +82,6 @@ const SystemVitals: React.FC = () => {
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
-            <Indicator ok={mongoOk === null ? false : mongoOk} label="MongoDB Connection" />
-            <Indicator ok={envOk === null ? false : envOk} label=".env Loaded" />
-          </div>
-
-          <div className="mt-6 text-sm text-gray-500">Note: This page attempts a simple `/health` request to the backend. For more detailed vitals, implement a dedicated health endpoint.</div>
-        </main>
-
             <Indicator ok={mongoOk === true} label="MongoDB Connection" />
             <Indicator ok={envOk === true} label=".env Loaded" />
           </div>

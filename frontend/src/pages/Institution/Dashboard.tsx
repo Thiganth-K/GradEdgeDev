@@ -164,8 +164,10 @@ const InstitutionDashboard: React.FC = () => {
   ) : null;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="bg-gradient-to-r from-red-600 to-red-700 text-white">
+    <div className="flex min-h-screen bg-gray-50">
+      <InstitutionSidebar />
+      <main className="flex-1 h-screen overflow-y-auto">
+      <div className="bg-gradient-to-r from-red-600 to-red-700 text-white relative">
         <div className="max-w-7xl mx-auto px-8 py-6">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
@@ -184,24 +186,36 @@ const InstitutionDashboard: React.FC = () => {
                 </svg>
                 {loading ? 'Refreshing...' : 'Refresh'}
               </button>
-              <a 
-                href="/institution/chat" 
-                className="px-4 py-2 bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 rounded-lg text-white transition-colors flex items-center gap-2"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" />
-                </svg>
-                Faculty Chat
-              </a>
-              <a 
-                href="/institution/admin-chat" 
-                className="px-4 py-2 bg-white text-red-600 hover:bg-white/90 rounded-lg font-medium transition-colors flex items-center gap-2"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                </svg>
-                Admin Chat
-              </a>
+              <div className="relative">
+                <button onClick={async () => { setShowAnns(!showAnns); if (!showAnns) await loadAnnouncements(); }} className="px-3 py-2 bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 rounded-lg text-white transition-colors flex items-center gap-2">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
+                  {announcements.filter(a => !a.isRead).length > 0 && (
+                    <span className="ml-1 inline-flex items-center justify-center px-2 py-0.5 text-xs font-bold leading-none text-red-700 bg-white rounded-full">{announcements.filter(a => !a.isRead).length}</span>
+                  )}
+                </button>
+
+                {showAnns && (
+                  <div className="absolute right-0 mt-2 w-96 bg-white text-gray-900 rounded shadow-lg border border-gray-200 z-50">
+                    <div className="p-3 border-b flex items-center justify-between">
+                      <div className="font-semibold">Announcements</div>
+                      <a href="/institution/announcements" className="text-sm text-red-600">View all</a>
+                    </div>
+                    <div className="p-3 max-h-72 overflow-y-auto space-y-2">
+                      {annsLoading && <div className="text-sm text-gray-500">Loading...</div>}
+                      {!annsLoading && announcements.length === 0 && <div className="text-sm text-gray-500">No announcements</div>}
+                      {announcements.slice(0, 6).map(a => (
+                        <div key={a._id} className={`p-2 rounded ${a.isRead ? 'bg-gray-50' : 'bg-blue-50 border border-blue-100'}`}>
+                          <div className="flex items-start justify-between">
+                            <div className="text-xs text-gray-500">{new Date(a.createdAt).toLocaleString()}</div>
+                            {!a.isRead && <button onClick={() => markAnnAsRead(a._id)} className="text-xs text-blue-600 hover:underline">Mark as read</button>}
+                          </div>
+                          <div className="text-sm mt-1">{a.message}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -329,71 +343,6 @@ const InstitutionDashboard: React.FC = () => {
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-gray-900">Recent Students</h3>
               <a href="/institution/students" className="text-sm text-red-600 hover:text-red-700 font-medium">View all</a>
-            </div>
-            {students.length === 0 ? (
-              <p className="text-sm text-gray-500 text-center py-8">No students yet.</p>
-            ) : (
-              <ul className="space-y-3">
-                {take(students, 4).map((s) => (
-                  <li key={s._id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-b-0">
-                    <span className="text-sm font-medium text-gray-900">{s.name || s.username}</span>
-                    <span className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded">{s.dept || s.username}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">Recent Batches</h3>
-              <a href="/institution/batches" className="text-sm text-red-600 hover:text-red-700 font-medium">View all</a>
-            </div>
-            {batches.length === 0 ? (
-              <p className="text-sm text-gray-500 text-center py-8">No batches yet.</p>
-            ) : (
-              <ul className="space-y-3">
-                {take(batches, 4).map((b) => (
-                  <li key={b._id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-b-0">
-                    <span className="text-sm font-medium text-gray-900">{b.name}</span>
-                    <span className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded">Faculty: {b.faculty?.username || '—'}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">Recent Tests</h3>
-              <a href="/institution/tests" className="text-sm text-red-600 hover:text-red-700 font-medium">View all</a>
-            </div>
-            {tests.length === 0 ? (
-              <p className="text-sm text-gray-500 text-center py-8">No tests yet.</p>
-            ) : (
-              <ul className="space-y-3">
-                {take(tests, 4).map((t) => (
-                  <li key={t._id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-b-0">
-                    <span className="text-sm font-medium text-gray-900">{t.name}</span>
-                    <span className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded">{t.type}{t.assignedFaculty ? ` • ${t.assignedFaculty.username}` : ''}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </div>
-
-        {/* Announcements Section */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">Announcements</h3>
-            <div className="flex gap-2">
-              <a href="/institution/announcements/create" className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg transition-colors">
-                Create New
-              </a>
-              <a href="/institution/announcements" className="px-4 py-2 border border-gray-300 hover:bg-gray-50 text-sm font-medium text-gray-700 rounded-lg transition-colors">
-                View All
-              </a>
             </div>
             {students.length === 0 ? (
               <p className="text-sm text-gray-500 text-center py-8">No students yet.</p>

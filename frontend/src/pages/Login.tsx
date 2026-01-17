@@ -1,9 +1,7 @@
 import React, { useState } from 'react';
+import { FaEye, FaEyeSlash, FaLock, FaUser } from 'react-icons/fa';
 import { HiAcademicCap } from 'react-icons/hi2';
-
-const BACKEND = import.meta.env.VITE_API_URL || 'http://localhost:5001';
-
-const AcademicCapIcon = HiAcademicCap as React.ElementType;
+import { apiFetch } from '../lib/api';
 
 const Login: React.FC = () => {
   const [username, setUsername] = useState('');
@@ -75,7 +73,7 @@ const Login: React.FC = () => {
       }
 
       // If not institution, try contributor login
-      res = await fetch(`${BACKEND}/contributor/login`, {
+      res = await apiFetch('/contributor/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),
@@ -134,7 +132,7 @@ const Login: React.FC = () => {
               <div>
                 <div className="glass-card inline-flex items-center gap-3 px-4 py-2 ring-1 ring-white/20">
                   <span className="grid h-9 w-9 place-items-center rounded-full bg-white text-red-700">
-                    <AcademicCapIcon className="h-5 w-5" />
+                    <HiAcademicCap className="h-5 w-5" />
                   </span>
                   <div className="leading-tight">
                     <div className="text-sm font-semibold tracking-wide">GradEdgeDev</div>
@@ -170,7 +168,7 @@ const Login: React.FC = () => {
               <div>
                 <div className="inline-flex items-center gap-3">
                   <span className="grid h-10 w-10 place-items-center rounded-xl bg-red-50 text-red-700 ring-1 ring-red-100 md:hidden">
-                    <AcademicCapIcon className="h-5 w-5" />
+                    <HiAcademicCap className="h-5 w-5" />
                   </span>
                   <div>
                     <h1 className="text-2xl font-bold text-gray-900" style={{ fontFamily: 'Poppins, Inter, system-ui, sans-serif' }}>Sign in</h1>
