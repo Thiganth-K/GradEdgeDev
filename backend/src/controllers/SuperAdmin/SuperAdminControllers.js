@@ -103,6 +103,42 @@ const getLogs = (req, res) => {
   }
 };
 
+const getDashboardStats = async (req, res) => {
+  const user = req.superadmin?.username || 'anonymous';
+  console.log('[SuperAdmin.getDashboardStats] called by', user);
+  try {
+    const adminCount = await Admin.countDocuments({});
+    const institutionCount = await Institution.countDocuments({});
+    
+    // Count log lines efficiently
+    let logCount = 0;
+    const logFile = path.resolve(__dirname, '../../logs/actions.log');
+    if (fs.existsSync(logFile)) {
+        // Simple line count for now, stream for large files later if needed
+        const buffer = fs.readFileSync(logFile);
+        let i = 0;
+        while (i < buffer.length) {
+            if (buffer[i] === 10) logCount++;
+            i++;
+        }
+    }
+
+    console.log('[SuperAdmin.getDashboardStats] stats:', { adminCount, institutionCount, logCount });
+    res.json({ 
+        success: true, 
+        data: {
+            admins: adminCount,
+            institutions: institutionCount,
+            logs: logCount
+        }
+    });
+
+  } catch (err) {
+    console.error('[SuperAdmin.getDashboardStats] error:', err.message);
+    res.status(500).json({ success: false, message: 'failed to fetch stats' });
+  }
+};
+
 // Admin management handlers
 const listAdmins = async (req, res) => {
   try {
@@ -190,4 +226,39 @@ const deleteAdmin = async (req, res) => {
   }
 };
 
-module.exports = { login, getInstitutions, getLogs, listAdmins, createAdmin, updateAdmin, deleteAdmin };
+<<<<<<< Updated upstream
+const os = require('os');
+const mongoose = require('mongoose');
+
+const getSystemVitals = async (req, res) => {
+  try {
+    const user = req.superadmin?.username || 'anonymous';
+    console.log('[SuperAdmin.getSystemVitals] called by', user);
+
+    const mongoStatus = {
+      state: mongoose.connection.readyState, // 0: disconnected, 1: connected, 2: connecting, 3: disconnecting
+      host: mongoose.connection.host,
+      name: mongoose.connection.name,
+    };
+
+    const system = {
+      uptime: os.uptime(),
+      totalMem: os.totalmem(),
+      freeMem: os.freemem(),
+      loadAvg: os.loadavg(), // [1, 5, 15] min
+      platform: os.platform(),
+      cpus: os.cpus().length,
+    };
+
+    console.log('[SuperAdmin.getSystemVitals] ✓ returning vitals');
+    res.json({ success: true, data: { mongoStatus, system } });
+  } catch (err) {
+    console.error('[SuperAdmin.getSystemVitals] ✗ error:', err.message);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+module.exports = { login, getInstitutions, getLogs, listAdmins, createAdmin, updateAdmin, deleteAdmin, getSystemVitals };
+=======
+module.exports = { login, getInstitutions, getLogs, listAdmins, createAdmin, updateAdmin, deleteAdmin, getDashboardStats };
+>>>>>>> Stashed changes

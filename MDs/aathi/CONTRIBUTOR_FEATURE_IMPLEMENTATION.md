@@ -16,7 +16,7 @@ Complete end-to-end implementation of the Contributor feature with page-based na
      - `status`: pending | in-progress | completed | rejected
      - `notes`: Optional notes from contributor
      - `submittedAt`, `updatedAt`: Timestamps
-
+     
 2. **AdminContributorChat.js**
    - Location: `backend/src/models/AdminContributorChat.js`
    - Purpose: Bidirectional chat between admin and contributors
@@ -179,7 +179,7 @@ Complete end-to-end implementation of the Contributor feature with page-based na
 
 ### API Configuration
 - Base URL: `VITE_API_URL` environment variable
-- Development: `http://localhost:5000`
+- Development: `http://localhost:5001`
 - Production: `https://gradedgedev.onrender.com`
 - No `/api/*` prefix - routes mounted directly at `/contributor` and `/admin`
 

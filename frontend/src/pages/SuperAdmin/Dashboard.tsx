@@ -1,37 +1,72 @@
 import React, { useEffect } from 'react';
 import Sidebar from '../../components/SuperAdmin/sidebar';
+import StatsCard from '../../components/SuperAdmin/StatsCard';
+import SuperAdminPageHeader from '../../components/SuperAdmin/SuperAdminPageHeader';
 
 const Dashboard: React.FC = () => {
+  const [stats, setStats] = React.useState({
+    admins: 0,
+    institutions: 0,
+    logs: 0
+  });
+
   useEffect(() => {
     const role = localStorage.getItem('gradedge_role');
     if (role !== 'SuperAdmin') {
       window.location.href = '/login';
+      return;
     }
+
+    const fetchStats = async () => {
+      try {
+        const token = localStorage.getItem('superadmin_token');
+        const headers: Record<string, string> = {};
+        if (token) headers.Authorization = `Bearer ${token}`;
+        
+        const BACKEND = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+        const res = await fetch(`${BACKEND}/superadmin/dashboard-stats`, { headers });
+        const data = await res.json();
+        
+        if (data.success) {
+          setStats(data.data);
+        }
+      } catch (err) {
+        console.error('Failed to fetch dashboard stats', err);
+      }
+    };
+
+    fetchStats();
   }, []);
 
   return (
     <div className="flex min-h-screen">
       <Sidebar />
-      <div className="flex-1 bg-gray-50 p-8">
-        <header className="mb-8">
-          <h2 className="text-3xl font-bold text-gray-900">SuperAdmin Dashboard</h2>
-          <p className="text-gray-600">Overview — quick links and system summary</p>
-        </header>
+      <div className="flex-1 bg-gray-50 flex flex-col">
+        <SuperAdminPageHeader 
+          title="SuperAdmin Dashboard" 
+          subtitle="Overview — quick links and system summary" 
+        />
 
-        <main>
-          <div className="grid gap-6 md:grid-cols-3">
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-              <div className="text-sm text-gray-500 font-medium">Admins</div>
-              <div className="mt-2 text-2xl font-semibold text-gray-900">—</div>
-            </div>
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-              <div className="text-sm text-gray-500 font-medium">Institutions</div>
-              <div className="mt-2 text-2xl font-semibold text-gray-900">—</div>
-            </div>
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-              <div className="text-sm text-gray-500 font-medium">Recent Logs</div>
-              <div className="mt-2 text-2xl font-semibold text-gray-900">—</div>
-            </div>
+        <main className="max-w-7xl p-8">
+          <div className="grid gap-8 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+            <StatsCard 
+              title="Admins" 
+              value={stats.admins} 
+              description="Active administrators managing the platform"
+              variant="wave"
+            />
+            <StatsCard 
+              title="Institutions" 
+              value={stats.institutions} 
+              description="Registered universities and colleges"
+              variant="bar"
+            />
+            <StatsCard 
+              title="System Logs" 
+              value={stats.logs} 
+              description="Events recorded in the last 24 hours"
+              variant="line"
+            />
           </div>
         </main>
       </div>

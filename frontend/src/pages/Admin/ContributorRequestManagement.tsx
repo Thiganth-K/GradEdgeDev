@@ -149,7 +149,7 @@ const ContributorRequestManagement: React.FC = () => {
   return (
     <div className="flex min-h-screen bg-gray-50">
       <Sidebar />
-      <div className="flex-1 h-screen overflow-y-auto p-8">
+      <div className="flex-1 p-8">
         <div className="max-w-7xl mx-auto">
           {/* Header */}
           <div className="bg-gradient-to-r from-red-600 to-red-800 text-white rounded-xl shadow-lg p-6 mb-6">

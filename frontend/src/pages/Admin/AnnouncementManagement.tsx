@@ -102,9 +102,7 @@ const AnnouncementManagement: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50 to-red-100 flex">
-      <Sidebar />
-      <main className="flex-1 h-screen overflow-y-auto">
+    <div className="min-h-screen bg-gradient-to-br from-red-50 to-red-100">
       {/* Header */}
       <div className="bg-gradient-to-r from-red-600 to-red-700 shadow-lg">
         <div className="max-w-6xl mx-auto px-6 py-6">
@@ -251,10 +249,7 @@ const AnnouncementManagement: React.FC = () => {
               </div>
             ) : (
               <div className="space-y-4">
-                {announcements
-                  .slice()
-                  .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-                  .map((announcement) => (
+                {announcements.map((announcement) => (
                   <div key={announcement._id} className="border border-gray-200 rounded-lg p-5 hover:shadow-md transition-shadow">
                     <div className="flex justify-between items-start mb-3">
                       <div className="flex items-center gap-2 text-gray-600">
@@ -289,29 +284,18 @@ const AnnouncementManagement: React.FC = () => {
                         Target Institutions
                       </p>
                       <div className="flex flex-wrap gap-2">
-                        {(announcement.targetInstitutions || []).map((instOrId: any) => {
-                          // Normalize institution object: backend may return ids or objects
-                          const instId = typeof instOrId === 'string' ? instOrId : instOrId?._id || instOrId?.id;
-                          const instObj = institutions.find((x) => x._id === instId) || (typeof instOrId === 'object' ? instOrId : null);
-                          const name = instObj?.name || instOrId || 'All Institutions';
-
-                          // readBy may be array of ids or objects
-                          const isRead = (announcement.readBy || []).some((r: any) => {
-                            if (!r) return false;
-                            if (typeof r === 'string') return r === instId;
-                            return r._id === instId || r.id === instId;
-                          });
-
+                        {announcement.targetInstitutions.map((inst) => {
+                          const isRead = announcement.readBy.some((r) => r._id === inst._id);
                           return (
                             <span
-                              key={instId || name}
+                              key={inst._id}
                               className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                                 isRead
                                   ? 'bg-green-100 text-green-700 border border-green-300'
                                   : 'bg-gray-100 text-gray-700 border border-gray-300'
                               }`}
                             >
-                              {name}
+                              {inst.name}
                               {isRead && (
                                 <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                                   <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
