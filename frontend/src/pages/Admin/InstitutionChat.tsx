@@ -12,7 +12,7 @@ const InstitutionChatAdmin: React.FC = () => {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
   const [institutionName, setInstitutionName] = useState('Institution');
-  const token = typeof window !== 'undefined' ? localStorage.getItem('admin_token') : null;
+  const token = typeof window !== 'undefined' ? (localStorage.getItem('admin_token') || localStorage.getItem('superadmin_token')) : null;
   const ref = useRef<HTMLDivElement | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 

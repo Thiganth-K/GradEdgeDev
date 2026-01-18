@@ -12,6 +12,7 @@ const Batch = require('../../models/Batch');
 const Faculty = require('../../models/Faculty');
 const Student = require('../../models/Student');
 const Test = require('../../models/Test');
+const AdminLog = require('./AdminLogController');
 
 const login = async (req, res) => {
   const { username, password } = req.body || {};

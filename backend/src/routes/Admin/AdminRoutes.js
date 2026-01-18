@@ -98,6 +98,23 @@ router.post('/contributor-chats/:contributorId/read', verifyAdmin, AdminControll
 console.log('[AdminRoutes] GET /contributor-chats/unread/count - Get unread messages count (admin)');
 router.get('/contributor-chats/unread/count', verifyAdmin, AdminControllers.getUnreadMessagesCount);
 
+// Admin <-> SuperAdmin chat
+const superAdminChat = require('../../controllers/Chat/SuperadminAdminChatControllers');
+console.log('[AdminRoutes] GET /superadmin-chats - List all superadmin chats (admin)');
+router.get('/superadmin-chats', verifyAdmin, superAdminChat.listForAdmin);
+
+console.log('[AdminRoutes] GET /superadmin-chats/:superadminName - Get chat with superadmin (admin)');
+router.get('/superadmin-chats/:superadminName', verifyAdmin, superAdminChat.getChatWithSuperadmin);
+
+console.log('[AdminRoutes] POST /superadmin-chats/:superadminName/message - Send message to superadmin (admin)');
+router.post('/superadmin-chats/:superadminName/message', verifyAdmin, superAdminChat.sendMessageToSuperadmin);
+
+console.log('[AdminRoutes] POST /superadmin-chats/:superadminName/read - Mark superadmin messages as read (admin)');
+router.post('/superadmin-chats/:superadminName/read', verifyAdmin, superAdminChat.markSuperadminMessagesRead);
+
+console.log('[AdminRoutes] GET /superadmin-chats/unread/count - Get unread counts for superadmin chats');
+router.get('/superadmin-chats/unread/count', verifyAdmin, superAdminChat.getUnreadMessagesCount);
+
 // Library Management
 console.log('[AdminRoutes] GET /library/questions-by-contributor - Get library questions grouped by contributor (admin)');
 router.get('/library/questions-by-contributor', verifyAdmin, AdminControllers.getLibraryQuestionsByContributor);

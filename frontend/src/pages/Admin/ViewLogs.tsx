@@ -6,167 +6,192 @@ import makeHeaders from '../../lib/makeHeaders';
 const BACKEND = import.meta.env.VITE_API_URL || 'http://localhost:5001';
 
 interface LogEntry {
-  id: string;
-  roleGroup?: string;
-  method?: string;
-  url?: string;
-  actor?: string;
-  status?: number;
-  durationMs?: number;
-  time?: string | number;
+  _id: string;
+  actorId?: string;
+  actorUsername?: string;
+  role?: string; // contributor|faculty|student|institution|admin|superadmin
+  actionType?: string;
+  message?: string;
+  refs?: any;
+  timestamp?: string;
 }
 
 const ViewLogs: React.FC = () => {
   const [logs, setLogs] = useState<LogEntry[]>([]);
-  const [filteredLogs, setFilteredLogs] = useState<LogEntry[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [filterRole, setFilterRole] = useState<string>('all');
-  const [filterMethod, setFilterMethod] = useState<string>('all');
+  const [loading, setLoading] = useState(false);
+
+  // Filters that map to backend query params
+  const [usernameFilter, setUsernameFilter] = useState('');
+  const [roleFilter, setRoleFilter] = useState<string>('all');
+  const [actionFilter, setActionFilter] = useState<string>('all');
+  const [startDate, setStartDate] = useState<string>('');
+  const [endDate, setEndDate] = useState<string>('');
+
+  // client-side search for message text
   const [searchTerm, setSearchTerm] = useState('');
+
+  // pagination + sorting
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  const itemsPerPage = 12;
+  const [sortField, setSortField] = useState<'timestamp' | 'actorUsername'>('timestamp');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
 
   useEffect(() => {
-    const role = localStorage.getItem('gradedge_role');
-    if (role !== 'admin') {
+    const role = (localStorage.getItem('gradedge_role') || '').toLowerCase();
+    if (role !== 'admin' && role !== 'superadmin') {
       window.location.href = '/login';
       return;
     }
     fetchLogs();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
-    applyFilters();
-  }, [logs, filterRole, filterMethod, searchTerm]);
+    // When filters change, fetch from server (server supports role, actionType, actorUsername, startTime, endTime)
+    fetchLogs();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [roleFilter, actionFilter, usernameFilter, startDate, endDate]);
+
+  const buildQuery = (params: Record<string, any>) => {
+    const qs: string[] = [];
+    Object.keys(params).forEach((k) => {
+      const v = params[k];
+      if (v === undefined || v === null) return;
+      if (v === 'all') return;
+      if (v === '') return;
+      qs.push(`${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`);
+    });
+    return qs.length ? `?${qs.join('&')}` : '';
+  };
 
   const fetchLogs = async () => {
     setLoading(true);
     try {
-      const res = await apiFetch('/admin/logs', { headers: makeHeaders('admin_token') });
-      const data = await res.json();
-      if (data.success) {
-        setLogs(data.data || []);
+      const params: Record<string, any> = {};
+      if (roleFilter && roleFilter !== 'all') params.role = roleFilter;
+      if (actionFilter && actionFilter !== 'all') params.actionType = actionFilter;
+      if (usernameFilter && usernameFilter.trim()) params.actorUsername = usernameFilter.trim();
+      if (startDate) params.startTime = new Date(startDate).toISOString();
+      if (endDate) {
+        // include end of day if only date provided or use exact datetime
+        const d = new Date(endDate);
+        params.endTime = new Date(d.getTime()).toISOString();
       }
-    } catch (err) {
-      console.error('Error fetching logs:', err);
+
+      const qs = buildQuery(params);
+      const res = await apiFetch(`/admin/logs${qs}`, { headers: makeHeaders('admin_token') });
+      const data = await res.json().catch(() => ({}));
+      if (data && data.success) {
+        setLogs(data.data || []);
+        setCurrentPage(1);
+      } else if (Array.isArray(data)) {
+        setLogs(data || []);
+        setCurrentPage(1);
+      }
+    } catch (e) {
+      console.error('fetchLogs error', e);
     } finally {
       setLoading(false);
     }
   };
 
-  const applyFilters = () => {
-    let filtered = [...logs];
+  const clearLogs = async () => {
+    if (!confirm('Archive and clear the current logs? This will download an archive and remove logs from the DB.')) return;
+    try {
+      const res = await fetch(`${BACKEND}/admin/logs/clear`, {
+        method: 'POST',
+        headers: { ...makeHeaders('admin_token'), 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      });
 
-    if (filterRole !== 'all') {
-      filtered = filtered.filter(l => l.roleGroup?.toLowerCase() === filterRole.toLowerCase());
+      if (!res.ok) {
+        const txt = await res.text();
+        throw new Error(txt || 'Failed to clear logs');
+      }
+
+      const blob = await res.blob();
+      const disposition = res.headers.get('content-disposition') || '';
+      let filename = 'adminLogs.json';
+      const match = /filename="?(.*?)"?(;|$)/i.exec(disposition);
+      if (match && match[1]) filename = match[1];
+
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+
+      // Refresh view
+      fetchLogs();
+    } catch (e) {
+      console.error('clearLogs error', e);
+      alert('Failed to clear logs');
     }
+  };
 
-    if (filterMethod !== 'all') {
-      filtered = filtered.filter(l => l.method === filterMethod);
-    }
-
+  // client-side filtering + sorting for display after server fetch
+  const applyClientFiltersAndSort = (items: LogEntry[]) => {
+    let f = [...items];
+    // searchTerm filters message
     if (searchTerm.trim()) {
-      const term = searchTerm.toLowerCase();
-      filtered = filtered.filter(l => 
-        l.url?.toLowerCase().includes(term) ||
-        l.actor?.toLowerCase().includes(term) ||
-        l.roleGroup?.toLowerCase().includes(term)
-      );
+      const t = searchTerm.toLowerCase();
+      f = f.filter((l) => (l.message || '').toLowerCase().includes(t) || (l.actorUsername || '').toLowerCase().includes(t) || (l.actionType || '').toLowerCase().includes(t));
     }
 
-    setFilteredLogs(filtered);
-    setCurrentPage(1); // Reset to first page when filters change
+    // sorting
+    f.sort((a, b) => {
+      const aVal = sortField === 'timestamp' ? (a.timestamp || '') : (a.actorUsername || '').toLowerCase();
+      const bVal = sortField === 'timestamp' ? (b.timestamp || '') : (b.actorUsername || '').toLowerCase();
+      if (!aVal && !bVal) return 0;
+      if (!aVal) return sortDir === 'asc' ? -1 : 1;
+      if (!bVal) return sortDir === 'asc' ? 1 : -1;
+      if (sortField === 'timestamp') {
+        const av = new Date(aVal).getTime();
+        const bv = new Date(bVal).getTime();
+        return sortDir === 'asc' ? av - bv : bv - av;
+      }
+      if (aVal < bVal) return sortDir === 'asc' ? -1 : 1;
+      if (aVal > bVal) return sortDir === 'asc' ? 1 : -1;
+      return 0;
+    });
+
+    return f;
   };
 
-  const getRoleIcon = (role: string) => {
-    switch (role?.toLowerCase()) {
-      case 'institution':
-        return (
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-          </svg>
-        );
-      case 'faculty':
-        return (
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-          </svg>
-        );
-      case 'student':
-        return (
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-          </svg>
-        );
-      case 'contributor':
-        return (
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-          </svg>
-        );
-      case 'admin':
-        return (
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-          </svg>
-        );
-      case 'superadmin':
-        return (
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-          </svg>
-        );
-      default:
-        return (
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        );
-    }
-  };
+  const uniqueRoles = Array.from(new Set(logs.map((l) => (l.role || '').toLowerCase()).filter(Boolean))).map(r => r);
+  const uniqueActions = Array.from(new Set(logs.map((l) => (l.actionType || '').toLowerCase()).filter(Boolean))).map(a => a);
 
-  const getMethodBadge = (method: string) => {
-    const colors: Record<string, string> = {
-      GET: 'bg-blue-100 text-blue-700',
-      POST: 'bg-green-100 text-green-700',
-      PUT: 'bg-yellow-100 text-yellow-700',
-      DELETE: 'bg-red-100 text-red-700',
-      PATCH: 'bg-purple-100 text-purple-700',
-    };
-    return colors[method] || 'bg-gray-100 text-gray-700';
-  };
-
-  const getStatusColor = (status: number) => {
-    if (status >= 200 && status < 300) return 'text-green-600';
-    if (status >= 300 && status < 400) return 'text-blue-600';
-    if (status >= 400 && status < 500) return 'text-orange-600';
-    return 'text-red-600';
-  };
-
-  const getRoleBadgeColor = (role: string) => {
-    switch (role?.toLowerCase()) {
-      case 'institution': return 'bg-purple-100 text-purple-700 border-purple-300';
-      case 'faculty': return 'bg-blue-100 text-blue-700 border-blue-300';
-      case 'student': return 'bg-green-100 text-green-700 border-green-300';
-      case 'contributor': return 'bg-orange-100 text-orange-700 border-orange-300';
-      case 'admin': return 'bg-red-100 text-red-700 border-red-300';
-      case 'superadmin': return 'bg-gray-100 text-gray-700 border-gray-300';
-      default: return 'bg-gray-100 text-gray-600 border-gray-300';
-    }
-  };
-
-  const uniqueRoles = Array.from(new Set(logs.map(l => l.roleGroup || '').filter((r) => !!r))) as string[];
-  const uniqueMethods = Array.from(new Set(logs.map(l => l.method || '').filter((m) => !!m))) as string[];
-
-  // Calculate pagination
-  const totalPages = Math.ceil(filteredLogs.length / itemsPerPage);
+  const processed = applyClientFiltersAndSort(logs);
+  const totalPages = Math.max(1, Math.ceil(processed.length / itemsPerPage));
   const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const currentLogs = filteredLogs.slice(startIndex, endIndex);
+  const currentLogs = processed.slice(startIndex, startIndex + itemsPerPage);
 
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+  const fmtTime = (ts?: string) => {
+    if (!ts) return '-';
+    const d = new Date(ts);
+    // DD/MM/YYYY HH:MM AM/PM
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+    let hours = d.getHours();
+    const minutes = String(d.getMinutes()).padStart(2, '0');
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12;
+    if (hours === 0) hours = 12;
+    const hrs = String(hours).padStart(2, '0');
+    return `${day}/${month}/${year} ${hrs}:${minutes} ${ampm}`;
+  };
+
+  const toggleSort = (field: 'timestamp' | 'actorUsername') => {
+    if (sortField === field) {
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortField(field);
+      setSortDir('desc');
+    }
   };
 
   return (
@@ -174,253 +199,109 @@ const ViewLogs: React.FC = () => {
       <Sidebar />
       <div className="flex-1 flex flex-col">
         <div className="flex-1 p-8 overflow-y-auto">
-        {/* Header */}
-        <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
+          <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
+            <div className="max-w-7xl mx-auto px-8 py-6 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-[#0d0d0d] rounded-2xl flex items-center justify-center shadow-lg">
+                  <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-900">System Activity Logs</h1>
+                  <p className="text-gray-600 text-sm">Monitor all actions performed across the platform</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <button onClick={fetchLogs} className="px-4 py-2 rounded bg-gray-800 text-white">Refresh</button>
+                <button onClick={clearLogs} className="px-4 py-2 rounded bg-red-600 text-white">Archive & Clear</button>
+              </div>
+            </div>
+          </div>
+
           <div className="max-w-7xl mx-auto px-8 py-6">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-[#0d0d0d] rounded-2xl flex items-center justify-center shadow-lg">
-                <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">System Activity Logs</h1>
-                <p className="text-gray-600 text-sm">Monitor all actions performed across the platform</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-          <div className="max-w-7xl mx-auto px-8 py-2">
-          {/* Filters */}
-          <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-bold text-gray-900 mb-2">Filter by Role</label>
-                <select
-                  value={filterRole}
-                  onChange={(e) => setFilterRole(e.target.value)}
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#0d0d0d] focus:border-transparent transition-colors"
-                >
-                  <option value="all">All Roles</option>
-                  {uniqueRoles.map(role => (
-                    <option key={role} value={role.toLowerCase()}>{role}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-bold text-gray-900 mb-2">Filter by Method</label>
-                <select
-                  value={filterMethod}
-                  onChange={(e) => setFilterMethod(e.target.value)}
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#0d0d0d] focus:border-transparent transition-colors"
-                >
-                  <option value="all">All Methods</option>
-                  {uniqueMethods.map(method => (
-                    <option key={method} value={method}>{method}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-bold text-gray-900 mb-2">Search</label>
-                <input
-                  type="text"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Search URL, actor, or role..."
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#0d0d0d] focus:border-transparent transition-colors"
-                />
-              </div>
-            </div>
-
-            <div className="mt-4 flex items-center justify-between pt-4 border-t border-gray-200">
-              <p className="text-sm text-gray-600">
-                Showing <span className="font-bold text-gray-900">{startIndex + 1}-{Math.min(endIndex, filteredLogs.length)}</span> of <span className="font-bold text-gray-900">{filteredLogs.length}</span> logs
-                {filteredLogs.length !== logs.length && (
-                  <span className="text-gray-500"> (filtered from {logs.length})</span>
-                )}
-              </p>
-              <button
-                onClick={fetchLogs}
-                disabled={loading}
-                className="px-5 py-2.5 bg-[#0d0d0d] text-white rounded-xl hover:bg-gray-800 transition-colors disabled:opacity-50 flex items-center gap-2 font-medium shadow-md"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-                {loading ? 'Loading...' : 'Refresh'}
-              </button>
-            </div>
-          </div>
-
-          {/* Logs List */}
-          <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-            {loading && filteredLogs.length === 0 ? (
-              <div className="p-12 text-center">
-                <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-gray-200 border-t-[#0d0d0d]"></div>
-                <p className="text-gray-600 mt-4 font-medium">Loading logs...</p>
-              </div>
-            ) : filteredLogs.length === 0 ? (
-              <div className="p-12 text-center">
-                <svg className="mx-auto h-20 w-20 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                <h3 className="text-lg font-bold text-gray-700 mt-4 mb-2">No logs found</h3>
-                <p className="text-gray-500 text-sm">No activity logs match your current filters</p>
-              </div>
-            ) : (
-              <div className="divide-y divide-gray-200">
-                {currentLogs.map((log) => (
-                  <div key={log.id} className="p-5 hover:bg-gray-50 transition-colors">
-                    <div className="flex items-start gap-4">
-                      {/* Role Icon */}
-                      <div className={`mt-1 p-2.5 rounded-xl border shadow-sm ${getRoleBadgeColor(log.roleGroup ?? '')}`}>
-                        {getRoleIcon(log.roleGroup ?? '')}
-                      </div>
-
-                      {/* Log Details */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-2 flex-wrap">
-                          <span className={`inline-flex items-center px-3 py-1 rounded-lg text-xs font-bold shadow-sm ${getMethodBadge(log.method ?? '')}`}>
-                            {log.method || 'N/A'}
-                          </span>
-                          <span className={`inline-flex items-center px-3 py-1 rounded-lg text-xs font-bold border shadow-sm ${getRoleBadgeColor(log.roleGroup ?? '')}`}>
-                            {log.roleGroup || 'Unknown'}
-                          </span>
-                          <span className={`text-sm font-bold ${getStatusColor(log.status ?? 0)}`}>
-                            {log.status ?? '-'}
-                          </span>
-                          <span className="text-xs text-gray-500 font-medium bg-gray-100 px-2 py-1 rounded-lg">
-                            {log.durationMs}ms
-                          </span>
-                        </div>
-
-                        <div className="mb-2 bg-gray-50 px-3 py-2 rounded-xl border border-gray-200">
-                          <code className="text-sm text-gray-800 font-mono break-all">{log.url}</code>
-                        </div>
-
-                        <div className="flex items-center gap-4 text-xs text-gray-600">
-                          <span className="flex items-center gap-1.5 font-medium">
-                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            {log.time ? new Date(log.time as any).toLocaleString() : '-'}
-                          </span>
-                          {log.actor && (
-                            <span className="flex items-center gap-1.5 font-medium">
-                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                              </svg>
-                              {log.actor}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-            {/* Pagination */}
-            <div className="px-6 py-4 bg-gray-50 border-t flex items-center justify-between">
-              <div className="text-sm text-gray-600">
-                Showing {Math.min(page * PAGE_SIZE + 1, filteredLogs.length === 0 ? 0 : filteredLogs.length)} - {Math.min((page + 1) * PAGE_SIZE, filteredLogs.length)} of {filteredLogs.length}
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setPage((p) => Math.max(0, p - 1))}
-                  disabled={page === 0}
-                  className={`px-3 py-1 rounded ${page === 0 ? 'bg-gray-100 text-gray-400' : 'bg-white border'}`}
-                >
-                  Previous
-                </button>
-                <button
-                  onClick={() => setPage((p) => p + 1)}
-                  disabled={(page + 1) * PAGE_SIZE >= filteredLogs.length}
-                  className={`px-3 py-1 rounded ${(page + 1) * PAGE_SIZE >= filteredLogs.length ? 'bg-gray-100 text-gray-400' : 'bg-white border'}`}
-                >
-                  Next
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Pagination */}
-          {filteredLogs.length > 0 && totalPages > 1 && (
-            <div className="bg-white rounded-2xl shadow-lg p-4 mt-6">
-              <div className="flex items-center justify-between">
-                <div className="text-sm text-gray-600">
-                  Page <span className="font-bold text-gray-900">{currentPage}</span> of <span className="font-bold text-gray-900">{totalPages}</span>
+            <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                  <label className="block text-sm font-bold text-gray-900 mb-2">Username</label>
+                  <input value={usernameFilter} onChange={(e) => setUsernameFilter(e.target.value)} placeholder="Username" className="w-full px-4 py-2.5 border rounded-xl" />
                 </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => handlePageChange(1)}
-                    disabled={currentPage === 1}
-                    className="px-3 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
-                    First
-                  </button>
-                  <button
-                    onClick={() => handlePageChange(currentPage - 1)}
-                    disabled={currentPage === 1}
-                    className="px-3 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
-                    Previous
-                  </button>
-                  
-                  <div className="flex items-center gap-1">
-                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                      let pageNum;
-                      if (totalPages <= 5) {
-                        pageNum = i + 1;
-                      } else if (currentPage <= 3) {
-                        pageNum = i + 1;
-                      } else if (currentPage >= totalPages - 2) {
-                        pageNum = totalPages - 4 + i;
-                      } else {
-                        pageNum = currentPage - 2 + i;
-                      }
-                      
-                      return (
-                        <button
-                          key={pageNum}
-                          onClick={() => handlePageChange(pageNum)}
-                          className={`w-10 h-10 rounded-lg text-sm font-medium transition-colors ${
-                            currentPage === pageNum
-                              ? 'bg-[#0d0d0d] text-white shadow-md'
-                              : 'border border-gray-300 text-gray-700 hover:bg-gray-50'
-                          }`}
-                        >
-                          {pageNum}
-                        </button>
-                      );
-                    })}
-                  </div>
 
-                  <button
-                    onClick={() => handlePageChange(currentPage + 1)}
-                    disabled={currentPage === totalPages}
-                    className="px-3 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
-                    Next
-                  </button>
-                  <button
-                    onClick={() => handlePageChange(totalPages)}
-                    disabled={currentPage === totalPages}
-                    className="px-3 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
-                    Last
-                  </button>
+                <div>
+                  <label className="block text-sm font-bold text-gray-900 mb-2">Role</label>
+                  <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)} className="w-full px-4 py-2.5 border rounded-xl">
+                    <option value="all">All Roles</option>
+                    {uniqueRoles.map((r) => (<option key={r} value={r}>{r}</option>))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-gray-900 mb-2">Action</label>
+                  <select value={actionFilter} onChange={(e) => setActionFilter(e.target.value)} className="w-full px-4 py-2.5 border rounded-xl">
+                    <option value="all">All Actions</option>
+                    {uniqueActions.map((a) => (<option key={a} value={a}>{a}</option>))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-gray-900 mb-2">Date Range</label>
+                  <div className="flex gap-2">
+                    <input type="datetime-local" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-1/2 px-3 py-2 border rounded" />
+                    <input type="datetime-local" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-1/2 px-3 py-2 border rounded" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-4 text-sm text-gray-600">Showing {processed.length} logs (fetched {logs.length})</div>
+            </div>
+
+            <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+              <table className="w-full">
+                <thead className="bg-gray-50 border-b border-gray-200">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Username</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Role</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Action</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Message</th>
+                    <th onClick={() => toggleSort('timestamp')} className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer">Date</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {loading && (
+                    <tr>
+                      <td colSpan={5} className="px-6 py-8 text-center text-gray-500">Loading...</td>
+                    </tr>
+                  )}
+                  {!loading && currentLogs.length === 0 && (
+                    <tr>
+                      <td colSpan={5} className="px-6 py-8 text-center text-gray-500">No logs found</td>
+                    </tr>
+                  )}
+                  {!loading && currentLogs.map((l) => (
+                    <tr key={l._id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 text-sm text-gray-900">{l.actorUsername || '-'}</td>
+                      <td className="px-6 py-4 text-sm text-gray-700">{l.role || '-'}</td>
+                      <td className="px-6 py-4 text-sm text-gray-700">{l.actionType || '-'}</td>
+                      <td className="px-6 py-4 text-sm text-gray-600">{l.message || '-'}</td>
+                      <td className="px-6 py-4 text-sm text-gray-700">{fmtTime(l.timestamp)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
+                <div className="text-sm text-gray-600">Showing {startIndex + 1}-{Math.min(startIndex + currentLogs.length, processed.length)} of {processed.length}</div>
+                <div className="flex gap-2">
+                  <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50">Prev</button>
+                  <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages || totalPages === 0} className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50">Next</button>
                 </div>
               </div>
             </div>
-          )}
+          </div>
         </div>
       </div>
     </div>
-  </div>
   );
 };
 

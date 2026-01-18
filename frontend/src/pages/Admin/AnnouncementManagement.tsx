@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import Sidebar from '../../components/Admin/Sidebar';
+import makeHeaders from '../../lib/makeHeaders';
 
 const BACKEND = import.meta.env.VITE_API_URL || 'http://localhost:5001';
 
@@ -24,11 +25,11 @@ const AnnouncementManagement: React.FC = () => {
   const [selectedInstitutions, setSelectedInstitutions] = useState<string[]>([]);
   const [sendToAll, setSendToAll] = useState(true);
 
-  const token = typeof window !== 'undefined' ? localStorage.getItem('admin_token') : null;
+  const token = typeof window !== 'undefined' ? (localStorage.getItem('admin_token') || localStorage.getItem('superadmin_token')) : null;
 
   useEffect(() => {
-    const role = localStorage.getItem('gradedge_role');
-    if (role !== 'admin') {
+    const role = (localStorage.getItem('gradedge_role') || '').toLowerCase();
+    if (role !== 'admin' && role !== 'superadmin') {
       window.location.href = '/login';
       return;
     }
@@ -38,8 +39,7 @@ const AnnouncementManagement: React.FC = () => {
   const loadData = async () => {
     try {
       console.log('[AnnouncementManagement] admin_token localStorage:', token);
-      const headers: Record<string, string> = {};
-      if (token) headers.Authorization = `Bearer ${token}`;
+      const headers = makeHeaders('admin_token');
       const [announcementsRes, institutionsRes] = await Promise.all([
         fetch(`${BACKEND}/admin/announcements`, { headers }),
         fetch(`${BACKEND}/admin/institutions`, { headers }),
@@ -70,10 +70,7 @@ const AnnouncementManagement: React.FC = () => {
 
       const res = await fetch(`${BACKEND}/admin/announcements`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
+        headers: makeHeaders('admin_token', 'application/json'),
         body: JSON.stringify(payload),
       });
 
@@ -123,7 +120,7 @@ const AnnouncementManagement: React.FC = () => {
           
           <form onSubmit={handleSubmit} className="p-6 space-y-6">
             <div>
-              <label className="block text-sm font-semibold text-gray-800 mb-2 flex items-center gap-2">
+              <label className="text-sm font-semibold text-gray-800 mb-2 flex items-center gap-2">
                 <svg className="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                 </svg>
@@ -168,7 +165,7 @@ const AnnouncementManagement: React.FC = () => {
 
             {!sendToAll && (
               <div className="border-2 border-gray-200 rounded-xl p-5 bg-gray-50">
-                <label className="block text-sm font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <label className="text-sm font-bold text-gray-800 mb-4 flex items-center gap-2">
                   <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                   </svg>

@@ -6,6 +6,7 @@ import {
   FaUserShield, 
   FaClipboardList, 
   FaHeartbeat,
+  FaComments,
   FaSignOutAlt,
   FaChevronLeft,
   FaChevronRight
@@ -37,6 +38,7 @@ const Sidebar: React.FC = () => {
     { name: 'Dashboard', path: '/superadmin/dashboard', icon: <FaChartPie /> },
     { name: 'Institutions', path: '/superadmin/institutions', icon: <FaUniversity /> },
     { name: 'Admin Management', path: '/superadmin/admins', icon: <FaUserShield /> },
+    { name: 'Admin Chats', path: '/superadmin/admin-chats', icon: <FaComments /> },
     { name: 'View Logs', path: '/superadmin/logs', icon: <FaClipboardList /> },
     { name: 'System Vitals', path: '/superadmin/system-vitals', icon: <FaHeartbeat /> }
   ];

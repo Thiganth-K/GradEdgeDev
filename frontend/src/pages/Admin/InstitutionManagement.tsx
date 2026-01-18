@@ -43,7 +43,7 @@ const EditModal: React.FC<EditModalProps> = ({ item, onClose, onSave }) => {
 
   const handleSave = async () => {
     setSaving(true);
-    const token = localStorage.getItem('admin_token');
+      const token = (typeof window !== 'undefined') ? (localStorage.getItem('admin_token') || localStorage.getItem('superadmin_token')) : null;
     const payload: any = { 
       name: form.name,
       location: form.location,
@@ -295,17 +295,17 @@ const InstitutionManagement: React.FC = () => {
 
   useEffect(() => {
     console.log('[InstitutionManagement] COMPONENT MOUNTED');
-    const role = localStorage.getItem('gradedge_role');
+    const role = (localStorage.getItem('gradedge_role') || '').toLowerCase();
     console.log('[InstitutionManagement] role from localStorage:', role);
     
-    if (role !== 'admin') {
-      console.log('[InstitutionManagement] role is not admin, redirecting to login');
+    if (role !== 'admin' && role !== 'superadmin') {
+      console.log('[InstitutionManagement] role is not admin or superadmin, redirecting to login');
       window.location.href = '/login';
       return;
     }
 
     console.log('[InstitutionManagement] role check passed, fetching institutions...');
-    const token = localStorage.getItem('admin_token');
+      const token = (typeof window !== 'undefined') ? (localStorage.getItem('admin_token') || localStorage.getItem('superadmin_token')) : null;
     console.log('[InstitutionManagement] admin_token localStorage:', token);
     const headers: Record<string, string> = {};
     if (token) headers.Authorization = `Bearer ${token}`;
@@ -332,7 +332,7 @@ const InstitutionManagement: React.FC = () => {
   }, []);
 
   const remove = async (id: string) => {
-    const token = localStorage.getItem('admin_token');
+    const token = (typeof window !== 'undefined') ? (localStorage.getItem('admin_token') || localStorage.getItem('superadmin_token')) : null;
     const delHeaders: Record<string, string> = {};
     if (token) delHeaders.Authorization = `Bearer ${token}`;
     const res = await fetch(`${BACKEND}/admin/institutions/${id}`, { method: 'DELETE', headers: delHeaders });
@@ -353,7 +353,7 @@ const InstitutionManagement: React.FC = () => {
     (async () => {
       setBatchesLoading(true);
       try {
-        const token = localStorage.getItem('admin_token');
+        const token = (typeof window !== 'undefined') ? (localStorage.getItem('admin_token') || localStorage.getItem('superadmin_token')) : null;
         const headers: Record<string, string> = {};
         if (token) headers.Authorization = `Bearer ${token}`;
         const res = await fetch(`${BACKEND}/admin/institutions/${id}/batches`, { headers });

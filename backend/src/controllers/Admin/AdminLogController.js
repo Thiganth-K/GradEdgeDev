@@ -70,7 +70,13 @@ const clearLogs = async (req, res) => {
     const archivePath = path.join(archiveDir, filename);
     fs.writeFileSync(archivePath, JSON.stringify({ exportedAt: new Date().toISOString(), count: logs.length, logs }, null, 2), 'utf8');
 
-    // Do NOT delete logs from DB; frontend will reflect cleared view without removing DB records
+    // Delete exported logs from DB (delete only the exported documents to avoid race issues)
+    try {
+      const ids = logs.map((l) => l._id).filter(Boolean);
+      if (ids.length) await AdminLog.deleteMany({ _id: { $in: ids } });
+    } catch (e) {
+      console.error('[AdminLog.clearLogs] failed to delete exported logs', e && e.message);
+    }
 
     // Send file as download (file is retained on server)
     res.download(archivePath, filename, (err) => {

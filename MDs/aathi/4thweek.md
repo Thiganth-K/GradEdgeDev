@@ -12,8 +12,8 @@
 - Added Library module with all integrations [done]
 
 **Admin**
-- admin can able to view the institution admin/ faculty/ student / contributor actions in the audit logs -> *Aathi*
-- admin to communicate with the Superadmin a simple Lms need to have a separate datamodel for their chats -> *Aathi*
+- admin can able to view the institution admin/ faculty/ student / contributor actions in the audit logs -> *Aathi* [done]
+- admin to communicate with the Superadmin a simple Lms need to have a separate datamodel for their chats -> *Aathi* [done]
 
 **Institution Admin**
 - Need the CRUD operation to the faculty managemnt in the institution management page -> *Aathi*

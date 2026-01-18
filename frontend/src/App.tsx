@@ -6,6 +6,7 @@ import InstitutionManagement from './pages/SuperAdmin/InstitutionManagement'
 import ViewLogs from './pages/SuperAdmin/ViewLogs'
 import AdminManagement from './pages/SuperAdmin/AdminManagement'
 import SystemVitals from './pages/SuperAdmin/SystemVitals'
+import SuperAdminAdminChatManagement from './pages/SuperAdmin/AdminChatManagement'
 import AdminDashboard from './pages/Admin/Dashboard'
 import AdminInstitutionManagement from './pages/Admin/InstitutionManagement'
 import AdminCreateInstitution from './pages/Admin/CreateInstitution'
@@ -44,6 +45,7 @@ import ContributorChat from './pages/Contributor/Chat'
 import ContributorLibrary from './pages/Contributor/Library'
 import AdminContributorRequestManagement from './pages/Admin/ContributorRequestManagement'
 import AdminContributorChatManagement from './pages/Admin/ContributorChatManagement'
+import AdminSuperadminChatManagement from './pages/Admin/SuperadminChatManagement'
 import AdminLibraryManagement from './pages/Admin/LibraryManagement'
 import './App.css'
 
@@ -62,6 +64,7 @@ const App: React.FC = () => {
         <Route path="/superadmin/admins/edit" element={<AdminManagement />} />
         <Route path="/superadmin/logs" element={<ViewLogs />} />
         <Route path="/superadmin/system-vitals" element={<SystemVitals />} />
+        <Route path="/superadmin/admin-chats" element={<SuperAdminAdminChatManagement />} />
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
         <Route path="/admin/institutions" element={<AdminInstitutionManagement />} />
         <Route path="/admin/institutions/create" element={<AdminCreateInstitution />} />
@@ -101,6 +104,7 @@ const App: React.FC = () => {
         <Route path="/contributor/library" element={<ContributorLibrary />} />
         <Route path="/admin/contributor-requests" element={<AdminContributorRequestManagement />} />
         <Route path="/admin/contributor-chats" element={<AdminContributorChatManagement />} />
+        <Route path="/admin/superadmin-chats" element={<AdminSuperadminChatManagement />} />
         <Route path="/admin/library" element={<AdminLibraryManagement />} />
         <Route path="*" element={<div className="p-8">Page not found</div>} />
       </Routes>

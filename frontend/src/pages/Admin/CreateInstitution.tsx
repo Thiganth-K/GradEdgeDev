@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-const BACKEND = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const BACKEND = import.meta.env.VITE_API_URL || 'http://localhost:5001';
 
 const CreateInstitution: React.FC = () => {
   const navigate = useNavigate();
@@ -23,7 +23,7 @@ const CreateInstitution: React.FC = () => {
     e.preventDefault();
     setLoading(true);
 
-    const token = localStorage.getItem('admin_token');
+    const token = (typeof window !== 'undefined') ? (localStorage.getItem('admin_token') || localStorage.getItem('superadmin_token')) : null;
     const payload: any = { ...form };
     ['facultyLimit', 'studentLimit', 'batchLimit', 'testLimit'].forEach((k) => {
       if (payload[k] === '') delete payload[k];

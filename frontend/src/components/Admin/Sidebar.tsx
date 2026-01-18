@@ -44,6 +44,7 @@ const Sidebar: React.FC = () => {
     { name: 'Institutions', path: '/admin/institutions', icon: <FaUniversity /> },
     { name: 'Contributors', path: '/admin/contributors', icon: <FaUsers /> },
     { name: 'Contributor Requests', path: '/admin/contributor-requests', icon: <FaUserPlus /> },
+    { name: 'Superadmin Chats', path: '/admin/superadmin-chats', icon: <FaComments /> },
     { name: 'Contributor Chats', path: '/admin/contributor-chats', icon: <FaComments /> },
     { name: 'Audit Logs', path: '/admin/logs', icon: <FaClipboardList /> }
   ];

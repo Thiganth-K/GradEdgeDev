@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { apiFetch } from '../../lib/api';
+import makeHeaders from '../../lib/makeHeaders';
 import { useNavigate } from 'react-router-dom';
 import Sidebar from '../../components/Admin/Sidebar';
 
@@ -10,14 +11,7 @@ const ContributorManagement: React.FC = () => {
   const [list, setList] = useState<Contributor[]>([]);
   const [msg, setMsg] = useState<string | null>(null);
 
-  const token = localStorage.getItem('admin_token') || '';
-
-  const makeHeaders = (contentType = false) => {
-    const h: Record<string, string> = {};
-    if (contentType) h['Content-Type'] = 'application/json';
-    if (token) h.Authorization = `Bearer ${token}`;
-    return h;
-  };
+  const token = (typeof window !== 'undefined') ? (localStorage.getItem('admin_token') || localStorage.getItem('superadmin_token')) : '';
 
   const fetchList = async () => {
     setMsg(null);
@@ -44,7 +38,7 @@ const ContributorManagement: React.FC = () => {
     setMsg(null);
     if (!confirm('Delete this contributor?')) return;
     try {
-      const res = await apiFetch(`/admin/contributors/${id}`, { method: 'DELETE', headers: makeHeaders(true) });
+      const res = await apiFetch(`/admin/contributors/${id}`, { method: 'DELETE', headers: makeHeaders('admin_token','application/json') });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {
         setMsg(body.message || 'Failed to delete contributor');

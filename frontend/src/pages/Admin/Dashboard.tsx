@@ -25,9 +25,10 @@ const Dashboard: React.FC = () => {
   const adminName = admin?.username || 'Admin';
 
   useEffect(() => {
-    const role = localStorage.getItem('gradedge_role');
-    if (role !== 'admin') {
+    const role = (localStorage.getItem('gradedge_role') || '').toLowerCase();
+    if (role !== 'admin' && role !== 'superadmin') {
       window.location.href = '/login';
+      return;
     }
     fetchDashboardStats();
     fetchAnnouncements();
@@ -36,7 +37,7 @@ const Dashboard: React.FC = () => {
   // Placeholder: fetch recent announcements for the header/bell (keeps current UI behavior)
   const fetchAnnouncements = async () => {
     try {
-      const headers = makeHeaders('admin');
+      const headers = makeHeaders('admin_token');
       const BACKEND = import.meta.env.VITE_API_URL || 'http://localhost:5001';
       await fetch(`${BACKEND}/admin/announcements`, { headers });
     } catch (err) {
@@ -47,7 +48,7 @@ const Dashboard: React.FC = () => {
 
   const fetchDashboardStats = async () => {
     try {
-      const headers = makeHeaders('admin');
+      const headers = makeHeaders('admin_token');
       const BACKEND = import.meta.env.VITE_API_URL || 'http://localhost:5001';
 
       // Fetch all stats in parallel from configured backend
@@ -58,16 +59,21 @@ const Dashboard: React.FC = () => {
         fetch(`${BACKEND}/admin/contributor-chats`, { headers })
       ]);
 
-      const institutions = institutionsRes.ok ? await institutionsRes.json() : [];
-      const contributors = contributorsRes.ok ? await contributorsRes.json() : [];
-      const requests = requestsRes.ok ? await requestsRes.json() : [];
-      const chats = chatsRes.ok ? await chatsRes.json() : [];
+      const institutionsJson = institutionsRes.ok ? await institutionsRes.json().catch(() => null) : null;
+      const contributorsJson = contributorsRes.ok ? await contributorsRes.json().catch(() => null) : null;
+      const requestsJson = requestsRes.ok ? await requestsRes.json().catch(() => null) : null;
+      const chatsJson = chatsRes.ok ? await chatsRes.json().catch(() => null) : null;
+
+      const institutionsArr = institutionsJson && institutionsJson.success && Array.isArray(institutionsJson.data) ? institutionsJson.data : [];
+      const contributorsArr = contributorsJson && contributorsJson.success && Array.isArray(contributorsJson.data) ? contributorsJson.data : [];
+      const requestsArr = requestsJson && requestsJson.success && Array.isArray(requestsJson.data) ? requestsJson.data : [];
+      const chatsArr = chatsJson && chatsJson.success && Array.isArray(chatsJson.data) ? chatsJson.data : [];
 
       setStats({
-        institutions: Array.isArray(institutions) ? institutions.length : 0,
-        contributors: Array.isArray(contributors) ? contributors.length : 0,
-        pendingRequests: Array.isArray(requests) ? requests.filter((r: any) => r.status === 'pending').length : 0,
-        activeChats: Array.isArray(chats) ? chats.length : 0
+        institutions: institutionsArr.length,
+        contributors: contributorsArr.length,
+        pendingRequests: requestsArr.filter((r: any) => r.status === 'pending').length,
+        activeChats: chatsArr.length
       });
     } catch (error) {
       console.error('Error fetching stats:', error);

@@ -23,6 +23,8 @@ try {
   // ignore any runtime inspection errors
 }
 
+import makeHeaders from './makeHeaders';
+
 // Smart fetch wrapper with automatic fallback to localhost:5001
 let workingBaseUrl: string | null = null; // Cache the working URL to avoid repeated retries
 
@@ -31,6 +33,19 @@ let workingBaseUrl: string | null = null; // Cache the working URL to avoid repe
  * Use this instead of native fetch for API calls to enable automatic fallback.
  */
 export const apiFetch = async (input: string | URL | Request, init?: RequestInit): Promise<Response> => {
+  // Auto-attach admin Authorization header when not provided
+  try {
+    const existing = init && (init as any).headers ? { ...(init as any).headers } : {};
+    if (!existing.Authorization) {
+      const auto = makeHeaders('admin_token');
+      if (auto.Authorization) {
+        (init as any) = { ...(init || {}), headers: { ...existing, Authorization: auto.Authorization } };
+      }
+    }
+  } catch (e) {
+    // ignore
+  }
+
   // If we already know which base URL works, use it directly
   if (workingBaseUrl !== null) {
     const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
