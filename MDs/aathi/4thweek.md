@@ -16,7 +16,7 @@
 - admin to communicate with the Superadmin a simple Lms need to have a separate datamodel for their chats -> *Aathi* [done]
 
 **Institution Admin**
-- Need the CRUD operation to the faculty managemnt in the institution management page -> *Aathi*
+- Need the CRUD operation to the faculty managemnt in the institution management page -> *Aathi*[done]
 - Add the bulk student creation for the student management in the institution management and also design the individual add of the students in a neat ui - *Aathi*
 
 **Faculty**

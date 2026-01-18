@@ -3,13 +3,14 @@ import InstitutionSidebar from '../../components/Institution/Sidebar';
 
 const BACKEND = import.meta.env.VITE_API_URL || 'http://localhost:5001';
 
-const EditModal: React.FC<{ item: any; onClose: () => void; onSave: (updated: any) => void }> = ({ item, onClose, onSave }) => {
+const EditModal: React.FC<{ item: any; onClose: () => void; onSave: (updated: any) => void; onError?: (m: string)=>void }> = ({ item, onClose, onSave, onError }) => {
   const [form, setForm] = useState({ username: item.username || '', role: item.role || '', password: '' });
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const token = typeof window !== 'undefined' ? localStorage.getItem('institution_token') : null;
 
   const handleSave = async () => {
-    setSaving(true);
+    setSaving(true); setError(null);
     try {
       const payload: any = { username: form.username, role: form.role };
       if (form.password) payload.password = form.password;
@@ -22,10 +23,11 @@ const EditModal: React.FC<{ item: any; onClose: () => void; onSave: (updated: an
         onSave({ ...item, ...payload });
         onClose();
       } else {
-        alert(body.message || 'Failed to update');
+        setError(body.message || 'Failed to update');
+        if (onError) onError(body.message || 'Failed to update');
       }
     } catch (err) {
-      console.error(err); alert('Network error');
+      console.error(err); setError('Network error'); if (onError) onError('Network error');
     } finally { setSaving(false); }
   };
 
@@ -58,6 +60,7 @@ const EditModal: React.FC<{ item: any; onClose: () => void; onSave: (updated: an
               <input type="password" value={form.password} onChange={(e)=>setForm({...form, password: e.target.value})} className="w-full border px-3 py-2 rounded" />
             </div>
           </div>
+          {error && <div className="text-sm text-red-600 mt-4">{error}</div>}
           <div className="flex gap-3 mt-6 justify-end">
             <button onClick={handleSave} disabled={saving} className="bg-gradient-to-r from-red-600 to-red-700 text-white px-4 py-2 rounded">{saving ? 'Saving...' : 'Save Changes'}</button>
             <button onClick={onClose} className="px-4 py-2 border rounded">Cancel</button>
@@ -68,27 +71,30 @@ const EditModal: React.FC<{ item: any; onClose: () => void; onSave: (updated: an
   );
 };
 
-const CreateFacultyModal: React.FC<{ onClose: () => void; onCreated: (newItem: any) => void }> = ({ onClose, onCreated }) => {
+const CreateFacultyModal: React.FC<{ onClose: () => void; onCreated: (newItem: any) => void; onError?: (m:string)=>void }> = ({ onClose, onCreated, onError }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState('aptitude');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const token = typeof window !== 'undefined' ? localStorage.getItem('institution_token') : null;
 
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!username.trim() || !password) { alert('Username and password required'); return; }
+    setError(null);
+    if (!username.trim() || !password) { setError('Username and password required'); if (onError) onError('Username and password required'); return; }
     setLoading(true);
     try {
       const res = await fetch(`${BACKEND}/institution/faculties`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ username: username.trim(), password, role }) });
       const body = await res.json().catch(()=>({}));
       if (res.ok) {
-        onCreated(body.data || { _id: body.data?._id || Math.random()+'', username: username.trim(), role });
+        const created = body.data || { _id: body.data?._id || Math.random()+'', username: username.trim(), role };
+        onCreated(created);
         onClose();
       } else {
-        alert(body.message || 'Failed to create');
+        setError(body.message || 'Failed to create'); if (onError) onError(body.message || 'Failed to create');
       }
-    } catch (err) { console.error(err); alert('Network error'); }
+    } catch (err) { console.error(err); setError('Network error'); if (onError) onError('Network error'); }
     finally { setLoading(false); }
   };
 
@@ -121,6 +127,7 @@ const CreateFacultyModal: React.FC<{ onClose: () => void; onCreated: (newItem: a
               <input type="password" value={password} onChange={(e)=>setPassword(e.target.value)} className="w-full border px-3 py-2 rounded" />
             </div>
           </div>
+          {error && <div className="text-sm text-red-600 mt-4">{error}</div>}
           <div className="flex gap-3 mt-6 justify-end">
             <button type="submit" disabled={loading} className="bg-gradient-to-r from-red-600 to-red-700 text-white px-4 py-2 rounded">{loading ? 'Creating...' : 'Create'}</button>
             <button type="button" onClick={onClose} className="px-4 py-2 border rounded">Cancel</button>
@@ -136,7 +143,7 @@ const FacultyManagement: React.FC = () => {
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
-  const [menuOpen, setMenuOpen] = useState<string | null>(null);
+  
   const [editingItem, setEditingItem] = useState<any | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const usernameRef = React.useRef<HTMLInputElement | null>(null);
@@ -173,10 +180,10 @@ const FacultyManagement: React.FC = () => {
     <div className="flex min-h-screen bg-gray-50">
       <InstitutionSidebar />
       {editingItem && (
-        <EditModal item={editingItem} onClose={() => setEditingItem(null)} onSave={(updated) => { setList((s)=>s.map(x => x._id === updated._id ? {...x, ...updated} : x)); setEditingItem(null); }} />
+        <EditModal item={editingItem} onClose={() => setEditingItem(null)} onSave={(updated) => { setList((s)=>s.map(x => x._id === updated._id ? {...x, ...updated} : x)); setEditingItem(null); setMsg('Faculty updated'); }} onError={(m)=>setMsg(m)} />
       )}
       {showCreateModal && (
-        <CreateFacultyModal onClose={() => setShowCreateModal(false)} onCreated={(n) => { setList((s)=>[n, ...s]); setShowCreateModal(false); }} />
+        <CreateFacultyModal onClose={() => setShowCreateModal(false)} onCreated={(n) => { setList((s)=>[n, ...s]); setShowCreateModal(false); setMsg('Faculty created'); }} onError={(m)=>setMsg(m)} />
       )}
       <main className="flex-1 h-screen overflow-y-auto p-8">
         <div className="max-w-7xl mx-auto">
@@ -211,21 +218,9 @@ const FacultyManagement: React.FC = () => {
                       <span className="px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-700">{f.role}</span>
                     </div>
                     <div className="col-span-5 text-right">
-                      <div className="inline-flex items-center gap-2">
+                      <div className="inline-flex items-center gap-3 justify-end">
                         <button onClick={() => setEditingItem(f)} className="text-gray-600 hover:text-gray-800">Edit</button>
-                        <div className="relative">
-                          <button onClick={() => setMenuOpen(menuOpen === f._id ? null : f._id)} className="p-2 rounded hover:bg-gray-50 text-gray-500">
-                            •••
-                          </button>
-                          {menuOpen === f._id && (
-                            <>
-                              <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(null)}></div>
-                              <div className="absolute right-0 mt-2 w-40 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-50">
-                                <button onClick={() => { setMenuOpen(null); handleRemove(f._id); }} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">Delete</button>
-                              </div>
-                            </>
-                          )}
-                        </div>
+                        <button onClick={() => handleRemove(f._id)} className="text-red-600 hover:text-red-700">Delete</button>
                       </div>
                     </div>
                   </div>
