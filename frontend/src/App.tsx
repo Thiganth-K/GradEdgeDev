@@ -29,9 +29,13 @@ import TestCreateDetails from './pages/Institution/TestCreateDetails'
 import TestCreateQuestions from './pages/Institution/TestCreateQuestions'
 import FacultyDashboard from './pages/Faculty/Dashboard'
 import FacultyAssignedTests from './pages/Faculty/AssignedTests'
+import FacultyTestList from './pages/Faculty/FacultyTestList'
 import FacultyChat from './pages/Faculty/Chat'
 import FacultyTestResults from './pages/Faculty/TestResults'
 import FacultyAnnouncements from './pages/Faculty/Announcements'
+import FacTestCreateDetails from './pages/Faculty/TestCreateDetails'
+import FacTestCreateQuestions from './pages/Faculty/TestCreateQuestions'
+import FacultyTestEdit from './pages/Faculty/FacultyTestEdit'
 import StudentDashboard from './pages/Student/Dashboard'
 import StudentTest from './pages/Student/Test'
 import StudentAnnouncements from './pages/Student/Announcements'
@@ -88,6 +92,10 @@ const App: React.FC = () => {
         <Route path="/institution/tests/create/questions" element={<TestCreateQuestions />} />
         <Route path="/faculty/dashboard" element={<FacultyDashboard />} />
         <Route path="/faculty/assignedtests" element={<FacultyAssignedTests />} />
+        <Route path="/faculty/tests" element={<FacultyTestList />} />
+        <Route path="/faculty/tests/create" element={<FacTestCreateDetails />} />
+        <Route path="/faculty/tests/create/questions" element={<FacTestCreateQuestions />} />
+        <Route path="/faculty/tests/:id/edit" element={<FacultyTestEdit />} />
         <Route path="/faculty/test/:id/results" element={<FacultyTestResults />} />
         <Route path="/faculty/announcements" element={<FacultyAnnouncements />} />
         <Route path="/faculty/chat" element={<FacultyChat />} />

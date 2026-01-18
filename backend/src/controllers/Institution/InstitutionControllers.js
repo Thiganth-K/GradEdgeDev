@@ -1068,19 +1068,27 @@ const submitTestAttempt = async (req, res) => {
       return res.status(404).json({ success: false, message: 'test not found' });
     }
     
-    if (!Array.isArray(responses) || responses.length !== t.questions.length) {
-      console.log('[Institution.submitTestAttempt] ✗ invalid response count');
+    // Use unified question list (library + custom) for grading so counts match frontend
+    let questionsForGrading = [];
+    if (typeof t.getAllQuestions === 'function') {
+      try { questionsForGrading = await t.getAllQuestions(); } catch (e) { questionsForGrading = t.questions || []; }
+    } else {
+      questionsForGrading = t.questions || [];
+    }
+
+    if (!Array.isArray(responses) || responses.length !== questionsForGrading.length) {
+      console.log('[Institution.submitTestAttempt] ✗ invalid response count', { expected: questionsForGrading.length, received: Array.isArray(responses) ? responses.length : 0 });
       return res.status(400).json({ success: false, message: 'invalid responses payload' });
     }
-    
+
     const now = new Date();
     const start = startedAt ? new Date(startedAt) : now;
     const secs = Math.max(1, Math.floor((now.getTime() - start.getTime()) / 1000));
     let correctCount = 0;
     const respRecords = [];
-    
-    for (let i = 0; i < t.questions.length; i++) {
-      const q = t.questions[i];
+
+    for (let i = 0; i < questionsForGrading.length; i++) {
+      const q = questionsForGrading[i];
       const sel = responses[i];
       
       // Support both single answer (number) and multiple answers (array)
@@ -1096,6 +1104,7 @@ const submitTestAttempt = async (req, res) => {
       }
       
       // Get correct answers for this question
+      // Get correct indices from unified question object; support both formats
       const correctIndices = Array.isArray(q.correctIndices) && q.correctIndices.length > 0
         ? q.correctIndices
         : (typeof q.correctIndex === 'number' ? [q.correctIndex] : []);
@@ -1117,16 +1126,16 @@ const submitTestAttempt = async (req, res) => {
       // Build response objects that match TestAttempt ResponseSchema
       respRecords.push({
         questionId: q.questionId || undefined,
-        selectedIndex: selectedIndices[0] || -1, // Keep first for backward compatibility
-        selectedIndices: selectedIndices, // NEW: Store all selected answers
+        selectedIndex: selectedIndices[0] || -1,
+        selectedIndices: selectedIndices,
         correct: isCorrect,
       });
     }
-    const score = Math.round((correctCount / t.questions.length) * 100);
-    
+    const score = Math.round((correctCount / questionsForGrading.length) * 100);
+
     let attempt = await TestAttempt.findOne({ testId: id, studentId });
     if (!attempt) {
-      attempt = await TestAttempt.create({ testId: id, studentId, total: t.questions.length, correctCount, score, responses: respRecords, timeTakenSeconds: secs, completedAt: now });
+      attempt = await TestAttempt.create({ testId: id, studentId, total: questionsForGrading.length, correctCount, score, responses: respRecords, timeTakenSeconds: secs, completedAt: now });
       console.log('[Institution.submitTestAttempt] ✓ new attempt submitted - score:', score);
     } else {
       attempt.correctCount = correctCount;
