@@ -12,15 +12,15 @@
 - Added Library module with all integrations [done]
 
 **Admin**
-- admin can able to view the institution admin/ faculty/ student / contributor actions in the audit logs -> *Aathi*
-- admin to communicate with the Superadmin a simple Lms need to have a separate datamodel for their chats -> *Aathi*
+- admin can able to view the institution admin/ faculty/ student / contributor actions in the audit logs -> *Aathi* [done]
+- admin to communicate with the Superadmin a simple Lms need to have a separate datamodel for their chats -> *Aathi* [done]
 
 **Institution Admin**
-- Need the CRUD operation to the faculty managemnt in the institution management page -> *Aathi*
+- Need the CRUD operation to the faculty managemnt in the institution management page -> *Aathi*[done]
 - Add the bulk student creation for the student management in the institution management and also design the individual add of the students in a neat ui - *Aathi*
 
 **Faculty**
-- the faculty can able to access the library to to create a test by faculty for the assigned students for that faculty need to maintain a separate datamodel - *Aathi*
+- the faculty can able to access the library to to create a test by faculty for the assigned students for that faculty need to maintain a separate datamodel - *Aathi* [done]
 
 **Extra**
 - Integrated Library Modules with institution and faculty, students [done]

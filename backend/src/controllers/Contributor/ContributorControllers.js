@@ -5,6 +5,7 @@ const ContributorRequest = require('../../models/ContributorRequest');
 const AdminContributorChat = require('../../models/AdminContributorChat');
 const Question = require('../../models/Question');
 const Library = require('../../models/Library');
+const AdminLog = require('../../controllers/Admin/AdminLogController');
 
 const login = async (req, res) => {
   const { username, password } = req.body || {};
@@ -35,6 +36,7 @@ const login = async (req, res) => {
 
     const token = jwt.sign({ role: 'contributor', id: user._id, username: user.username }, secret, { expiresIn: '6h' });
     console.log('[Contributor.login] authenticated', username);
+    try { await AdminLog.createLog({ actorId: user._id, actorUsername: user.username, role: 'contributor', actionType: 'login', message: `${user.username} logged in` }); } catch (e) {}
     return res.json({ success: true, role: 'contributor', token, data: { id: user._id, username: user.username, fname: user.fname, lname: user.lname } });
   } catch (err) {
     console.error('[Contributor.login] error', err);
@@ -131,6 +133,7 @@ const createRequest = async (req, res) => {
     await newRequest.save();
 
     console.log('[Contributor.createRequest] ✓ created request - id:', newRequest._id.toString());
+    try { await AdminLog.createLog({ actorId: contributor.id, actorUsername: contributor.username, role: 'contributor', actionType: 'submit', message: `${contributor.username} submitted a contribution request`, refs: { entity: 'ContributorRequest', id: newRequest._id } }); } catch (e) {}
     return res.status(201).json({ success: true, data: newRequest });
   } catch (err) {
     console.error('[Contributor.createRequest] ✗ error:', err.message);
@@ -252,6 +255,7 @@ const createQuestion = async (req, res) => {
 
     await q.save();
     console.log('[Contributor.createQuestion] saved question', q._id);
+    try { await AdminLog.createLog({ actorId: contributor.id, actorUsername: contributor.username, role: 'contributor', actionType: 'create', message: `${contributor.username} created question ${q._id}`, refs: { entity: 'Question', id: q._id } }); } catch (e) {}
 
     return res.json({ success: true, data: q });
   } catch (err) {
@@ -338,6 +342,7 @@ const sendMessage = async (req, res) => {
     const chat = await AdminContributorChat.findOneAndUpdate({ contributorId: contributor.id }, update, options).exec();
 
     console.log('[Contributor.sendMessage] message saved to chat id=', chat && chat._id);
+    try { await AdminLog.createLog({ actorId: contributor.id, actorUsername: contributor.username, role: 'contributor', actionType: 'create', message: `${contributor.username} sent message to admin`, refs: { entity: 'AdminContributorChat', id: chat && chat._id } }); } catch (e) {}
 
     return res.json({ success: true, data: chat });
   } catch (err) {

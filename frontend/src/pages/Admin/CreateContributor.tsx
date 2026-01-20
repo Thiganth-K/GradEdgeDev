@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { apiFetch } from '../../lib/api';
+import makeHeaders from '../../lib/makeHeaders';
 
 const CreateContributor: React.FC = () => {
   const navigate = useNavigate();
@@ -16,14 +17,7 @@ const CreateContributor: React.FC = () => {
   const [msg, setMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const token = localStorage.getItem('admin_token') || '';
-
-  const makeHeaders = (contentType = false) => {
-    const h: Record<string, string> = {};
-    if (contentType) h['Content-Type'] = 'application/json';
-    if (token) h.Authorization = `Bearer ${token}`;
-    return h;
-  };
+  const token = (typeof window !== 'undefined') ? (localStorage.getItem('admin_token') || localStorage.getItem('superadmin_token')) : '';
 
   useEffect(() => {
     if (isEditMode && id) {
@@ -60,13 +54,13 @@ const CreateContributor: React.FC = () => {
       if (isEditMode) {
         res = await apiFetch(`/admin/contributors/${id}`, {
           method: 'PUT',
-          headers: makeHeaders(true),
+          headers: makeHeaders('admin_token','application/json'),
           body: JSON.stringify({ username, fname, lname, contact, email, password: password || undefined }),
         });
       } else {
         res = await apiFetch('/admin/contributors', {
           method: 'POST',
-          headers: makeHeaders(true),
+          headers: makeHeaders('admin_token','application/json'),
           body: JSON.stringify({ username, password, fname, lname, contact, email }),
         });
       }

@@ -22,6 +22,7 @@ const FacultyAssignedTests: React.FC = () => {
 
   useEffect(() => { load(); }, []);
 
+
   return (
     <div className="flex min-h-screen bg-gray-50">
       <Sidebar />

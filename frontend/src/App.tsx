@@ -6,6 +6,7 @@ import InstitutionManagement from './pages/SuperAdmin/InstitutionManagement'
 import ViewLogs from './pages/SuperAdmin/ViewLogs'
 import AdminManagement from './pages/SuperAdmin/AdminManagement'
 import SystemVitals from './pages/SuperAdmin/SystemVitals'
+import SuperAdminAdminChatManagement from './pages/SuperAdmin/AdminChatManagement'
 import AdminDashboard from './pages/Admin/Dashboard'
 import AdminInstitutionManagement from './pages/Admin/InstitutionManagement'
 import AdminCreateInstitution from './pages/Admin/CreateInstitution'
@@ -28,9 +29,13 @@ import TestCreateDetails from './pages/Institution/TestCreateDetails'
 import TestCreateQuestions from './pages/Institution/TestCreateQuestions'
 import FacultyDashboard from './pages/Faculty/Dashboard'
 import FacultyAssignedTests from './pages/Faculty/AssignedTests'
+import FacultyTestList from './pages/Faculty/FacultyTestList'
 import FacultyChat from './pages/Faculty/Chat'
 import FacultyTestResults from './pages/Faculty/TestResults'
 import FacultyAnnouncements from './pages/Faculty/Announcements'
+import FacTestCreateDetails from './pages/Faculty/TestCreateDetails'
+import FacTestCreateQuestions from './pages/Faculty/TestCreateQuestions'
+import FacultyTestEdit from './pages/Faculty/FacultyTestEdit'
 import StudentDashboard from './pages/Student/Dashboard'
 import StudentTest from './pages/Student/Test'
 import StudentAnnouncements from './pages/Student/Announcements'
@@ -44,6 +49,7 @@ import ContributorChat from './pages/Contributor/Chat'
 import ContributorLibrary from './pages/Contributor/Library'
 import AdminContributorRequestManagement from './pages/Admin/ContributorRequestManagement'
 import AdminContributorChatManagement from './pages/Admin/ContributorChatManagement'
+import AdminSuperadminChatManagement from './pages/Admin/SuperadminChatManagement'
 import AdminLibraryManagement from './pages/Admin/LibraryManagement'
 import './App.css'
 
@@ -62,6 +68,7 @@ const App: React.FC = () => {
         <Route path="/superadmin/admins/edit" element={<AdminManagement />} />
         <Route path="/superadmin/logs" element={<ViewLogs />} />
         <Route path="/superadmin/system-vitals" element={<SystemVitals />} />
+        <Route path="/superadmin/admin-chats" element={<SuperAdminAdminChatManagement />} />
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
         <Route path="/admin/institutions" element={<AdminInstitutionManagement />} />
         <Route path="/admin/institutions/create" element={<AdminCreateInstitution />} />
@@ -85,6 +92,10 @@ const App: React.FC = () => {
         <Route path="/institution/tests/create/questions" element={<TestCreateQuestions />} />
         <Route path="/faculty/dashboard" element={<FacultyDashboard />} />
         <Route path="/faculty/assignedtests" element={<FacultyAssignedTests />} />
+        <Route path="/faculty/tests" element={<FacultyTestList />} />
+        <Route path="/faculty/tests/create" element={<FacTestCreateDetails />} />
+        <Route path="/faculty/tests/create/questions" element={<FacTestCreateQuestions />} />
+        <Route path="/faculty/tests/:id/edit" element={<FacultyTestEdit />} />
         <Route path="/faculty/test/:id/results" element={<FacultyTestResults />} />
         <Route path="/faculty/announcements" element={<FacultyAnnouncements />} />
         <Route path="/faculty/chat" element={<FacultyChat />} />
@@ -101,6 +112,7 @@ const App: React.FC = () => {
         <Route path="/contributor/library" element={<ContributorLibrary />} />
         <Route path="/admin/contributor-requests" element={<AdminContributorRequestManagement />} />
         <Route path="/admin/contributor-chats" element={<AdminContributorChatManagement />} />
+        <Route path="/admin/superadmin-chats" element={<AdminSuperadminChatManagement />} />
         <Route path="/admin/library" element={<AdminLibraryManagement />} />
         <Route path="*" element={<div className="p-8">Page not found</div>} />
       </Routes>

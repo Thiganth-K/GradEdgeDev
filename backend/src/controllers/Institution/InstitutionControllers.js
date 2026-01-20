@@ -10,6 +10,7 @@ const Library = require('../../models/Library');
 const TestAttempt = require('../../models/TestAttempt');
 const Announcement = require('../../models/Announcement');
 const InstitutionAnnouncement = require('../../models/InstitutionAnnouncement');
+const AdminLog = require('../Admin/AdminLogController');
 
 // =====================
 // AUTH
@@ -41,6 +42,7 @@ const login = async (req, res) => {
 
     const token = jwt.sign({ id: inst._id, institutionId: inst.institutionId, name: inst.name, role: 'institution' }, secret, { expiresIn: '7d' });
     console.log('[Institution.login] authenticated', institutionId, '- generated token');
+    try { await AdminLog.createLog({ actorId: inst._id, actorUsername: inst.institutionId, role: 'institution', actionType: 'login', message: `${inst.institutionId} logged in` }); } catch (e) {}
     return res.json({ success: true, role: 'institution', token, data: { id: inst._id, institutionId: inst.institutionId, name: inst.name, facultyLimit: inst.facultyLimit ?? null, studentLimit: inst.studentLimit ?? null, batchLimit: inst.batchLimit ?? null, testLimit: inst.testLimit ?? null } });
   } catch (err) {
     console.error('[Institution.login] error', err);
@@ -78,6 +80,7 @@ const facultyLogin = async (req, res) => {
 
     const token = jwt.sign({ id: f._id, username: f.username, role: 'faculty' }, secret, { expiresIn: '7d' });
     console.log('[Institution.facultyLogin] ✓ authenticated faculty:', username, 'role:', f.role, '- generated token');
+    try { await AdminLog.createLog({ actorId: f._id, actorUsername: f.username, role: 'faculty', actionType: 'login', message: `${f.username} logged in` }); } catch (e) {}
     return res.json({ success: true, role: 'faculty', token, data: { id: f._id, username: f.username, role: f.role } });
   } catch (err) {
     console.error('[Institution.facultyLogin] ✗ error:', err.message);
@@ -115,6 +118,7 @@ const studentLogin = async (req, res) => {
 
     const token = jwt.sign({ id: s._id, username: s.username, role: 'student' }, secret, { expiresIn: '7d' });
     console.log('[Institution.studentLogin] ✓ authenticated student:', username, '- generated token');
+    try { await AdminLog.createLog({ actorId: s._id, actorUsername: s.username, role: 'student', actionType: 'login', message: `${s.username} logged in` }); } catch (e) {}
     return res.json({ success: true, role: 'student', token, data: { id: s._id, username: s.username, name: s.name } });
   } catch (err) {
     console.error('[Institution.studentLogin] ✗ error:', err.message);
@@ -172,6 +176,7 @@ const createFaculty = async (req, res) => {
     const hash = await bcrypt.hash(password, 10);
     const f = await Faculty.create({ username, passwordHash: hash, role, createdBy: instId });
     console.log('[Institution.createFaculty] ✓ created - id:', f._id.toString(), 'username:', f.username, 'role:', f.role);
+    try { await AdminLog.createLog({ actorId: instId, actorUsername: instName, role: 'institution', actionType: 'create', message: `${instName} created faculty ${f.username}`, refs: { entity: 'Faculty', id: f._id } }); } catch (e) {}
     return res.json({ success: true, data: { id: f._id, username: f.username, role: f.role } });
   } catch (err) {
     console.error('[Institution.createFaculty] ✗ error:', err.message);
@@ -199,6 +204,7 @@ const updateFaculty = async (req, res) => {
     }
     
     console.log('[Institution.updateFaculty] ✓ updated - id:', f._id.toString(), 'username:', f.username);
+    try { await AdminLog.createLog({ actorId: instId, actorUsername: instName, role: 'institution', actionType: 'edit', message: `${instName} updated faculty ${f.username}`, refs: { entity: 'Faculty', id: f._id } }); } catch (e) {}
     return res.json({ success: true, data: f });
   } catch (err) {
     console.error('[Institution.updateFaculty] ✗ error:', err.message);
@@ -221,6 +227,7 @@ const deleteFaculty = async (req, res) => {
     }
     
     console.log('[Institution.deleteFaculty] ✓ deleted - id:', f._id.toString(), 'username:', f.username);
+    try { await AdminLog.createLog({ actorId: instId, actorUsername: instName, role: 'institution', actionType: 'delete', message: `${instName} deleted faculty ${f.username}`, refs: { entity: 'Faculty', id: f._id } }); } catch (e) {}
     return res.json({ success: true, message: 'deleted' });
   } catch (err) {
     console.error('[Institution.deleteFaculty] ✗ error:', err.message);
@@ -278,6 +285,7 @@ const createStudent = async (req, res) => {
     const hash = await bcrypt.hash(password, 10);
     const s = await Student.create({ username, passwordHash: hash, name, email, dept, regno, createdBy: instId });
     console.log('[Institution.createStudent] ✓ created - id:', s._id.toString(), 'username:', s.username, 'name:', s.name);
+    try { await AdminLog.createLog({ actorId: instId, actorUsername: instName, role: 'institution', actionType: 'create', message: `${instName} created student ${s.username}`, refs: { entity: 'Student', id: s._id } }); } catch (e) {}
     return res.json({ success: true, data: { id: s._id, username: s.username, name: s.name } });
   } catch (err) {
     console.error('[Institution.createStudent] ✗ error:', err.message);
@@ -304,6 +312,7 @@ const updateStudent = async (req, res) => {
     }
     
     console.log('[Institution.updateStudent] ✓ updated - id:', s._id.toString(), 'username:', s.username);
+    try { await AdminLog.createLog({ actorId: instId, actorUsername: instName, role: 'institution', actionType: 'edit', message: `${instName} updated student ${s.username}`, refs: { entity: 'Student', id: s._id } }); } catch (e) {}
     return res.json({ success: true, data: s });
   } catch (err) {
     console.error('[Institution.updateStudent] ✗ error:', err.message);
@@ -326,6 +335,7 @@ const deleteStudent = async (req, res) => {
     }
     
     console.log('[Institution.deleteStudent] ✓ deleted - id:', s._id.toString(), 'username:', s.username);
+    try { await AdminLog.createLog({ actorId: instId, actorUsername: instName, role: 'institution', actionType: 'delete', message: `${instName} deleted student ${s.username}`, refs: { entity: 'Student', id: s._id } }); } catch (e) {}
     return res.json({ success: true, message: 'deleted' });
   } catch (err) {
     console.error('[Institution.deleteStudent] ✗ error:', err.message);
@@ -376,6 +386,7 @@ const createBatch = async (req, res) => {
     
     const b = await Batch.create({ name, faculty: facultyId || null, students: Array.isArray(studentIds) ? studentIds : [], createdBy: instId });
     console.log('[Institution.createBatch] ✓ created - id:', b._id.toString(), 'name:', b.name, 'students:', b.students.length);
+    try { await AdminLog.createLog({ actorId: instId, actorUsername: instName, role: 'institution', actionType: 'create', message: `${instName} created batch ${b.name}`, refs: { entity: 'Batch', id: b._id } }); } catch (e) {}
     return res.json({ success: true, data: b });
   } catch (err) {
     console.error('[Institution.createBatch] ✗ error:', err.message);
@@ -403,6 +414,7 @@ const updateBatch = async (req, res) => {
     }
     
     console.log('[Institution.updateBatch] ✓ updated - id:', b._id.toString(), 'name:', b.name);
+    try { await AdminLog.createLog({ actorId: instId, actorUsername: instName, role: 'institution', actionType: 'edit', message: `${instName} updated batch ${b.name}`, refs: { entity: 'Batch', id: b._id } }); } catch (e) {}
     return res.json({ success: true, data: b });
   } catch (err) {
     console.error('[Institution.updateBatch] ✗ error:', err.message);
@@ -425,6 +437,7 @@ const deleteBatch = async (req, res) => {
     }
     
     console.log('[Institution.deleteBatch] ✓ deleted - id:', b._id.toString(), 'name:', b.name);
+    try { await AdminLog.createLog({ actorId: instId, actorUsername: instName, role: 'institution', actionType: 'delete', message: `${instName} deleted batch ${b.name}`, refs: { entity: 'Batch', id: b._id } }); } catch (e) {}
     return res.json({ success: true, message: 'deleted' });
   } catch (err) {
     console.error('[Institution.deleteBatch] ✗ error:', err.message);
@@ -720,6 +733,7 @@ const createTest = async (req, res) => {
     });
     
     console.log('[Institution.createTest] ✓ created - id:', t._id.toString(), 'name:', t.name, 'libraryQs:', libraryQuestionIds.length, 'customQs:', customQs.length);
+    try { await AdminLog.createLog({ actorId: req.institution?.id, actorUsername: req.institution?.name, role: 'institution', actionType: 'create', message: `${req.institution?.name} created test ${t.name}`, refs: { entity: 'Test', id: t._id } }); } catch (e) {}
     res.status(201).json({ success: true, data: t });
   } catch (err) {
     console.error('[Institution.createTest] ✗ error:', err);
@@ -835,6 +849,7 @@ const updateTest = async (req, res) => {
 
     await t.save();
     console.log('[Institution.updateTest] ✓ updated - id:', t._id.toString());
+    try { await AdminLog.createLog({ actorId: req.institution?.id, actorUsername: req.institution?.name, role: 'institution', actionType: 'edit', message: `${req.institution?.name} updated test ${t.name}`, refs: { entity: 'Test', id: t._id } }); } catch (e) {}
     res.json({ success: true, data: t });
   } catch (err) {
     console.error('[Institution.updateTest] ✗ error:', err.message);
@@ -882,6 +897,7 @@ const deleteTest = async (req, res) => {
     const deletedAttempts = await TestAttempt.deleteMany({ testId: id });
     console.log('[Institution.deleteTest] ✓ deleted test - id:', t._id.toString(), 'name:', t.name);
     console.log('[Institution.deleteTest] also deleted', deletedAttempts.deletedCount, 'test attempts');
+    try { await AdminLog.createLog({ actorId: req.institution?.id, actorUsername: req.institution?.name, role: 'institution', actionType: 'delete', message: `${req.institution?.name} deleted test ${t.name}`, refs: { entity: 'Test', id: t._id } }); } catch (e) {}
     res.json({ success: true });
   } catch (err) {
     console.error('[Institution.deleteTest] ✗ error:', err.message);
@@ -994,6 +1010,7 @@ const getStudentTest = async (req, res) => {
     }
 
     res.json({ success: true, data: sanitized });
+    try { await AdminLog.createLog({ actorId: studentId, actorUsername: req.student?.username, role: 'student', actionType: 'view', message: `${req.student?.username} viewed test ${t.name}`, refs: { entity: 'Test', id: t._id } }); } catch (e) {}
   } catch (err) {
     res.status(500).json({ success: false, message: 'failed to get test' });
   }
@@ -1051,19 +1068,27 @@ const submitTestAttempt = async (req, res) => {
       return res.status(404).json({ success: false, message: 'test not found' });
     }
     
-    if (!Array.isArray(responses) || responses.length !== t.questions.length) {
-      console.log('[Institution.submitTestAttempt] ✗ invalid response count');
+    // Use unified question list (library + custom) for grading so counts match frontend
+    let questionsForGrading = [];
+    if (typeof t.getAllQuestions === 'function') {
+      try { questionsForGrading = await t.getAllQuestions(); } catch (e) { questionsForGrading = t.questions || []; }
+    } else {
+      questionsForGrading = t.questions || [];
+    }
+
+    if (!Array.isArray(responses) || responses.length !== questionsForGrading.length) {
+      console.log('[Institution.submitTestAttempt] ✗ invalid response count', { expected: questionsForGrading.length, received: Array.isArray(responses) ? responses.length : 0 });
       return res.status(400).json({ success: false, message: 'invalid responses payload' });
     }
-    
+
     const now = new Date();
     const start = startedAt ? new Date(startedAt) : now;
     const secs = Math.max(1, Math.floor((now.getTime() - start.getTime()) / 1000));
     let correctCount = 0;
     const respRecords = [];
-    
-    for (let i = 0; i < t.questions.length; i++) {
-      const q = t.questions[i];
+
+    for (let i = 0; i < questionsForGrading.length; i++) {
+      const q = questionsForGrading[i];
       const sel = responses[i];
       
       // Support both single answer (number) and multiple answers (array)
@@ -1079,6 +1104,7 @@ const submitTestAttempt = async (req, res) => {
       }
       
       // Get correct answers for this question
+      // Get correct indices from unified question object; support both formats
       const correctIndices = Array.isArray(q.correctIndices) && q.correctIndices.length > 0
         ? q.correctIndices
         : (typeof q.correctIndex === 'number' ? [q.correctIndex] : []);
@@ -1100,16 +1126,16 @@ const submitTestAttempt = async (req, res) => {
       // Build response objects that match TestAttempt ResponseSchema
       respRecords.push({
         questionId: q.questionId || undefined,
-        selectedIndex: selectedIndices[0] || -1, // Keep first for backward compatibility
-        selectedIndices: selectedIndices, // NEW: Store all selected answers
+        selectedIndex: selectedIndices[0] || -1,
+        selectedIndices: selectedIndices,
         correct: isCorrect,
       });
     }
-    const score = Math.round((correctCount / t.questions.length) * 100);
-    
+    const score = Math.round((correctCount / questionsForGrading.length) * 100);
+
     let attempt = await TestAttempt.findOne({ testId: id, studentId });
     if (!attempt) {
-      attempt = await TestAttempt.create({ testId: id, studentId, total: t.questions.length, correctCount, score, responses: respRecords, timeTakenSeconds: secs, completedAt: now });
+      attempt = await TestAttempt.create({ testId: id, studentId, total: questionsForGrading.length, correctCount, score, responses: respRecords, timeTakenSeconds: secs, completedAt: now });
       console.log('[Institution.submitTestAttempt] ✓ new attempt submitted - score:', score);
     } else {
       attempt.correctCount = correctCount;

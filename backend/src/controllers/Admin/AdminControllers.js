@@ -12,6 +12,7 @@ const Batch = require('../../models/Batch');
 const Faculty = require('../../models/Faculty');
 const Student = require('../../models/Student');
 const Test = require('../../models/Test');
+const AdminLog = require('./AdminLogController');
 
 const login = async (req, res) => {
   const { username, password } = req.body || {};
@@ -43,6 +44,8 @@ const login = async (req, res) => {
 
     const token = jwt.sign({ id: admin._id, username: admin.username, role: 'admin' }, secret, { expiresIn: '7d' });
     console.log('[Admin.login] authenticated', username, '- generated token');
+    // Log admin login
+    try { await AdminLog.createLog({ actorId: admin._id, actorUsername: admin.username, role: 'admin', actionType: 'login', message: `${admin.username} logged in` }); } catch (e) { }
     return res.json({ success: true, role: 'admin', token, data: { id: admin._id, username: admin.username } });
   } catch (err) {
     console.error('[Admin.login] error', err);
@@ -137,6 +140,7 @@ const createInstitution = async (req, res) => {
       testLimit: parsed(testLimit),
     });
     console.log('[Admin.createInstitution] ✓ created - id:', created._id.toString(), 'name:', created.name, 'institutionId:', created.institutionId);
+    try { await AdminLog.createLog({ actorId: adminId, actorUsername: adminUser, role: 'admin', actionType: 'create', message: `${adminUser} created institution ${created.name} (${created.institutionId})`, refs: { entity: 'Institution', id: created._id } }); } catch (e) {}
     res.json({ success: true, data: { id: created._id, name: created.name, institutionId: created.institutionId, facultyLimit: created.facultyLimit ?? null, studentLimit: created.studentLimit ?? null, batchLimit: created.batchLimit ?? null, testLimit: created.testLimit ?? null } });
   } catch (err) {
     console.error('[Admin.createInstitution] ✗ error:', err.message);
@@ -179,6 +183,7 @@ const updateInstitution = async (req, res) => {
     }
     
     console.log('[Admin.updateInstitution] ✓ updated institution - id:', updated._id, 'name:', updated.name);
+    try { await AdminLog.createLog({ actorId: adminId, actorUsername: adminUser, role: 'admin', actionType: 'edit', message: `${adminUser} updated institution ${updated.name}`, refs: { entity: 'Institution', id: updated._id } }); } catch (e) {}
     res.json({ success: true, data: { id: updated._id, name: updated.name, facultyLimit: updated.facultyLimit ?? null, studentLimit: updated.studentLimit ?? null, batchLimit: updated.batchLimit ?? null, testLimit: updated.testLimit ?? null } });
   } catch (err) {
     console.error('[Admin.updateInstitution] ✗ error:', err.message);
@@ -206,6 +211,7 @@ const deleteInstitution = async (req, res) => {
     }
     
     console.log('[Admin.deleteInstitution] ✓ deleted institution - id:', del._id, 'name:', del.name);
+    try { await AdminLog.createLog({ actorId: adminId, actorUsername: adminUser, role: 'admin', actionType: 'delete', message: `${adminUser} deleted institution ${del.name}`, refs: { entity: 'Institution', id: del._id } }); } catch (e) {}
     res.json({ success: true, data: { id: del._id } });
   } catch (err) {
     console.error('[Admin.deleteInstitution] ✗ error:', err.message);
@@ -296,6 +302,7 @@ const createAnnouncement = async (req, res) => {
     });
     
     console.log('[Admin.createAnnouncement] ✓ created announcement - id:', announcement._id.toString(), 'targets:', targets.length);
+    try { await AdminLog.createLog({ actorId: adminId, actorUsername: adminUsername, role: 'admin', actionType: 'create', message: `${adminUsername} created announcement ${announcement._id}`, refs: { entity: 'Announcement', id: announcement._id } }); } catch (e) {}
     return res.status(201).json({ success: true, data: announcement });
   } catch (err) {
     console.error('[Admin.createAnnouncement] ✗ error:', err.message);
@@ -349,6 +356,7 @@ const createContributor = async (req, res) => {
     const hash = await require('bcrypt').hash(password, 10);
     const created = await Contributor.create({ username, passwordHash: hash, fname, lname, contact, email, createdBy: adminId });
     console.log('[Admin.createContributor] ✓ created contributor - id:', created._id.toString(), 'username:', created.username);
+    try { await AdminLog.createLog({ actorId: adminId, actorUsername: adminUsername, role: 'admin', actionType: 'create', message: `${adminUsername} created contributor ${created.username}`, refs: { entity: 'Contributor', id: created._id } }); } catch (e) {}
     return res.status(201).json({ success: true, data: { id: created._id, username: created.username, fname: created.fname, lname: created.lname } });
   } catch (err) {
     console.error('[Admin.createContributor] ✗ error:', err && err.message);
@@ -435,6 +443,7 @@ const updateContributor = async (req, res) => {
       return res.status(404).json({ success: false, message: 'contributor not found' });
     }
     console.log('[Admin.updateContributor] ✓ updated contributor', updated.username);
+    try { await AdminLog.createLog({ actorId: adminId, actorUsername: req.admin && req.admin.username, role: 'admin', actionType: 'edit', message: `${req.admin && req.admin.username} updated contributor ${updated.username}`, refs: { entity: 'Contributor', id: updated._id } }); } catch (e) {}
     updated.passwordHash = undefined;
     return res.json({ success: true, data: updated });
   } catch (err) {
@@ -454,6 +463,7 @@ const deleteContributor = async (req, res) => {
       return res.status(404).json({ success: false, message: 'contributor not found' });
     }
     console.log('[Admin.deleteContributor] ✓ deleted contributor', del.username);
+    try { await AdminLog.createLog({ actorId: adminId, actorUsername: req.admin && req.admin.username, role: 'admin', actionType: 'delete', message: `${req.admin && req.admin.username} deleted contributor ${del.username}`, refs: { entity: 'Contributor', id: del._id } }); } catch (e) {}
     return res.json({ success: true, data: { id: del._id } });
   } catch (err) {
     console.error('[Admin.deleteContributor] ✗ error:', err && err.message);
@@ -586,6 +596,11 @@ const updateContributorRequestStatus = async (req, res) => {
     }
 
     console.log('[Admin.updateContributorRequestStatus] ✓ updated request to', status);
+    try {
+      const actor = req.admin && req.admin.username;
+      const verb = status === 'completed' ? 'approved' : (status === 'rejected' ? 'rejected' : `set status ${status}`);
+      await AdminLog.createLog({ actorId: adminId, actorUsername: actor, role: 'admin', actionType: status === 'rejected' ? 'reject' : (status === 'completed' ? 'approve' : 'edit'), message: `${actor} ${verb} contributor request ${request._id}`, refs: { entity: 'ContributorRequest', id: request._id } });
+    } catch (e) {}
     return res.json({ success: true, data: request });
   } catch (err) {
     console.error('[Admin.updateContributorRequestStatus] ✗ error:', err.message);
