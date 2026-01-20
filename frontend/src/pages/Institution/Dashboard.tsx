@@ -164,50 +164,52 @@ const InstitutionDashboard: React.FC = () => {
   ) : null;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="bg-gradient-to-r from-red-600 to-red-700 text-white">
-        <div className="max-w-7xl mx-auto px-8 py-6">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div>
-              <h1 className="text-3xl font-bold mb-1">Institution Dashboard</h1>
-              <p className="text-red-100">Welcome{inst?.name ? `, ${inst.name}` : ''}</p>
-              <p className="text-sm text-red-200">ID: {inst?.institutionId || 'N/A'}</p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <button 
-                onClick={loadData} 
-                className="px-4 py-2 bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 rounded-lg text-white transition-colors flex items-center gap-2" 
-                disabled={loading}
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-                {loading ? 'Refreshing...' : 'Refresh'}
-              </button>
-              <a 
-                href="/institution/chat" 
-                className="px-4 py-2 bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 rounded-lg text-white transition-colors flex items-center gap-2"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" />
-                </svg>
-                Faculty Chat
-              </a>
-              <a 
-                href="/institution/admin-chat" 
-                className="px-4 py-2 bg-white text-red-600 hover:bg-white/90 rounded-lg font-medium transition-colors flex items-center gap-2"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                </svg>
-                Admin Chat
-              </a>
+    <div className="flex min-h-screen">
+      <InstitutionSidebar />
+      <div className="flex-1 bg-gray-50">
+        {/* Header */}
+        <div className="bg-white border-b border-gray-200">
+          <div className="max-w-7xl mx-auto px-8 py-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">DASHBOARD</h1>
+                <p className="text-sm text-gray-500 mt-1">Welcome back{inst?.name ? `, ${inst.name}` : ''}</p>
+              </div>
+              <div className="flex gap-3">
+                <button 
+                  onClick={loadData} 
+                  className="px-4 py-2 border border-gray-300 hover:bg-gray-50 rounded-lg text-gray-700 transition-colors flex items-center gap-2" 
+                  disabled={loading}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  {loading ? 'Refreshing...' : 'Refresh'}
+                </button>
+                <a 
+                  href="/institution/chat" 
+                  className="px-4 py-2 border border-gray-300 hover:bg-gray-50 rounded-lg text-gray-700 transition-colors flex items-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" />
+                  </svg>
+                  Faculty Chat
+                </a>
+                <a 
+                  href="/institution/admin-chat" 
+                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors flex items-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                  </svg>
+                  Admin Chat
+                </a>
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <div className="max-w-7xl mx-auto px-8 py-8 space-y-8">
+        <div className="max-w-7xl mx-auto px-8 py-8 space-y-8">
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-start gap-3">
             <svg className="w-5 h-5 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
@@ -217,240 +219,289 @@ const InstitutionDashboard: React.FC = () => {
           </div>
         )}
 
+        {/* Welcome Card */}
+        <div className="bg-gradient-to-br from-[#0d0d0d] to-gray-800 rounded-xl p-8 text-white shadow-lg">
+          <h2 className="text-3xl font-bold mb-2">Welcome back, {inst?.name || 'Institution'}!</h2>
+          <p className="text-gray-300 mb-4">Here's an overview of your institution</p>
+          <div className="flex items-center gap-4 text-sm">
+            <div className="flex items-center gap-2">
+              <svg className="w-4 h-4 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 2a1 1 0 011 1v1.323l3.954 1.582 1.599-.8a1 1 0 01.894 1.79l-1.233.616 1.738 5.42a1 1 0 01-.285 1.05A3.989 3.989 0 0115 15a3.989 3.989 0 01-2.667-1.019 1 1 0 01-.285-1.05l1.715-5.349L11 6.477V16h2a1 1 0 110 2H7a1 1 0 110-2h2V6.477L6.237 7.582l1.715 5.349a1 1 0 01-.285 1.05A3.989 3.989 0 015 15a3.989 3.989 0 01-2.667-1.019 1 1 0 01-.285-1.05l1.738-5.42-1.233-.617a1 1 0 01.894-1.788l1.599.799L9 4.323V3a1 1 0 011-1z" clipRule="evenodd" />
+              </svg>
+              <span>ID: {inst?.institutionId || 'N/A'}</span>
+            </div>
+          </div>
+        </div>
+
         {/* Stats Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                </svg>
+          <a href="/institution/faculties" className="group">
+            <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg p-6 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 cursor-pointer">
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center backdrop-blur-sm">
+                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                  </svg>
+                </div>
+                <span className="text-4xl font-bold text-white">{faculties.length}</span>
               </div>
-              <span className="text-3xl font-bold text-gray-900">{faculties.length}</span>
+              <h3 className="text-white font-semibold text-lg mb-2">Faculties</h3>
+              <p className="text-blue-100 text-sm">
+                {inst?.facultyLimit != null 
+                  ? `${Math.max(0, (inst.facultyLimit as number) - faculties.length)} spots remaining`
+                  : 'Unlimited'}
+              </p>
             </div>
-            <h3 className="text-sm font-medium text-gray-500 mb-1">Faculties</h3>
-            <p className="text-xs text-gray-400 mb-3">
-              Limit: {inst?.facultyLimit ?? '∞'} • Remaining: {inst?.facultyLimit != null ? Math.max(0, (inst.facultyLimit as number) - faculties.length) : '∞'}
-            </p>
-            <a href="/institution/faculties" className="inline-flex items-center text-sm text-red-600 hover:text-red-700 font-medium">
-              Manage 
-              <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </a>
-          </div>
+          </a>
 
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                </svg>
+          <a href="/institution/students" className="group">
+            <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow-lg p-6 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 cursor-pointer">
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center backdrop-blur-sm">
+                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                  </svg>
+                </div>
+                <span className="text-4xl font-bold text-white">{students.length}</span>
               </div>
-              <span className="text-3xl font-bold text-gray-900">{students.length}</span>
+              <h3 className="text-white font-semibold text-lg mb-2">Students</h3>
+              <p className="text-green-100 text-sm">
+                {inst?.studentLimit != null 
+                  ? `${Math.max(0, (inst.studentLimit as number) - students.length)} spots remaining`
+                  : 'Unlimited'}
+              </p>
             </div>
-            <h3 className="text-sm font-medium text-gray-500 mb-1">Students</h3>
-            <p className="text-xs text-gray-400 mb-3">
-              Limit: {inst?.studentLimit ?? '∞'} • Remaining: {inst?.studentLimit != null ? Math.max(0, (inst.studentLimit as number) - students.length) : '∞'}
-            </p>
-            <a href="/institution/students" className="inline-flex items-center text-sm text-red-600 hover:text-red-700 font-medium">
-              Manage
-              <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </a>
-          </div>
+          </a>
 
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                </svg>
+          <a href="/institution/batches" className="group">
+            <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl shadow-lg p-6 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 cursor-pointer">
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center backdrop-blur-sm">
+                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                  </svg>
+                </div>
+                <span className="text-4xl font-bold text-white">{batches.length}</span>
               </div>
-              <span className="text-3xl font-bold text-gray-900">{batches.length}</span>
+              <h3 className="text-white font-semibold text-lg mb-2">Batches</h3>
+              <p className="text-purple-100 text-sm">
+                {inst?.batchLimit != null 
+                  ? `${Math.max(0, (inst.batchLimit as number) - batches.length)} spots remaining`
+                  : 'Unlimited'}
+              </p>
             </div>
-            <h3 className="text-sm font-medium text-gray-500 mb-1">Batches</h3>
-            <p className="text-xs text-gray-400 mb-3">
-              Limit: {inst?.batchLimit ?? '∞'} • Remaining: {inst?.batchLimit != null ? Math.max(0, (inst.batchLimit as number) - batches.length) : '∞'}
-            </p>
-            <a href="/institution/batches" className="inline-flex items-center text-sm text-red-600 hover:text-red-700 font-medium">
-              Manage
-              <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </a>
-          </div>
+          </a>
 
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
-                <svg className="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
+          <a href="/institution/tests" className="group">
+            <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl shadow-lg p-6 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 cursor-pointer">
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center backdrop-blur-sm">
+                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <span className="text-4xl font-bold text-white">{tests.length}</span>
               </div>
-              <span className="text-3xl font-bold text-gray-900">{tests.length}</span>
+              <h3 className="text-white font-semibold text-lg mb-2">Tests</h3>
+              <p className="text-orange-100 text-sm">
+                {inst?.testLimit != null 
+                  ? `${Math.max(0, (inst.testLimit as number) - tests.length)} spots remaining`
+                  : 'Unlimited'}
+              </p>
             </div>
-            <h3 className="text-sm font-medium text-gray-500 mb-1">Tests</h3>
-            <p className="text-xs text-gray-400 mb-3">
-              Limit: {inst?.testLimit ?? '∞'} • Remaining: {inst?.testLimit != null ? Math.max(0, (inst.testLimit as number) - tests.length) : '∞'}
-            </p>
-            <a href="/institution/tests" className="inline-flex items-center text-sm text-red-600 hover:text-red-700 font-medium">
-              Manage
-              <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </a>
-          </div>
+          </a>
         </div>
 
         {/* Recent Items Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Recent Faculties */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">Recent Faculties</h3>
-              <a href="/institution/faculties" className="text-sm text-red-600 hover:text-red-700 font-medium">View all</a>
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-bold text-gray-900 uppercase tracking-wide">Recent Faculties</h3>
+              <a href="/institution/faculties" className="text-sm text-red-600 hover:text-red-700 font-medium flex items-center gap-1">
+                View all
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </a>
             </div>
             {faculties.length === 0 ? (
-              <p className="text-sm text-gray-500 text-center py-8">No faculties yet.</p>
+              <div className="text-center py-12">
+                <svg className="w-12 h-12 mx-auto text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+                <p className="text-sm text-gray-500">No faculties yet</p>
+              </div>
             ) : (
-              <ul className="space-y-3">
-                {take(faculties, 4).map((f) => (
-                  <li key={f._id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-b-0">
-                    <span className="text-sm font-medium text-gray-900">{f.username}</span>
-                    <span className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded">{f.role}</span>
-                  </li>
+              <div className="space-y-3">
+                {take(faculties, 5).map((f) => (
+                  <div key={f._id} className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition-colors">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                        <span className="text-blue-600 font-semibold text-sm">{f.username.charAt(0).toUpperCase()}</span>
+                      </div>
+                      <span className="text-sm font-medium text-gray-900">{f.username}</span>
+                    </div>
+                    <span className="text-xs px-3 py-1 bg-gray-100 text-gray-600 rounded-full font-medium">{f.role}</span>
+                  </div>
                 ))}
-              </ul>
+              </div>
             )}
           </div>
 
+          {/* Recent Students */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">Recent Students</h3>
-              <a href="/institution/students" className="text-sm text-red-600 hover:text-red-700 font-medium">View all</a>
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-bold text-gray-900 uppercase tracking-wide">Recent Students</h3>
+              <a href="/institution/students" className="text-sm text-red-600 hover:text-red-700 font-medium flex items-center gap-1">
+                View all
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </a>
             </div>
             {students.length === 0 ? (
-              <p className="text-sm text-gray-500 text-center py-8">No students yet.</p>
+              <div className="text-center py-12">
+                <svg className="w-12 h-12 mx-auto text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+                <p className="text-sm text-gray-500">No students yet</p>
+              </div>
             ) : (
-              <ul className="space-y-3">
-                {take(students, 4).map((s) => (
-                  <li key={s._id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-b-0">
-                    <span className="text-sm font-medium text-gray-900">{s.name || s.username}</span>
-                    <span className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded">{s.dept || s.username}</span>
-                  </li>
+              <div className="space-y-3">
+                {take(students, 5).map((s) => (
+                  <div key={s._id} className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition-colors">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                        <span className="text-green-600 font-semibold text-sm">{(s.name || s.username).charAt(0).toUpperCase()}</span>
+                      </div>
+                      <span className="text-sm font-medium text-gray-900">{s.name || s.username}</span>
+                    </div>
+                    <span className="text-xs px-3 py-1 bg-gray-100 text-gray-600 rounded-full font-medium">{s.dept || s.username}</span>
+                  </div>
                 ))}
-              </ul>
+              </div>
             )}
           </div>
 
+          {/* Recent Batches */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">Recent Batches</h3>
-              <a href="/institution/batches" className="text-sm text-red-600 hover:text-red-700 font-medium">View all</a>
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-bold text-gray-900 uppercase tracking-wide">Recent Batches</h3>
+              <a href="/institution/batches" className="text-sm text-red-600 hover:text-red-700 font-medium flex items-center gap-1">
+                View all
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </a>
             </div>
             {batches.length === 0 ? (
-              <p className="text-sm text-gray-500 text-center py-8">No batches yet.</p>
+              <div className="text-center py-12">
+                <svg className="w-12 h-12 mx-auto text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                </svg>
+                <p className="text-sm text-gray-500">No batches yet</p>
+              </div>
             ) : (
-              <ul className="space-y-3">
-                {take(batches, 4).map((b) => (
-                  <li key={b._id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-b-0">
-                    <span className="text-sm font-medium text-gray-900">{b.name}</span>
-                    <span className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded">Faculty: {b.faculty?.username || '—'}</span>
-                  </li>
+              <div className="space-y-3">
+                {take(batches, 5).map((b) => (
+                  <div key={b._id} className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition-colors">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+                        <span className="text-purple-600 font-semibold text-sm">{b.name.charAt(0).toUpperCase()}</span>
+                      </div>
+                      <span className="text-sm font-medium text-gray-900">{b.name}</span>
+                    </div>
+                    <span className="text-xs px-3 py-1 bg-gray-100 text-gray-600 rounded-full font-medium">{b.faculty?.username || 'Unassigned'}</span>
+                  </div>
                 ))}
-              </ul>
+              </div>
             )}
           </div>
 
+          {/* Recent Tests */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">Recent Tests</h3>
-              <a href="/institution/tests" className="text-sm text-red-600 hover:text-red-700 font-medium">View all</a>
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-bold text-gray-900 uppercase tracking-wide">Recent Tests</h3>
+              <a href="/institution/tests" className="text-sm text-red-600 hover:text-red-700 font-medium flex items-center gap-1">
+                View all
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </a>
             </div>
             {tests.length === 0 ? (
-              <p className="text-sm text-gray-500 text-center py-8">No tests yet.</p>
+              <div className="text-center py-12">
+                <svg className="w-12 h-12 mx-auto text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <p className="text-sm text-gray-500">No tests yet</p>
+              </div>
             ) : (
-              <ul className="space-y-3">
-                {take(tests, 4).map((t) => (
-                  <li key={t._id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-b-0">
-                    <span className="text-sm font-medium text-gray-900">{t.name}</span>
-                    <span className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded">{t.type}{t.assignedFaculty ? ` • ${t.assignedFaculty.username}` : ''}</span>
-                  </li>
+              <div className="space-y-3">
+                {take(tests, 5).map((t) => (
+                  <div key={t._id} className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition-colors">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
+                        <span className="text-orange-600 font-semibold text-sm">{t.name.charAt(0).toUpperCase()}</span>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">{t.name}</p>
+                        <p className="text-xs text-gray-500">{t.type}</p>
+                      </div>
+                    </div>
+                    <span className="text-xs px-3 py-1 bg-gray-100 text-gray-600 rounded-full font-medium">{t.assignedFaculty?.username || 'Unassigned'}</span>
+                  </div>
                 ))}
-              </ul>
+              </div>
             )}
           </div>
         </div>
 
-        {/* Announcements Section */}
+        {/* Quick Actions */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">Announcements</h3>
-            <div className="flex gap-2">
-              <a href="/institution/announcements/create" className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg transition-colors">
-                Create New
-              </a>
-              <a href="/institution/announcements" className="px-4 py-2 border border-gray-300 hover:bg-gray-50 text-sm font-medium text-gray-700 rounded-lg transition-colors">
-                View All
-              </a>
-            </div>
-            {students.length === 0 ? (
-              <p className="text-sm text-gray-500 text-center py-8">No students yet.</p>
-            ) : (
-              <ul className="space-y-3">
-                {take(students, 4).map((s) => (
-                  <li key={s._id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-b-0">
-                    <span className="text-sm font-medium text-gray-900">{s.name || s.username}</span>
-                    <span className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded">{s.dept || s.username}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
+          <h3 className="text-lg font-bold text-gray-900 uppercase tracking-wide mb-6">Quick Actions</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <a href="/institution/announcements/create" className="group">
+              <div className="bg-gradient-to-br from-red-500 to-red-600 p-4 rounded-lg hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
+                <svg className="w-8 h-8 text-white mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+                </svg>
+                <p className="text-white font-semibold">Create Announcement</p>
+              </div>
+            </a>
 
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">Recent Batches</h3>
-              <a href="/institution/batches" className="text-sm text-red-600 hover:text-red-700 font-medium">View all</a>
-            </div>
-            {batches.length === 0 ? (
-              <p className="text-sm text-gray-500 text-center py-8">No batches yet.</p>
-            ) : (
-              <ul className="space-y-3">
-                {take(batches, 4).map((b) => (
-                  <li key={b._id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-b-0">
-                    <span className="text-sm font-medium text-gray-900">{b.name}</span>
-                    <span className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded">Faculty: {b.faculty?.username || '—'}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
+            <a href="/institution/faculties" className="group">
+              <div className="bg-gradient-to-br from-blue-500 to-blue-600 p-4 rounded-lg hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
+                <svg className="w-8 h-8 text-white mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                <p className="text-white font-semibold">Add Faculty</p>
+              </div>
+            </a>
 
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">Recent Tests</h3>
-              <a href="/institution/tests" className="text-sm text-red-600 hover:text-red-700 font-medium">View all</a>
-            </div>
-            {tests.length === 0 ? (
-              <p className="text-sm text-gray-500 text-center py-8">No tests yet.</p>
-            ) : (
-              <ul className="space-y-3">
-                {take(tests, 4).map((t) => (
-                  <li key={t._id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-b-0">
-                    <span className="text-sm font-medium text-gray-900">{t.name}</span>
-                    <span className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded">{t.type}{t.assignedFaculty ? ` • ${t.assignedFaculty.username}` : ''}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
+            <a href="/institution/batches" className="group">
+              <div className="bg-gradient-to-br from-purple-500 to-purple-600 p-4 rounded-lg hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
+                <svg className="w-8 h-8 text-white mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                <p className="text-white font-semibold">Create Batch</p>
+              </div>
+            </a>
+
+            <a href="/institution/tests" className="group">
+              <div className="bg-gradient-to-br from-orange-500 to-orange-600 p-4 rounded-lg hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
+                <svg className="w-8 h-8 text-white mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                <p className="text-white font-semibold">Create Test</p>
+              </div>
+            </a>
           </div>
         </div>
-
-        {/* Announcements card removed (use bell icon popup in header) */}
       </div>
     </div>
+  </div>
   );
 };
 
