@@ -1,10 +1,32 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { FaHome, FaChalkboardTeacher, FaUserGraduate, FaLayerGroup, FaClipboardList, FaBullhorn, FaComments, FaBook, FaCog, FaSignOutAlt } from 'react-icons/fa';
+import { 
+  FaHome, 
+  FaChalkboardTeacher, 
+  FaUserGraduate, 
+  FaLayerGroup, 
+  FaClipboardList, 
+  FaBullhorn, 
+  FaComments, 
+  FaBook,
+  FaSignOutAlt,
+  FaChevronLeft,
+  FaChevronRight
+} from 'react-icons/fa';
 
 const InstitutionSidebar: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    const saved = localStorage.getItem('institution_sidebar_collapsed');
+    return saved === 'true';
+  });
+
+  const toggleCollapse = () => {
+    const newState = !isCollapsed;
+    setIsCollapsed(newState);
+    localStorage.setItem('institution_sidebar_collapsed', String(newState));
+  };
 
   const instData = typeof window !== 'undefined' ? localStorage.getItem('institution_data') : null;
   const inst = instData ? JSON.parse(instData) : null;
@@ -17,68 +39,103 @@ const InstitutionSidebar: React.FC = () => {
     navigate('/login');
   };
 
-  const items = [
-    { name: 'Dashboard', path: '/institution/dashboard', icon: <FaHome className="w-5 h-5" /> },
-    { name: 'Faculties', path: '/institution/faculties', icon: <FaChalkboardTeacher className="w-5 h-5" /> },
-    { name: 'Students', path: '/institution/students', icon: <FaUserGraduate className="w-5 h-5" /> },
-    { name: 'Batches', path: '/institution/batches', icon: <FaLayerGroup className="w-5 h-5" /> },
-    { name: 'Tests', path: '/institution/tests', icon: <FaClipboardList className="w-5 h-5" /> },
-    { name: 'Announcements', path: '/institution/announcements', icon: <FaBullhorn className="w-5 h-5" /> },
-    { name: 'Chats', path: '/institution/chat', icon: <FaComments className="w-5 h-5" /> },
-    { name: 'Library', path: '/institution/library', icon: <FaBook className="w-5 h-5" /> }
+  const menuItems = [
+    { name: 'Dashboard', path: '/institution/dashboard', icon: <FaHome /> },
+    { name: 'Faculties', path: '/institution/faculties', icon: <FaChalkboardTeacher /> },
+    { name: 'Students', path: '/institution/students', icon: <FaUserGraduate /> },
+    { name: 'Batches', path: '/institution/batches', icon: <FaLayerGroup /> },
+    { name: 'Tests', path: '/institution/tests', icon: <FaClipboardList /> },
+    { name: 'Announcements', path: '/institution/announcements', icon: <FaBullhorn /> },
+    { name: 'Chats', path: '/institution/chat', icon: <FaComments /> },
+    { name: 'Library', path: '/institution/library', icon: <FaBook /> }
   ];
 
   return (
-    <div className="w-64 bg-gradient-to-b from-red-800 to-red-900 min-h-screen flex flex-col">
-      <div className="p-6 border-b border-red-700">
+    <div className={`min-h-screen flex flex-col bg-[#0d0d0d] ${isCollapsed ? 'w-20' : 'w-64'} transition-all duration-300 shadow-lg`}>
+      {/* Top: logo + collapse control */}
+      <div className="relative p-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center">
-            <svg className="w-6 h-6 text-red-800" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13"/></svg>
+          <div className="w-10 h-10 rounded-full bg-red-600 flex items-center justify-center shadow-md">
+            <span className="text-white font-bold">G</span>
           </div>
-          <div>
-            <div className="text-white text-lg font-bold">{name}</div>
-            <div className="text-red-300 text-xs">Institution</div>
-          </div>
+          {!isCollapsed && <span className="text-white text-lg font-semibold tracking-tight">GradEdge</span>}
         </div>
+
+        {/* Collapse toggle - circular red button overlapping edge */}
+        <button
+          onClick={toggleCollapse}
+          aria-label={isCollapsed ? 'Open sidebar' : 'Close sidebar'}
+          className="absolute -right-3 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-red-600 flex items-center justify-center text-white shadow-lg border-2 border-[#0d0d0d]"
+        >
+          {isCollapsed ? <FaChevronRight size={12} /> : <FaChevronLeft size={12} />}
+        </button>
       </div>
 
-      <nav className="flex-1 py-6">
-        {items.map((item) => {
-          const isActive = location.pathname === item.path || location.pathname.startsWith(item.path);
+      {/* Red separating line */}
+      <div className="mx-4 h-[1px] bg-red-600"></div>
+
+      {/* Menu Items */}
+      <nav className="flex-1 px-2 py-4 space-y-1">
+        {menuItems.map((item) => {
+          const isActive = location.pathname === item.path || (item.path !== '/institution/dashboard' && location.pathname.startsWith(item.path));
           return (
             <button
               key={item.path}
               onClick={() => navigate(item.path)}
-              className={`w-full flex items-center gap-3 px-6 py-3 text-left transition-colors ${isActive ? 'bg-red-700 text-white font-medium' : 'text-red-100 hover:bg-red-700 hover:text-white'}`}
+              className={`relative flex items-center gap-4 transition-all duration-200 ${
+                isCollapsed 
+                  ? isActive 
+                    ? 'bg-gradient-to-r from-red-600 to-red-700 text-white shadow-lg rounded-full w-12 h-12 mx-auto justify-center' 
+                    : 'text-white/70 hover:bg-red-700/20 hover:text-white rounded-lg w-12 h-12 mx-auto justify-center'
+                  : isActive 
+                    ? 'bg-gradient-to-r from-red-600 to-red-700 text-white shadow-lg rounded-full w-full px-3 py-3'
+                    : 'text-white/70 hover:bg-red-700/20 hover:text-white rounded-lg w-full px-3 py-3'
+              }`} 
             >
-              {item.icon}
-              <span>{item.name}</span>
+              {/* active left marker */}
+              {isActive && !isCollapsed && (
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 w-2 h-2 bg-white/30 rounded-full" />
+              )}
+
+              <div className={`shrink-0 flex items-center justify-center ${isCollapsed ? '' : 'w-8 h-8 rounded-md'}`}>
+                <span className={`text-white ${isActive ? 'text-lg' : 'text-lg'}`}>{item.icon}</span>
+              </div>
+
+              {!isCollapsed && <span className="text-sm font-medium pl-1">{item.name}</span>}
             </button>
           );
         })}
       </nav>
 
-      
+      {/* Red separating line above footer */}
+      <div className="mx-4 h-[1px] bg-red-600"></div>
 
-      <div className="border-t border-red-700 p-4">
-        <div className="flex items-center gap-3 mb-3">
-          <div className="w-10 h-10 bg-red-700 rounded-full flex items-center justify-center">
-            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+      {/* Footer / profile */}
+      <div className="p-4 border-t border-black/40 mt-auto">
+        <div className={`flex items-center gap-3 ${isCollapsed ? 'justify-center' : ''}`}>
+          <div className="w-9 h-9 bg-gray-800 rounded-full flex items-center justify-center text-white font-semibold">
+            {name.charAt(0).toUpperCase()}
           </div>
-          <div className="flex-1">
-            <p className="text-white font-medium text-sm">{name}</p>
-            <p className="text-red-300 text-xs">Institution</p>
-          </div>
+          {!isCollapsed && (
+            <div className="flex-1">
+              <div className="text-sm text-white font-medium">{name}</div>
+              <button onClick={handleSignOut} className="mt-1 text-xs text-gray-300 hover:text-white flex items-center gap-2">
+                <FaSignOutAlt size={12} /> Sign Out
+              </button>
+            </div>
+          )}
         </div>
-        <button onClick={handleSignOut} className="w-full flex items-center gap-2 px-4 py-2 bg-red-700 hover:bg-red-600 text-white rounded-lg transition-colors">
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
-          <span>Sign Out</span>
-        </button>
+
+        {isCollapsed && (
+          <div className="mt-3 flex justify-center">
+            <button onClick={handleSignOut} className="text-gray-300 hover:text-white text-sm" title="Sign out">
+              <FaSignOutAlt />
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
 };
-
-
 
 export default InstitutionSidebar;
