@@ -323,28 +323,7 @@ const ViewLogs: React.FC = () => {
                 ))}
               </div>
             )}
-            {/* Pagination */}
-            <div className="px-6 py-4 bg-gray-50 border-t flex items-center justify-between">
-              <div className="text-sm text-gray-600">
-                Showing {Math.min(page * PAGE_SIZE + 1, filteredLogs.length === 0 ? 0 : filteredLogs.length)} - {Math.min((page + 1) * PAGE_SIZE, filteredLogs.length)} of {filteredLogs.length}
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setPage((p) => Math.max(0, p - 1))}
-                  disabled={page === 0}
-                  className={`px-3 py-1 rounded ${page === 0 ? 'bg-gray-100 text-gray-400' : 'bg-white border'}`}
-                >
-                  Previous
-                </button>
-                <button
-                  onClick={() => setPage((p) => p + 1)}
-                  disabled={(page + 1) * PAGE_SIZE >= filteredLogs.length}
-                  className={`px-3 py-1 rounded ${(page + 1) * PAGE_SIZE >= filteredLogs.length ? 'bg-gray-100 text-gray-400' : 'bg-white border'}`}
-                >
-                  Next
-                </button>
-              </div>
-            </div>
+            {/* Pagination (handled below) */}
           </div>
 
           {/* Pagination */}
