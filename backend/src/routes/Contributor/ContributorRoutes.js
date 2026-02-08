@@ -57,13 +57,13 @@ console.log('[ContributorRoutes] GET /contributions - Get my contributed questio
 router.get('/contributions', verifyContributor, ContributorQuestionControllers.listQuestions);
 
 console.log('[ContributorRoutes] POST /contributions - Create a new contributed question');
-router.post('/contributions', verifyContributor, imageUpload.fields([{ name: 'image', maxCount: 1 }, { name: 'solutionImages', maxCount: 5 }]), ContributorQuestionControllers.createQuestion);
+router.post('/contributions', verifyContributor, imageUpload.fields([{ name: 'image', maxCount: 5 }, { name: 'solutionImages', maxCount: 20 }]), ContributorQuestionControllers.createQuestion);
 
 console.log('[ContributorRoutes] GET /contributions/:id - Get contributed question by id');
 router.get('/contributions/:id', verifyContributor, ContributorQuestionControllers.getQuestion);
 
 console.log('[ContributorRoutes] PUT /contributions/:id - Update contributed question');
-router.put('/contributions/:id', verifyContributor, imageUpload.fields([{ name: 'image', maxCount: 1 }, { name: 'solutionImages', maxCount: 5 }]), ContributorQuestionControllers.updateQuestion);
+router.put('/contributions/:id', verifyContributor, imageUpload.fields([{ name: 'image', maxCount: 5 }, { name: 'solutionImages', maxCount: 20 }]), ContributorQuestionControllers.updateQuestion);
 
 console.log('[ContributorRoutes] DELETE /contributions/:id - Delete contributed question');
 router.delete('/contributions/:id', verifyContributor, ContributorQuestionControllers.deleteQuestion);

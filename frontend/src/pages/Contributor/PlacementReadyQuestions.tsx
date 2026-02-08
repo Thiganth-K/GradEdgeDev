@@ -1,4 +1,4 @@
-import React, { useEffect, useState, ChangeEvent } from 'react';
+import React, { useEffect, useState, ChangeEvent, useRef } from 'react';
 import { apiFetch, API_ENDPOINTS } from '../../lib/api';
 import makeHeaders from '../../lib/makeHeaders';
 
@@ -19,8 +19,10 @@ const PlacementReadyQuestions: React.FC = () => {
   const [questionType, setQuestionType] = useState('MCQ');
   const [questionNumber, setQuestionNumber] = useState<number | ''>('');
   const [questionText, setQuestionText] = useState('');
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const questionSingleInputRef = useRef<HTMLInputElement | null>(null);
+  const solutionSingleInputRefs = useRef<Array<HTMLInputElement | null>>([]);
   const [options, setOptions] = useState<Option[]>([{ text: '', isCorrect: false }, { text: '', isCorrect: false }]);
   const [metadataDifficulty, setMetadataDifficulty] = useState('Easy');
   const [bloom, setBloom] = useState('Remember');
@@ -29,7 +31,7 @@ const PlacementReadyQuestions: React.FC = () => {
   const [subTopic, setSubTopic] = useState('');
   const [codeEditor, setCodeEditor] = useState(false);
   const [solutions, setSolutions] = useState<Solution[]>([{ text: '' }]);
-  const [solutionFiles, setSolutionFiles] = useState<Array<File | null>>([null]);
+  const [solutionFiles, setSolutionFiles] = useState<Array<File[]>>([[]]);
   const [hints, setHints] = useState('');
   const [courseOutcome, setCourseOutcome] = useState('');
   const [programOutcome, setProgramOutcome] = useState('');
@@ -50,28 +52,63 @@ const PlacementReadyQuestions: React.FC = () => {
   };
 
   const resetForm = () => {
-    setSubject(''); setQuestionType('MCQ'); setQuestionNumber(''); setQuestionText(''); setImageFile(null); setImagePreview(null);
+    setSubject(''); setQuestionType('MCQ'); setQuestionNumber(''); setQuestionText(''); setImageFiles([]); setImagePreviews([]);
     setOptions([{ text: '', isCorrect: false }, { text: '', isCorrect: false }]); setMetadataDifficulty('Easy'); setBloom('Remember'); setTags(''); setTopic(''); setSubTopic(''); setCodeEditor(false);
-    setSolutions([{ text: '' }]); setSolutionFiles([null]); setHints(''); setCourseOutcome(''); setProgramOutcome(''); setEditingId(null);
+    setSolutions([{ text: '' }]); setSolutionFiles([[]]); setHints(''); setCourseOutcome(''); setProgramOutcome(''); setEditingId(null);
   };
 
   const openCreate = () => { resetForm(); setShowForm(true); };
 
   const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files ? Array.from(e.target.files) : [];
+    setImageFiles(files);
+    const previews = files.map(f => URL.createObjectURL(f));
+    setImagePreviews(previews);
+  };
+
+  const handleQuestionSingleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files && e.target.files[0];
-    setImageFile(f || null);
-    if (f) setImagePreview(URL.createObjectURL(f)); else setImagePreview(null);
+    if (f) {
+      setImageFiles(prev => [...prev, f]);
+      setImagePreviews(prev => [...prev, URL.createObjectURL(f)]);
+    }
+    if (e.target) (e.target as HTMLInputElement).value = '';
   };
 
   const handleSolutionFileChange = (index: number, e: ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files ? Array.from(e.target.files) : [];
+    setSolutionFiles(prev => {
+      const copy = prev.map(arr => Array.isArray(arr) ? [...arr] : []);
+      while (copy.length <= index) copy.push([]);
+      copy[index] = files;
+      return copy;
+    });
+  };
+
+  const handleSolutionSingleChange = (index: number, e: ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files && e.target.files[0];
-    setSolutionFiles(prev => { const copy = [...prev]; copy[index] = f || null; return copy; });
+    if (f) {
+      setSolutionFiles(prev => {
+        const copy = prev.map(arr => Array.isArray(arr) ? [...arr] : []);
+        while (copy.length <= index) copy.push([]);
+        copy[index] = copy[index] || [];
+        copy[index].push(f);
+        return copy;
+      });
+    }
+    if (e.target) (e.target as HTMLInputElement).value = '';
+  };
+
+  const triggerQuestionSingle = () => questionSingleInputRef.current && questionSingleInputRef.current.click();
+  const triggerSolutionSingle = (index: number) => {
+    const el = solutionSingleInputRefs.current[index];
+    if (el) el.click();
   };
 
   const addOption = () => setOptions(prev => [...prev, { text: '', isCorrect: false }]);
   const removeOption = (idx: number) => setOptions(prev => prev.filter((_, i) => i !== idx));
 
-  const addSolution = () => { setSolutions(prev => [...prev, { text: '' }]); setSolutionFiles(prev => [...prev, null]); };
+  const addSolution = () => { setSolutions(prev => [...prev, { text: '' }]); setSolutionFiles(prev => [...prev, []]); };
   const removeSolution = (idx: number) => { setSolutions(prev => prev.filter((_, i) => i !== idx)); setSolutionFiles(prev => prev.filter((_, i) => i !== idx)); };
 
   const prepareFormData = () => {
@@ -80,7 +117,8 @@ const PlacementReadyQuestions: React.FC = () => {
     fd.append('questionType', questionType);
     if (questionNumber !== '') fd.append('questionNumber', String(questionNumber));
     fd.append('questionText', questionText);
-    if (imageFile) fd.append('image', imageFile);
+    // append question images (multiple)
+    imageFiles.forEach((f) => { if (f) fd.append('image', f); });
     fd.append('options', JSON.stringify(options));
     fd.append('metadata', JSON.stringify({ difficulty: metadataDifficulty, bloomTaxonomy: bloom }));
     fd.append('tags', JSON.stringify(tags.split(',').map(t => t.trim()).filter(Boolean)));
@@ -88,8 +126,19 @@ const PlacementReadyQuestions: React.FC = () => {
     fd.append('subTopic', subTopic);
     fd.append('codeEditor', String(codeEditor));
     fd.append('solutions', JSON.stringify(solutions));
-    // append solution files
-    solutionFiles.forEach((f) => { if (f) fd.append('solutionImages', f); });
+    // append solution files and build mapping of which solution index each file belongs to
+    const mapping: number[] = [];
+    for (let si = 0; si < solutionFiles.length; si++) {
+      const arr = solutionFiles[si] || [];
+      for (let j = 0; j < arr.length; j++) {
+        const f = arr[j];
+        if (f) {
+          fd.append('solutionImages', f);
+          mapping.push(si);
+        }
+      }
+    }
+    if (mapping.length) fd.append('solutionImageSolutionIndex', JSON.stringify(mapping));
     fd.append('hints', JSON.stringify(hints.split('\n').map(s => s.trim()).filter(Boolean)));
     fd.append('courseOutcome', courseOutcome);
     fd.append('programOutcome', programOutcome);
@@ -118,11 +167,16 @@ const PlacementReadyQuestions: React.FC = () => {
   const startEdit = (q: any) => {
     setEditingId(q._id); setShowForm(true);
     setSubject(q.subject || ''); setQuestionType(q.questionType || 'MCQ'); setQuestionNumber(q.questionNumber || ''); setQuestionText(q.questionText || '');
-    setImagePreview(q.imageUrl || null); setImageFile(null);
+    // set image previews from existing imageUrls (support array)
+    const previews = [] as string[];
+    if (q.imageUrls && Array.isArray(q.imageUrls) && q.imageUrls.length) previews.push(...q.imageUrls);
+    else if (q.imageUrl) previews.push(q.imageUrl);
+    setImagePreviews(previews);
+    setImageFiles([]);
     setOptions(q.options && q.options.length ? q.options.map((o: any) => ({ text: o.text, isCorrect: !!o.isCorrect })) : [{ text: '', isCorrect: false }]);
     setMetadataDifficulty((q.metadata && q.metadata.difficulty) || 'Easy'); setBloom((q.metadata && q.metadata.bloomTaxonomy) || 'Remember'); setTags((q.tags || []).join(',')); setTopic(q.topic || ''); setSubTopic(q.subTopic || ''); setCodeEditor(!!q.codeEditor);
-    setSolutions((q.solutions && q.solutions.length) ? q.solutions.map((s: any) => ({ text: s.text || '', imageUrl: s.imageUrl })) : [{ text: '' }]);
-    setSolutionFiles((q.solutions && q.solutions.length) ? q.solutions.map(() => null) : [null]);
+    setSolutions((q.solutions && q.solutions.length) ? q.solutions.map((s: any) => ({ text: s.text || '', imageUrl: (s.imageUrls && s.imageUrls[0]) || s.imageUrl })) : [{ text: '' }]);
+    setSolutionFiles((q.solutions && q.solutions.length) ? q.solutions.map(() => []) : [[]]);
     setHints((q.hints || []).join('\n')); setCourseOutcome(q.courseOutcome || ''); setProgramOutcome(q.programOutcome || '');
   };
 
@@ -187,7 +241,11 @@ const PlacementReadyQuestions: React.FC = () => {
                   <button onClick={() => handleDelete(q._id)} className="px-3 py-1 bg-red-600 text-white rounded">Delete</button>
                 </div>
               </div>
-              {q.imageUrl && <img src={q.imageUrl} alt="q" className="mt-3 max-h-36 object-contain" />}
+              {(q.imageUrls && q.imageUrls.length) ? (
+                <div className="mt-3 flex gap-2">
+                  {q.imageUrls.map((u: string, i: number) => <img key={i} src={u} alt={`q-${i}`} className="max-h-36 object-contain" />)}
+                </div>
+              ) : q.imageUrl ? <img src={q.imageUrl} alt="q" className="mt-3 max-h-36 object-contain" /> : null}
               <div className="mt-3 text-sm text-gray-700">Tags: {(q.tags||[]).join(', ')}</div>
             </div>
           ))}
@@ -219,9 +277,20 @@ const PlacementReadyQuestions: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-semibold">Question Image</label>
-                  <input type="file" accept="image/*" onChange={handleImageChange} />
-                  {imagePreview && <img src={imagePreview} className="mt-2 max-h-40 object-contain" alt="preview" />}
+                  <label className="block text-sm font-semibold">Question Images (optional)</label>
+                  <div className="flex items-center gap-2">
+                    <input type="file" accept="image/*" onChange={handleImageChange} multiple />
+                    <button type="button" onClick={triggerQuestionSingle} className="px-2 py-1 bg-white border rounded">Add One</button>
+                    <input ref={questionSingleInputRef} type="file" accept="image/*" onChange={handleQuestionSingleChange} style={{ display: 'none' }} />
+                  </div>
+                  <div className="flex gap-2 flex-wrap mt-2">
+                    {imagePreviews.map((p, i) => (
+                      <div key={i} className="relative">
+                        <img src={p} className="max-h-28 object-contain border rounded" alt={`preview-${i}`} />
+                        <button type="button" onClick={() => { setImageFiles(prev => prev.filter((_, idx) => idx !== i)); setImagePreviews(prev => prev.filter((_, idx) => idx !== i)); }} className="absolute top-0 right-0 bg-white text-red-600 rounded-full px-1">x</button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
                 <div>
                   <label className="block text-sm font-semibold">Tags (comma separated)</label>
@@ -250,8 +319,30 @@ const PlacementReadyQuestions: React.FC = () => {
                     <div key={idx} className="border p-2 rounded">
                       <textarea value={s.text} onChange={e => setSolutions(prev => { const c = [...prev]; c[idx].text = e.target.value; return c; })} placeholder="Solution text" className="w-full p-2 border rounded h-20" />
                       <div className="mt-2">
-                        <label className="block text-sm">Solution Image (optional)</label>
-                        <input type="file" accept="image/*" onChange={(e) => handleSolutionFileChange(idx, e)} />
+                        <label className="block text-sm">Solution Images (optional)</label>
+                        <div className="flex items-center gap-2">
+                          <input type="file" accept="image/*" onChange={(e) => handleSolutionFileChange(idx, e)} multiple />
+                          <button type="button" onClick={() => triggerSolutionSingle(idx)} className="px-2 py-1 bg-white border rounded">Add One</button>
+                          <input ref={el => solutionSingleInputRefs.current[idx] = el} type="file" accept="image/*" onChange={(e) => handleSolutionSingleChange(idx, e)} style={{ display: 'none' }} />
+                        </div>
+                        <div className="flex gap-2 flex-wrap mt-2">
+                          {/* existing solution image URL from DB */}
+                          {s.imageUrl && <img src={s.imageUrl} className="max-h-20 object-contain border rounded" alt="existing" />}
+                          {/* previews for newly selected files */}
+                          {(solutionFiles[idx] || []).map((f, fi) => (
+                            <div key={fi} className="relative">
+                              <img src={URL.createObjectURL(f)} className="max-h-20 object-contain border rounded" alt={`sol-${idx}-${fi}`} />
+                              <button type="button" onClick={() => {
+                                setSolutionFiles(prev => {
+                                  const copy = prev.map(arr => Array.isArray(arr) ? [...arr] : []);
+                                  if (!copy[idx]) copy[idx] = [];
+                                  copy[idx] = copy[idx].filter((_, k) => k !== fi);
+                                  return copy;
+                                });
+                              }} className="absolute top-0 right-0 bg-white text-red-600 rounded-full px-1">x</button>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                       <div className="flex gap-2 mt-2">
                         <button onClick={() => removeSolution(idx)} className="px-2 py-1 bg-gray-200 rounded">Remove</button>

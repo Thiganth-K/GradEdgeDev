@@ -16,39 +16,63 @@ const createQuestion = async (req, res) => {
       try { payload.options = JSON.parse(payload.options); } catch (e) { payload.options = []; }
     }
 
-    // handle image upload (question image and solution images)
+    // handle image upload (support multiple question images and multiple solution images)
     if (req.files) {
-      // question image may be in req.files.image as array
-      if (req.files.image && req.files.image[0] && req.files.image[0].buffer) {
-        try {
-          const result = await uploadBuffer(req.files.image[0].buffer, 'contributor_questions');
-          payload.imageUrl = result && result.secure_url;
-          payload.imagePublicId = result && result.public_id;
-        } catch (err) {
-          console.error('[createQuestion] question image upload failed', err && err.message);
-          return res.status(500).json({ success: false, message: 'question image upload failed', error: err && err.message });
+      // QUESTION IMAGES: accept multiple files under 'image'
+      if (req.files.image && Array.isArray(req.files.image) && req.files.image.length) {
+        payload.imageUrls = payload.imageUrls || [];
+        payload.imagePublicIds = payload.imagePublicIds || [];
+        for (let i = 0; i < req.files.image.length; i++) {
+          const f = req.files.image[i];
+          if (f && f.buffer) {
+            try {
+              const r = await uploadBuffer(f.buffer, 'contributor_questions');
+              if (r && r.secure_url) payload.imageUrls.push(r.secure_url);
+              if (r && r.public_id) payload.imagePublicIds.push(r.public_id);
+            } catch (err) {
+              console.error('[createQuestion] question image upload failed', err && err.message);
+              return res.status(500).json({ success: false, message: 'question image upload failed', error: err && err.message });
+            }
+          }
         }
+        // keep legacy single-image fields for backward compatibility (first image)
+        if (payload.imageUrls && payload.imageUrls.length) payload.imageUrl = payload.imageUrls[0];
+        if (payload.imagePublicIds && payload.imagePublicIds.length) payload.imagePublicId = payload.imagePublicIds[0];
       }
-      // solution images may be uploaded as req.files.solutionImages (array)
-      if (req.files.solutionImages && Array.isArray(req.files.solutionImages)) {
+
+      // SOLUTION IMAGES: accept multiple files under 'solutionImages' and map them to solutions
+      if (req.files.solutionImages && Array.isArray(req.files.solutionImages) && req.files.solutionImages.length) {
         // ensure payload.solutions is an array (may be JSON string)
         if (typeof payload.solutions === 'string') {
           try { payload.solutions = JSON.parse(payload.solutions); } catch (e) { payload.solutions = []; }
         }
         payload.solutions = payload.solutions || [];
-        // upload each solution image and attach imageUrl to corresponding solution entry (or create)
+
+        // mapping indices: frontend may include 'solutionImageSolutionIndex' which is a JSON array parallel to files
+        let mapping = null;
+        if (payload.solutionImageSolutionIndex) {
+          try { mapping = JSON.parse(payload.solutionImageSolutionIndex); } catch (e) { mapping = null; }
+        }
+
         for (let i = 0; i < req.files.solutionImages.length; i++) {
           const f = req.files.solutionImages[i];
+          const targetIndex = (Array.isArray(mapping) && typeof mapping[i] === 'number') ? mapping[i] : i;
+          // ensure solution object exists
+          if (!payload.solutions[targetIndex]) payload.solutions[targetIndex] = {};
+          payload.solutions[targetIndex].imageUrls = payload.solutions[targetIndex].imageUrls || [];
+          payload.solutions[targetIndex].imagePublicIds = payload.solutions[targetIndex].imagePublicIds || [];
           if (f && f.buffer) {
             try {
               const r = await uploadBuffer(f.buffer, 'contributor_solutions');
-              if (!payload.solutions[i]) payload.solutions[i] = {};
-              payload.solutions[i].imageUrl = r.secure_url;
-              payload.solutions[i].imagePublicId = r.public_id;
+              if (r && r.secure_url) payload.solutions[targetIndex].imageUrls.push(r.secure_url);
+              if (r && r.public_id) payload.solutions[targetIndex].imagePublicIds.push(r.public_id);
             } catch (err) {
               console.warn('[createQuestion] solution image upload failed', err && err.message);
             }
           }
+          // keep legacy single-image fields on solution for compatibility
+          if (payload.solutions[targetIndex].imageUrls && payload.solutions[targetIndex].imageUrls.length) payload.solutions[targetIndex].imageUrl = payload.solutions[targetIndex].imageUrls[0];
+          if (payload.solutions[targetIndex].imagePublicIds && payload.solutions[targetIndex].imagePublicIds.length) payload.solutions[targetIndex].imagePublicId = payload.solutions[targetIndex].imagePublicIds[0];
         }
       }
     }
@@ -73,6 +97,8 @@ const createQuestion = async (req, res) => {
       questionText: payload.questionText,
       imageUrl: payload.imageUrl,
       imagePublicId: payload.imagePublicId,
+      imageUrls: Array.isArray(payload.imageUrls) ? payload.imageUrls : (payload.imageUrls ? JSON.parse(payload.imageUrls) : []),
+      imagePublicIds: Array.isArray(payload.imagePublicIds) ? payload.imagePublicIds : (payload.imagePublicIds ? JSON.parse(payload.imagePublicIds) : []),
       options: payload.options,
       metadata: payload.metadata || {},
       tags: payload.tags || [],
@@ -119,82 +145,110 @@ const updateQuestion = async (req, res) => {
       try { payload.options = JSON.parse(payload.options); } catch (e) { payload.options = []; }
     }
 
-    // handle uploaded files (question image and solution images)
+    // handle uploaded files (support multiple question images and multiple solution images)
     if (req.files) {
-      // QUESTION IMAGE
-      if (req.files.image && req.files.image[0] && req.files.image[0].buffer) {
-        let result;
+      // QUESTION IMAGES: if provided, delete existing ones then upload and replace
+      if (req.files.image && Array.isArray(req.files.image) && req.files.image.length) {
         try {
-          result = await uploadBuffer(req.files.image[0].buffer, 'contributor_questions');
-        } catch (err) {
-          console.error('[updateQuestion] question image upload failed', err && err.message);
-          return res.status(500).json({ success: false, message: 'question image upload failed', error: err && err.message });
-        }
-
-        // delete previous image if present
-        try {
-          if (existing.imagePublicId) {
-            const delRes = await deletePublicId(existing.imagePublicId);
-            if (!delRes || (delRes.result && delRes.result !== 'ok')) {
-              console.warn('[updateQuestion] deletePublicId returned non-ok for', existing.imagePublicId, delRes);
+          if (existing.imagePublicIds && Array.isArray(existing.imagePublicIds)) {
+            for (const pid of existing.imagePublicIds) {
+              try {
+                const delRes = await deletePublicId(pid);
+                if (!delRes || (delRes.result && delRes.result !== 'ok')) console.warn('[updateQuestion] deletePublicId returned non-ok for', pid, delRes);
+              } catch (err) { console.warn('[updateQuestion] failed to delete old question image', err && err.message); }
             }
-          } else if (existing.imageUrl) {
-            const derived = extractPublicIdFromUrl(existing.imageUrl);
-            if (derived) {
-              const delRes = await deletePublicId(derived);
-              if (!delRes || (delRes.result && delRes.result !== 'ok')) {
-                console.warn('[updateQuestion] deletePublicId returned non-ok for derived', derived, delRes);
+          }
+          if (existing.imagePublicId) {
+            try {
+              const delRes = await deletePublicId(existing.imagePublicId);
+              if (!delRes || (delRes.result && delRes.result !== 'ok')) console.warn('[updateQuestion] deletePublicId returned non-ok for legacy', existing.imagePublicId, delRes);
+            } catch (err) { console.warn('[updateQuestion] failed to delete old legacy question image', err && err.message); }
+          }
+          if (existing.imageUrls && Array.isArray(existing.imageUrls)) {
+            for (const url of existing.imageUrls) {
+              const derived = extractPublicIdFromUrl(url);
+              if (derived) {
+                try {
+                  const delRes = await deletePublicId(derived);
+                  if (!delRes || (delRes.result && delRes.result !== 'ok')) console.warn('[updateQuestion] deletePublicId returned non-ok for derived', derived, delRes);
+                } catch (err) { console.warn('[updateQuestion] failed to delete old question image (derived)', err && err.message); }
               }
             }
           }
-        } catch (err) {
-          console.warn('[updateQuestion] failed to delete old question image', err && err.message);
-        }
+        } catch (err) { console.warn('[updateQuestion] error deleting previous question images', err && err.message); }
 
-        payload.imageUrl = result && result.secure_url;
-        payload.imagePublicId = result && result.public_id;
+        payload.imageUrls = [];
+        payload.imagePublicIds = [];
+        for (let i = 0; i < req.files.image.length; i++) {
+          const f = req.files.image[i];
+          if (f && f.buffer) {
+            try {
+              const r = await uploadBuffer(f.buffer, 'contributor_questions');
+              if (r && r.secure_url) payload.imageUrls.push(r.secure_url);
+              if (r && r.public_id) payload.imagePublicIds.push(r.public_id);
+            } catch (err) { console.error('[updateQuestion] question image upload failed', err && err.message); return res.status(500).json({ success: false, message: 'question image upload failed', error: err && err.message }); }
+          }
+        }
+        if (payload.imageUrls.length) payload.imageUrl = payload.imageUrls[0];
+        if (payload.imagePublicIds.length) payload.imagePublicId = payload.imagePublicIds[0];
       }
 
-      // SOLUTION IMAGES
-      if (req.files.solutionImages && Array.isArray(req.files.solutionImages)) {
+      // SOLUTION IMAGES: support multiple per-solution via mapping array
+      if (req.files.solutionImages && Array.isArray(req.files.solutionImages) && req.files.solutionImages.length) {
         if (typeof payload.solutions === 'string') {
           try { payload.solutions = JSON.parse(payload.solutions); } catch (e) { payload.solutions = []; }
         }
         payload.solutions = payload.solutions || [];
 
-        for (let i = 0; i < req.files.solutionImages.length; i++) {
-          const f = req.files.solutionImages[i];
+        let mapping = null;
+        if (payload.solutionImageSolutionIndex) {
+          try { mapping = JSON.parse(payload.solutionImageSolutionIndex); } catch (e) { mapping = null; }
+        }
 
-          // delete previous solution image if present
+        const updatedSolutionIndices = new Set();
+        for (let i = 0; i < req.files.solutionImages.length; i++) {
+          const targ = (Array.isArray(mapping) && typeof mapping[i] === 'number') ? mapping[i] : i;
+          updatedSolutionIndices.add(targ);
+        }
+
+        // delete existing images for updated solutions
+        for (const idx of updatedSolutionIndices) {
+          const sExisting = existing.solutions && existing.solutions[idx];
+          if (!sExisting) continue;
           try {
-            if (existing.solutions && existing.solutions[i] && existing.solutions[i].imagePublicId) {
-              const delRes = await deletePublicId(existing.solutions[i].imagePublicId);
-              if (!delRes || (delRes.result && delRes.result !== 'ok')) {
-                console.warn('[updateQuestion] deletePublicId returned non-ok for', existing.solutions[i].imagePublicId, delRes);
-              }
-            } else if (existing.solutions && existing.solutions[i] && existing.solutions[i].imageUrl) {
-              const derived = extractPublicIdFromUrl(existing.solutions[i].imageUrl);
-              if (derived) {
-                const delRes = await deletePublicId(derived);
-                if (!delRes || (delRes.result && delRes.result !== 'ok')) {
-                  console.warn('[updateQuestion] deletePublicId returned non-ok for derived', derived, delRes);
-                }
+            if (Array.isArray(sExisting.imagePublicIds)) {
+              for (const pid of sExisting.imagePublicIds) {
+                try { await deletePublicId(pid); } catch (err) { console.warn('[updateQuestion] failed to delete solution image', err && err.message); }
               }
             }
-          } catch (err) {
-            console.warn('[updateQuestion] failed to delete old solution image', err && err.message);
-          }
+            if (sExisting.imagePublicId) {
+              try { await deletePublicId(sExisting.imagePublicId); } catch (err) { console.warn('[updateQuestion] failed to delete legacy solution image', err && err.message); }
+            }
+            if (Array.isArray(sExisting.imageUrls)) {
+              for (const url of sExisting.imageUrls) {
+                const derived = extractPublicIdFromUrl(url);
+                if (derived) { try { await deletePublicId(derived); } catch (err) { console.warn('[updateQuestion] failed to delete derived solution image', err && err.message); } }
+              }
+            }
+          } catch (err) { console.warn('[updateQuestion] error deleting existing solution images', err && err.message); }
+        }
 
+        // upload and attach new solution images
+        for (let i = 0; i < req.files.solutionImages.length; i++) {
+          const f = req.files.solutionImages[i];
+          const targetIndex = (Array.isArray(mapping) && typeof mapping[i] === 'number') ? mapping[i] : i;
+          if (!payload.solutions[targetIndex]) payload.solutions[targetIndex] = {};
+          payload.solutions[targetIndex].imageUrls = payload.solutions[targetIndex].imageUrls || [];
+          payload.solutions[targetIndex].imagePublicIds = payload.solutions[targetIndex].imagePublicIds || [];
           if (f && f.buffer) {
             try {
               const r = await uploadBuffer(f.buffer, 'contributor_solutions');
-              if (!payload.solutions[i]) payload.solutions[i] = {};
-              payload.solutions[i].imageUrl = r.secure_url;
-              payload.solutions[i].imagePublicId = r.public_id;
-            } catch (err) {
-              console.warn('[updateQuestion] solution image upload failed', err && err.message);
-            }
+              if (r && r.secure_url) payload.solutions[targetIndex].imageUrls.push(r.secure_url);
+              if (r && r.public_id) payload.solutions[targetIndex].imagePublicIds.push(r.public_id);
+            } catch (err) { console.warn('[updateQuestion] solution image upload failed', err && err.message); }
           }
+          if (payload.solutions[targetIndex].imageUrls && payload.solutions[targetIndex].imageUrls.length) payload.solutions[targetIndex].imageUrl = payload.solutions[targetIndex].imageUrls[0];
+          if (payload.solutions[targetIndex].imagePublicIds && payload.solutions[targetIndex].imagePublicIds.length) payload.solutions[targetIndex].imagePublicId = payload.solutions[targetIndex].imagePublicIds[0];
         }
       }
     }
@@ -224,7 +278,7 @@ const updateQuestion = async (req, res) => {
     Object.keys(payload).forEach(k => {
       if (k === 'options' || k === 'solutions' || k === 'hints' || k === 'tags' || k === 'metadata') {
         doc[k] = payload[k];
-      } else if (['subject','questionType','questionNumber','questionText','imageUrl','imagePublicId','topic','subTopic','codeEditor','courseOutcome','programOutcome'].includes(k)) {
+      } else if (['subject','questionType','questionNumber','questionText','imageUrl','imagePublicId','imageUrls','imagePublicIds','topic','subTopic','codeEditor','courseOutcome','programOutcome'].includes(k)) {
         doc[k] = payload[k];
       }
     });
@@ -245,46 +299,66 @@ const deleteQuestion = async (req, res) => {
     if (doc.contributor && req.contributor && doc.contributor.toString() !== req.contributor.id) {
       return res.status(403).json({ success: false, message: 'forbidden' });
     }
-    // attempt to delete cloudinary images (question image and solution images)
+    // attempt to delete cloudinary images (question image arrays and solution image arrays)
     const cloudErrors = [];
     try {
+      // delete imagePublicIds array if present
+      if (Array.isArray(doc.imagePublicIds) && doc.imagePublicIds.length) {
+        for (const pid of doc.imagePublicIds) {
+          try {
+            const delRes = await deletePublicId(pid);
+            if (!delRes || (delRes.result && delRes.result !== 'ok')) cloudErrors.push({ id: pid, result: delRes });
+          } catch (err) { cloudErrors.push({ id: pid, error: err && err.message }); }
+        }
+      }
+      // legacy single public id
       if (doc.imagePublicId) {
         try {
           const delRes = await deletePublicId(doc.imagePublicId);
-          if (!delRes || (delRes.result && delRes.result !== 'ok')) {
-            cloudErrors.push({ id: doc.imagePublicId, result: delRes });
-          }
+          if (!delRes || (delRes.result && delRes.result !== 'ok')) cloudErrors.push({ id: doc.imagePublicId, result: delRes });
         } catch (err) { cloudErrors.push({ id: doc.imagePublicId, error: err && err.message }); }
-      } else if (doc.imageUrl) {
-        const derived = extractPublicIdFromUrl(doc.imageUrl);
-        if (derived) {
-          try {
-            const delRes = await deletePublicId(derived);
-            if (!delRes || (delRes.result && delRes.result !== 'ok')) {
-              cloudErrors.push({ id: derived, result: delRes });
-            }
-          } catch (err) { cloudErrors.push({ id: derived, error: err && err.message }); }
+      }
+      // try derived ids from URLs
+      if (Array.isArray(doc.imageUrls)) {
+        for (const url of doc.imageUrls) {
+          const derived = extractPublicIdFromUrl(url);
+          if (derived) {
+            try {
+              const delRes = await deletePublicId(derived);
+              if (!delRes || (delRes.result && delRes.result !== 'ok')) cloudErrors.push({ id: derived, result: delRes });
+            } catch (err) { cloudErrors.push({ id: derived, error: err && err.message }); }
+          }
         }
       }
+
+      // solutions: each solution may have imagePublicIds array or legacy fields
       if (Array.isArray(doc.solutions)) {
         for (let i = 0; i < doc.solutions.length; i++) {
           const s = doc.solutions[i];
-          if (s && s.imagePublicId) {
+          if (!s) continue;
+          if (Array.isArray(s.imagePublicIds) && s.imagePublicIds.length) {
+            for (const pid of s.imagePublicIds) {
+              try {
+                const delRes = await deletePublicId(pid);
+                if (!delRes || (delRes.result && delRes.result !== 'ok')) cloudErrors.push({ id: pid, result: delRes });
+              } catch (err) { cloudErrors.push({ id: pid, error: err && err.message }); }
+            }
+          }
+          if (s.imagePublicId) {
             try {
               const delRes = await deletePublicId(s.imagePublicId);
-              if (!delRes || (delRes.result && delRes.result !== 'ok')) {
-                cloudErrors.push({ id: s.imagePublicId, result: delRes });
-              }
+              if (!delRes || (delRes.result && delRes.result !== 'ok')) cloudErrors.push({ id: s.imagePublicId, result: delRes });
             } catch (err) { cloudErrors.push({ id: s.imagePublicId, error: err && err.message }); }
-          } else if (s && s.imageUrl) {
-            const derived = extractPublicIdFromUrl(s.imageUrl);
-            if (derived) {
-              try {
-                const delRes = await deletePublicId(derived);
-                if (!delRes || (delRes.result && delRes.result !== 'ok')) {
-                  cloudErrors.push({ id: derived, result: delRes });
-                }
-              } catch (err) { cloudErrors.push({ id: derived, error: err && err.message }); }
+          }
+          if (Array.isArray(s.imageUrls)) {
+            for (const url of s.imageUrls) {
+              const derived = extractPublicIdFromUrl(url);
+              if (derived) {
+                try {
+                  const delRes = await deletePublicId(derived);
+                  if (!delRes || (delRes.result && delRes.result !== 'ok')) cloudErrors.push({ id: derived, result: delRes });
+                } catch (err) { cloudErrors.push({ id: derived, error: err && err.message }); }
+              }
             }
           }
         }

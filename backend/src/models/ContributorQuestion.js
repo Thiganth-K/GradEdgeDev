@@ -8,7 +8,9 @@ const OptionSchema = new mongoose.Schema({
 const SolutionSchema = new mongoose.Schema({
   text: { type: String },
   imageUrl: { type: String },
-  imagePublicId: { type: String }
+  imagePublicId: { type: String },
+  imageUrls: { type: [String], default: [] },
+  imagePublicIds: { type: [String], default: [] }
 }, { _id: false });
 
 const ContributorQuestionSchema = new mongoose.Schema({
@@ -18,6 +20,8 @@ const ContributorQuestionSchema = new mongoose.Schema({
   questionText: { type: String, required: true },
   imageUrl: { type: String },
   imagePublicId: { type: String },
+  imageUrls: { type: [String], default: [] },
+  imagePublicIds: { type: [String], default: [] },
   options: { type: [OptionSchema], default: [] },
   metadata: {
     difficulty: { type: String },
