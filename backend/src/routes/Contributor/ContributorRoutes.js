@@ -57,13 +57,24 @@ console.log('[ContributorRoutes] GET /contributions - Get my contributed questio
 router.get('/contributions', verifyContributor, ContributorQuestionControllers.listQuestions);
 
 console.log('[ContributorRoutes] POST /contributions - Create a new contributed question');
-router.post('/contributions', verifyContributor, imageUpload.fields([{ name: 'image', maxCount: 5 }, { name: 'solutionImages', maxCount: 20 }]), ContributorQuestionControllers.createQuestion);
+// Expected form fields (multipart/form-data):
+// - subTopic (string) [required]
+// - difficulty (string) [required]
+// - question (string) [required]
+// - image (file) -> single question image
+// - options (JSON string) -> array of { text?, isCorrect, imageUrl? }
+// - solutions (JSON string) -> array of { explanation?, imageUrl? }
+// - optionImages (files) -> optional files; send `optionImageOptionIndex` (JSON array) to map files to option indexes
+// - solutionImages (files) -> optional files; send `solutionImageSolutionIndex` (JSON array) to map files to solution indexes
+// Note: `image` is limited to 1 file now to match new backend model.
+router.post('/contributions', verifyContributor, imageUpload.fields([{ name: 'image', maxCount: 1 }, { name: 'optionImages', maxCount: 20 }, { name: 'solutionImages', maxCount: 20 }]), ContributorQuestionControllers.createQuestion);
 
 console.log('[ContributorRoutes] GET /contributions/:id - Get contributed question by id');
 router.get('/contributions/:id', verifyContributor, ContributorQuestionControllers.getQuestion);
 
 console.log('[ContributorRoutes] PUT /contributions/:id - Update contributed question');
-router.put('/contributions/:id', verifyContributor, imageUpload.fields([{ name: 'image', maxCount: 5 }, { name: 'solutionImages', maxCount: 20 }]), ContributorQuestionControllers.updateQuestion);
+// Same fields as create. `image` is single-file replacement; `optionImages` and `solutionImages` may map to indexes via their respective mapping arrays.
+router.put('/contributions/:id', verifyContributor, imageUpload.fields([{ name: 'image', maxCount: 1 }, { name: 'optionImages', maxCount: 20 }, { name: 'solutionImages', maxCount: 20 }]), ContributorQuestionControllers.updateQuestion);
 
 console.log('[ContributorRoutes] DELETE /contributions/:id - Delete contributed question');
 router.delete('/contributions/:id', verifyContributor, ContributorQuestionControllers.deleteQuestion);

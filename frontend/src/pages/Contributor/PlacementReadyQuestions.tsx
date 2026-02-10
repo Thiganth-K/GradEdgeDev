@@ -1,9 +1,10 @@
-import React, { useEffect, useState, ChangeEvent, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
+import type { ChangeEvent } from 'react';
 import { apiFetch, API_ENDPOINTS } from '../../lib/api';
 import makeHeaders from '../../lib/makeHeaders';
 
-interface Option { text: string; isCorrect?: boolean }
-interface Solution { text?: string; imageUrl?: string }
+interface Option { text: string; isCorrect?: boolean; imageUrl?: string }
+interface Solution { explanation?: string; imageUrl?: string; imageUrls?: string[] }
 
 const PlacementReadyQuestions: React.FC = () => {
   const [questions, setQuestions] = useState<any[]>([]);
@@ -13,28 +14,21 @@ const PlacementReadyQuestions: React.FC = () => {
 
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [viewingQuestion, setViewingQuestion] = useState<any | null>(null);
 
   // form state
-  const [subject, setSubject] = useState('');
-  const [questionType, setQuestionType] = useState('MCQ');
-  const [questionNumber, setQuestionNumber] = useState<number | ''>('');
-  const [questionText, setQuestionText] = useState('');
+  const [question, setQuestion] = useState('');
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const questionSingleInputRef = useRef<HTMLInputElement | null>(null);
   const solutionSingleInputRefs = useRef<Array<HTMLInputElement | null>>([]);
   const [options, setOptions] = useState<Option[]>([{ text: '', isCorrect: false }, { text: '', isCorrect: false }]);
+  const [optionFiles, setOptionFiles] = useState<Array<File | null>>([null, null]);
   const [metadataDifficulty, setMetadataDifficulty] = useState('Easy');
-  const [bloom, setBloom] = useState('Remember');
-  const [tags, setTags] = useState('');
-  const [topic, setTopic] = useState('');
   const [subTopic, setSubTopic] = useState('');
-  const [codeEditor, setCodeEditor] = useState(false);
-  const [solutions, setSolutions] = useState<Solution[]>([{ text: '' }]);
+  const [solutions, setSolutions] = useState<Solution[]>([{ explanation: '' }]);
   const [solutionFiles, setSolutionFiles] = useState<Array<File[]>>([[]]);
-  const [hints, setHints] = useState('');
-  const [courseOutcome, setCourseOutcome] = useState('');
-  const [programOutcome, setProgramOutcome] = useState('');
+  
 
   useEffect(() => { fetchQuestions(); }, []);
 
@@ -52,9 +46,10 @@ const PlacementReadyQuestions: React.FC = () => {
   };
 
   const resetForm = () => {
-    setSubject(''); setQuestionType('MCQ'); setQuestionNumber(''); setQuestionText(''); setImageFiles([]); setImagePreviews([]);
-    setOptions([{ text: '', isCorrect: false }, { text: '', isCorrect: false }]); setMetadataDifficulty('Easy'); setBloom('Remember'); setTags(''); setTopic(''); setSubTopic(''); setCodeEditor(false);
-    setSolutions([{ text: '' }]); setSolutionFiles([[]]); setHints(''); setCourseOutcome(''); setProgramOutcome(''); setEditingId(null);
+    setQuestion(''); setImageFiles([]); setImagePreviews([]);
+    setOptions([{ text: '', isCorrect: false }, { text: '', isCorrect: false }]); setMetadataDifficulty('Easy'); setSubTopic('');
+    setSolutions([{ explanation: '' }]); setSolutionFiles([[]]); setEditingId(null);
+    setOptionFiles([null, null]);
   };
 
   const openCreate = () => { resetForm(); setShowForm(true); };
@@ -105,26 +100,51 @@ const PlacementReadyQuestions: React.FC = () => {
     if (el) el.click();
   };
 
-  const addOption = () => setOptions(prev => [...prev, { text: '', isCorrect: false }]);
-  const removeOption = (idx: number) => setOptions(prev => prev.filter((_, i) => i !== idx));
+  const addOption = () => {
+    setOptions(prev => [...prev, { text: '', isCorrect: false }]);
+    setOptionFiles(prev => [...prev, null]);
+  };
+  const removeOption = (idx: number) => {
+    setOptions(prev => prev.filter((_, i) => i !== idx));
+    setOptionFiles(prev => prev.filter((_, i) => i !== idx));
+  };
 
-  const addSolution = () => { setSolutions(prev => [...prev, { text: '' }]); setSolutionFiles(prev => [...prev, []]); };
+  const handleOptionFileChange = (index: number, e: ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files && e.target.files[0] ? e.target.files[0] : null;
+    setOptionFiles(prev => {
+      const copy = prev.map(v => v);
+      while (copy.length <= index) copy.push(null);
+      copy[index] = f;
+      return copy;
+    });
+    if (e.target) (e.target as HTMLInputElement).value = '';
+  };
+
+  const addSolution = () => { setSolutions(prev => [...prev, { explanation: '' }]); setSolutionFiles(prev => [...prev, []]); };
   const removeSolution = (idx: number) => { setSolutions(prev => prev.filter((_, i) => i !== idx)); setSolutionFiles(prev => prev.filter((_, i) => i !== idx)); };
 
   const prepareFormData = () => {
     const fd = new FormData();
-    fd.append('subject', subject);
-    fd.append('questionType', questionType);
-    if (questionNumber !== '') fd.append('questionNumber', String(questionNumber));
-    fd.append('questionText', questionText);
-    // append question images (multiple)
-    imageFiles.forEach((f) => { if (f) fd.append('image', f); });
-    fd.append('options', JSON.stringify(options));
-    fd.append('metadata', JSON.stringify({ difficulty: metadataDifficulty, bloomTaxonomy: bloom }));
-    fd.append('tags', JSON.stringify(tags.split(',').map(t => t.trim()).filter(Boolean)));
-    fd.append('topic', topic);
+    // Backend expects: subTopic, difficulty, question, single question image, options, solutions
     fd.append('subTopic', subTopic);
-    fd.append('codeEditor', String(codeEditor));
+    fd.append('difficulty', metadataDifficulty);
+    fd.append('question', question);
+    // append only the first question image (backend accepts single image file under 'image')
+    if (imageFiles && imageFiles.length) {
+      const f = imageFiles[0];
+      if (f) fd.append('image', f);
+    }
+    fd.append('options', JSON.stringify(options));
+    // append option images and build mapping of which option index each image belongs to
+    const optionMapping: number[] = [];
+    for (let oi = 0; oi < optionFiles.length; oi++) {
+      const f = optionFiles[oi];
+      if (f) {
+        fd.append('optionImages', f);
+        optionMapping.push(oi);
+      }
+    }
+    if (optionMapping.length) fd.append('optionImageOptionIndex', JSON.stringify(optionMapping));
     fd.append('solutions', JSON.stringify(solutions));
     // append solution files and build mapping of which solution index each file belongs to
     const mapping: number[] = [];
@@ -139,9 +159,6 @@ const PlacementReadyQuestions: React.FC = () => {
       }
     }
     if (mapping.length) fd.append('solutionImageSolutionIndex', JSON.stringify(mapping));
-    fd.append('hints', JSON.stringify(hints.split('\n').map(s => s.trim()).filter(Boolean)));
-    fd.append('courseOutcome', courseOutcome);
-    fd.append('programOutcome', programOutcome);
     return fd;
   };
 
@@ -149,8 +166,15 @@ const PlacementReadyQuestions: React.FC = () => {
     setLoading(true); setError(''); setSuccess('');
     try {
       // validate
-      if (!subject || !questionType || !questionText) throw new Error('Subject, type and text are required');
+      if (!subTopic || !question) throw new Error('Sub-topic and question text are required');
       if (options.length < 2) throw new Error('Provide at least two options');
+      // ensure each option has text or an image (matches backend validation)
+      for (let i = 0; i < options.length; i++) {
+        const opt = options[i] || { text: '' };
+        const hasText = typeof opt.text === 'string' && opt.text.trim().length > 0;
+        const hasImage = !!(optionFiles[i]);
+        if (!hasText && !hasImage) throw new Error(`Option ${i + 1} must have text or an image`);
+      }
       const fd = prepareFormData();
       const res = await apiFetch(API_ENDPOINTS.contributor.contributions, {
         method: 'POST',
@@ -158,7 +182,10 @@ const PlacementReadyQuestions: React.FC = () => {
         body: fd
       });
       const body = await res.json();
-      if (!res.ok || !body.success) throw new Error(body.message || 'Failed to create');
+      if (!res.ok || !body.success) {
+        console.error('[submitCreate] server response', body);
+        throw new Error(body.message || 'Failed to create');
+      }
       setSuccess('Question created'); setShowForm(false); resetForm(); fetchQuestions();
     } catch (err: any) { setError(err.message || 'Error'); }
     finally { setLoading(false); }
@@ -166,18 +193,21 @@ const PlacementReadyQuestions: React.FC = () => {
 
   const startEdit = (q: any) => {
     setEditingId(q._id); setShowForm(true);
-    setSubject(q.subject || ''); setQuestionType(q.questionType || 'MCQ'); setQuestionNumber(q.questionNumber || ''); setQuestionText(q.questionText || '');
-    // set image previews from existing imageUrls (support array)
-    const previews = [] as string[];
-    if (q.imageUrls && Array.isArray(q.imageUrls) && q.imageUrls.length) previews.push(...q.imageUrls);
+    setQuestion(q.question || q.questionText || '');
+    setSubTopic(q.subTopic || '');
+    setMetadataDifficulty(q.difficulty || (q.metadata && q.metadata.difficulty) || 'Easy');
+    // set image previews from existing image fields
+    const previews: string[] = [];
+    if (q.questionImageUrl) previews.push(q.questionImageUrl);
+    else if (q.questionImageUrls && q.questionImageUrls.length) previews.push(...q.questionImageUrls);
     else if (q.imageUrl) previews.push(q.imageUrl);
+    else if (q.imageUrls && q.imageUrls.length) previews.push(...q.imageUrls);
     setImagePreviews(previews);
     setImageFiles([]);
-    setOptions(q.options && q.options.length ? q.options.map((o: any) => ({ text: o.text, isCorrect: !!o.isCorrect })) : [{ text: '', isCorrect: false }]);
-    setMetadataDifficulty((q.metadata && q.metadata.difficulty) || 'Easy'); setBloom((q.metadata && q.metadata.bloomTaxonomy) || 'Remember'); setTags((q.tags || []).join(',')); setTopic(q.topic || ''); setSubTopic(q.subTopic || ''); setCodeEditor(!!q.codeEditor);
-    setSolutions((q.solutions && q.solutions.length) ? q.solutions.map((s: any) => ({ text: s.text || '', imageUrl: (s.imageUrls && s.imageUrls[0]) || s.imageUrl })) : [{ text: '' }]);
+    setOptions(q.options && q.options.length ? q.options.map((o: any) => ({ text: o.text, isCorrect: !!o.isCorrect, imageUrl: (o.imageUrl || (o.imageUrls && o.imageUrls[0])) })) : [{ text: '', isCorrect: false }]);
+    setSolutions((q.solutions && q.solutions.length) ? q.solutions.map((s: any) => ({ explanation: s.explanation || s.text || '', imageUrls: (s.imageUrls && s.imageUrls.length) ? s.imageUrls : (s.imageUrl ? [s.imageUrl] : []) })) : [{ explanation: '' }]);
     setSolutionFiles((q.solutions && q.solutions.length) ? q.solutions.map(() => []) : [[]]);
-    setHints((q.hints || []).join('\n')); setCourseOutcome(q.courseOutcome || ''); setProgramOutcome(q.programOutcome || '');
+    setOptionFiles((q.options && q.options.length) ? q.options.map(() => null) : [null, null]);
   };
 
   const submitUpdate = async () => {
@@ -233,19 +263,38 @@ const PlacementReadyQuestions: React.FC = () => {
             <div key={q._id} className="bg-white border rounded p-4">
               <div className="flex justify-between items-start">
                 <div>
-                  <div className="font-semibold text-lg">{q.subject} — {q.questionType}</div>
-                  <div className="text-sm text-gray-600">{q.questionText}</div>
+                  <div className="font-semibold text-lg">#{q.questionNumber || '-'} — {q.subTopic || q.topic || 'General'} — {q.difficulty || (q.metadata && q.metadata.difficulty) || 'N/A'}</div>
+                  <div className="text-sm text-gray-600">{q.question || q.questionText}</div>
                 </div>
                 <div className="flex gap-2">
+                  <button onClick={() => setViewingQuestion(q)} className="px-3 py-1 bg-blue-600 text-white rounded">View</button>
                   <button onClick={() => startEdit(q)} className="px-3 py-1 bg-black text-white rounded">Edit</button>
                   <button onClick={() => handleDelete(q._id)} className="px-3 py-1 bg-red-600 text-white rounded">Delete</button>
                 </div>
               </div>
-              {(q.imageUrls && q.imageUrls.length) ? (
+              {(q.questionImageUrl || (q.questionImageUrls && q.questionImageUrls.length) || q.imageUrl || (q.imageUrls && q.imageUrls.length)) ? (
                 <div className="mt-3 flex gap-2">
-                  {q.imageUrls.map((u: string, i: number) => <img key={i} src={u} alt={`q-${i}`} className="max-h-36 object-contain" />)}
+                  {((q.questionImageUrls && q.questionImageUrls.length) ? q.questionImageUrls : (q.imageUrls && q.imageUrls.length) ? q.imageUrls : (q.questionImageUrl ? [q.questionImageUrl] : (q.imageUrl ? [q.imageUrl] : []))).map((u: string, i: number) => (
+                    <img key={i} src={u} alt={`q-${i}`} className="max-h-36 object-contain" />
+                  ))}
                 </div>
-              ) : q.imageUrl ? <img src={q.imageUrl} alt="q" className="mt-3 max-h-36 object-contain" /> : null}
+              ) : null}
+
+              {Array.isArray(q.options) && q.options.length ? (
+                <div className="mt-3">
+                  <div className="font-semibold mb-2">Options</div>
+                  <div className="grid grid-cols-1 gap-2">
+                    {q.options.map((opt: any, i: number) => (
+                      <div key={i} className="flex items-center gap-3 p-2 border rounded">
+                        {opt.imageUrl ? <img src={opt.imageUrl} alt={`opt-${i}`} className="max-h-20 object-contain" /> : null}
+                        <div className="flex-1 text-sm">{opt.text}</div>
+                        {opt.isCorrect ? <div className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">Correct</div> : null}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
               <div className="mt-3 text-sm text-gray-700">Tags: {(q.tags||[]).join(', ')}</div>
             </div>
           ))}
@@ -261,40 +310,30 @@ const PlacementReadyQuestions: React.FC = () => {
             </div>
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
-                <input value={subject} onChange={e => setSubject(e.target.value)} placeholder="Subject" className="p-2 border rounded" />
-                <select value={questionType} onChange={e => setQuestionType(e.target.value)} className="p-2 border rounded">
-                  <option>MCQ</option>
-                  <option>Short</option>
-                  <option>Long</option>
+                <input value={subTopic} onChange={e => setSubTopic(e.target.value)} placeholder="Sub-Topic" className="p-2 border rounded" />
+                <select value={metadataDifficulty} onChange={e => setMetadataDifficulty(e.target.value)} className="p-2 border rounded">
+                  <option>Easy</option>
+                  <option>Medium</option>
+                  <option>Hard</option>
                 </select>
-                <input value={questionNumber as any} onChange={e => setQuestionNumber(e.target.value === '' ? '' : Number(e.target.value))} placeholder="Question #" className="p-2 border rounded" />
-                <div className="flex items-center gap-2">
-                  <input type="checkbox" checked={codeEditor} onChange={e => setCodeEditor(e.target.checked)} /> <span>Code Editor</span>
-                </div>
               </div>
 
-              <textarea value={questionText} onChange={e => setQuestionText(e.target.value)} placeholder="Question Text" className="w-full p-3 border rounded h-28" />
+              <textarea value={question} onChange={e => setQuestion(e.target.value)} placeholder="Question Text" className="w-full p-3 border rounded h-28" />
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-semibold">Question Images (optional)</label>
-                  <div className="flex items-center gap-2">
-                    <input type="file" accept="image/*" onChange={handleImageChange} multiple />
-                    <button type="button" onClick={triggerQuestionSingle} className="px-2 py-1 bg-white border rounded">Add One</button>
-                    <input ref={questionSingleInputRef} type="file" accept="image/*" onChange={handleQuestionSingleChange} style={{ display: 'none' }} />
-                  </div>
-                  <div className="flex gap-2 flex-wrap mt-2">
-                    {imagePreviews.map((p, i) => (
-                      <div key={i} className="relative">
-                        <img src={p} className="max-h-28 object-contain border rounded" alt={`preview-${i}`} />
-                        <button type="button" onClick={() => { setImageFiles(prev => prev.filter((_, idx) => idx !== i)); setImagePreviews(prev => prev.filter((_, idx) => idx !== i)); }} className="absolute top-0 right-0 bg-white text-red-600 rounded-full px-1">x</button>
-                      </div>
-                    ))}
-                  </div>
+              <div>
+                <label className="block text-sm font-semibold">Question Images (optional)</label>
+                <div className="flex items-center gap-2">
+                  <input type="file" accept="image/*" onChange={handleImageChange} multiple />
+                  <button type="button" onClick={triggerQuestionSingle} className="px-2 py-1 bg-white border rounded">Add One</button>
+                  <input ref={questionSingleInputRef} type="file" accept="image/*" onChange={handleQuestionSingleChange} style={{ display: 'none' }} />
                 </div>
-                <div>
-                  <label className="block text-sm font-semibold">Tags (comma separated)</label>
-                  <input value={tags} onChange={e => setTags(e.target.value)} className="p-2 border rounded w-full" />
+                <div className="flex gap-2 flex-wrap mt-2">
+                  {imagePreviews.map((p, i) => (
+                    <div key={i} className="relative">
+                      <img src={p} className="max-h-28 object-contain border rounded" alt={`preview-${i}`} />
+                      <button type="button" onClick={() => { setImageFiles(prev => prev.filter((_, idx) => idx !== i)); setImagePreviews(prev => prev.filter((_, idx) => idx !== i)); }} className="absolute top-0 right-0 bg-white text-red-600 rounded-full px-1">x</button>
+                    </div>
+                  ))}
                 </div>
               </div>
 
@@ -305,6 +344,11 @@ const PlacementReadyQuestions: React.FC = () => {
                     <div key={idx} className="flex gap-2 items-center">
                       <input value={opt.text} onChange={e => setOptions(prev => { const c = [...prev]; c[idx].text = e.target.value; return c; })} className="flex-1 p-2 border rounded" placeholder={`Option ${idx + 1}`} />
                       <label className="flex items-center gap-2"><input type="checkbox" checked={!!opt.isCorrect} onChange={e => setOptions(prev => { const c = [...prev]; c[idx].isCorrect = e.target.checked; return c; })} /> Correct</label>
+                      <div className="flex items-center gap-2">
+                        <input type="file" accept="image/*" onChange={(e) => handleOptionFileChange(idx, e)} />
+                        {opt.imageUrl && <img src={opt.imageUrl} alt={`opt-${idx}`} className="max-h-16 object-contain border rounded" />}
+                        {optionFiles[idx] && <img src={URL.createObjectURL(optionFiles[idx] as File)} alt={`opt-preview-${idx}`} className="max-h-16 object-contain border rounded" />}
+                      </div>
                       {options.length > 2 && <button onClick={() => removeOption(idx)} className="px-2 py-1 bg-gray-200 rounded">Remove</button>}
                     </div>
                   ))}
@@ -317,17 +361,19 @@ const PlacementReadyQuestions: React.FC = () => {
                 <div className="space-y-2">
                   {solutions.map((s, idx) => (
                     <div key={idx} className="border p-2 rounded">
-                      <textarea value={s.text} onChange={e => setSolutions(prev => { const c = [...prev]; c[idx].text = e.target.value; return c; })} placeholder="Solution text" className="w-full p-2 border rounded h-20" />
+                      <textarea value={s.explanation} onChange={e => setSolutions(prev => { const c = [...prev]; c[idx].explanation = e.target.value; return c; })} placeholder="Solution text" className="w-full p-2 border rounded h-20" />
                       <div className="mt-2">
                         <label className="block text-sm">Solution Images (optional)</label>
                         <div className="flex items-center gap-2">
                           <input type="file" accept="image/*" onChange={(e) => handleSolutionFileChange(idx, e)} multiple />
                           <button type="button" onClick={() => triggerSolutionSingle(idx)} className="px-2 py-1 bg-white border rounded">Add One</button>
-                          <input ref={el => solutionSingleInputRefs.current[idx] = el} type="file" accept="image/*" onChange={(e) => handleSolutionSingleChange(idx, e)} style={{ display: 'none' }} />
+                          <input ref={el => { solutionSingleInputRefs.current[idx] = el; }} type="file" accept="image/*" onChange={(e) => handleSolutionSingleChange(idx, e)} style={{ display: 'none' }} />
                         </div>
                         <div className="flex gap-2 flex-wrap mt-2">
-                          {/* existing solution image URL from DB */}
-                          {s.imageUrl && <img src={s.imageUrl} className="max-h-20 object-contain border rounded" alt="existing" />}
+                          {/* existing solution image URLs from DB */}
+                          {(s.imageUrls || []).map((u: string, ui: number) => (
+                            <img key={`existing-${ui}`} src={u} className="max-h-20 object-contain border rounded" alt={`existing-${ui}`} />
+                          ))}
                           {/* previews for newly selected files */}
                           {(solutionFiles[idx] || []).map((f, fi) => (
                             <div key={fi} className="relative">
@@ -353,32 +399,6 @@ const PlacementReadyQuestions: React.FC = () => {
                 <div className="mt-2"><button onClick={addSolution} className="px-3 py-1 bg-white border rounded">Add Solution</button></div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <select value={metadataDifficulty} onChange={e => setMetadataDifficulty(e.target.value)} className="p-2 border rounded">
-                  <option>Easy</option>
-                  <option>Medium</option>
-                  <option>Hard</option>
-                </select>
-                <select value={bloom} onChange={e => setBloom(e.target.value)} className="p-2 border rounded">
-                  <option>Remember</option>
-                  <option>Understand</option>
-                  <option>Apply</option>
-                  <option>Analyze</option>
-                  <option>Evaluate</option>
-                  <option>Create</option>
-                </select>
-                <input value={topic} onChange={e => setTopic(e.target.value)} placeholder="Topic" className="p-2 border rounded" />
-                <input value={subTopic} onChange={e => setSubTopic(e.target.value)} placeholder="Sub-Topic" className="p-2 border rounded" />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <textarea value={hints} onChange={e => setHints(e.target.value)} placeholder="Hints (one per line)" className="p-2 border rounded h-24" />
-                <div>
-                  <input value={courseOutcome} onChange={e => setCourseOutcome(e.target.value)} placeholder="Course Outcome" className="p-2 border rounded w-full" />
-                  <input value={programOutcome} onChange={e => setProgramOutcome(e.target.value)} placeholder="Program Outcome" className="p-2 border rounded w-full mt-2" />
-                </div>
-              </div>
-
               <div className="flex justify-end gap-3">
                 {editingId ? (
                   <button onClick={submitUpdate} className="px-4 py-2 bg-black text-white rounded">Update</button>
@@ -387,6 +407,55 @@ const PlacementReadyQuestions: React.FC = () => {
                 )}
                 <button onClick={() => { setShowForm(false); resetForm(); }} className="px-4 py-2 bg-gray-200 rounded">Cancel</button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {viewingQuestion && (
+        <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-start justify-center p-6 overflow-auto">
+          <div className="bg-white rounded-lg shadow-lg w-full max-w-3xl p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold">View Question</h2>
+              <button onClick={() => setViewingQuestion(null)} className="text-gray-600">Close</button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <div className="font-semibold">Question</div>
+                <div className="mt-2 text-sm text-gray-800">{viewingQuestion.question}</div>
+                {viewingQuestion.questionImageUrl && <img src={viewingQuestion.questionImageUrl} alt="question" className="mt-3 max-h-48 object-contain" />}
+              </div>
+
+              {Array.isArray(viewingQuestion.options) && viewingQuestion.options.length ? (
+                <div>
+                  <div className="font-semibold">Options</div>
+                  <div className="mt-2 grid gap-2">
+                    {viewingQuestion.options.map((opt: any, i: number) => (
+                      <div key={i} className="flex items-center gap-3 p-2 border rounded">
+                        {opt.imageUrl ? <img src={opt.imageUrl} alt={`opt-${i}`} className="max-h-20 object-contain" /> : null}
+                        <div className="flex-1 text-sm">{opt.text}</div>
+                        {opt.isCorrect ? <div className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">Correct</div> : null}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
+              {Array.isArray(viewingQuestion.solutions) && viewingQuestion.solutions.length ? (
+                <div>
+                  <div className="font-semibold">Solutions</div>
+                  <div className="mt-2 space-y-2">
+                    {viewingQuestion.solutions.map((s: any, i: number) => (
+                      <div key={i} className="p-2 border rounded">
+                        <div className="text-sm">{s.explanation || s.text}</div>
+                        {(s.imageUrls || (s.imageUrl ? [s.imageUrl] : [])).map((u: string, ui: number) => (
+                          <img key={ui} src={u} alt={`sol-${i}-${ui}`} className="mt-2 max-h-40 object-contain" />
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
             </div>
           </div>
         </div>
