@@ -57,32 +57,70 @@ ContributorQuestionSchema.pre('save', async function (next) {
   next();
 });
 
-// When a question is deleted, shift down questionNumber for following questions
-// and decrement the global counter so new inserts continue numbering from 1..N
-ContributorQuestionSchema.post('findOneAndDelete', async function (doc) {
-  if (!doc || typeof doc.questionNumber !== 'number') return;
-  const deletedNumber = doc.questionNumber;
+// After any delete operation, re-sequence all questionNumber values so they
+// are continuous (1..N) and update the counter to reflect total questions.
+async function resequenceQuestionNumbers() {
   const Model = mongoose.model('ContributorQuestion');
   try {
-    await Model.updateMany({ questionNumber: { $gt: deletedNumber } }, { $inc: { questionNumber: -1 } }).exec();
-    await Counter.findByIdAndUpdate('contributorQuestionSeq', { $inc: { seq: -1 } }).exec();
+    const docs = await Model.find().sort({ questionNumber: 1, _id: 1 }).select('_id questionNumber').lean().exec();
+    const total = docs ? docs.length : 0;
+    if (!docs || docs.length === 0) {
+      await Counter.findByIdAndUpdate('contributorQuestionSeq', { seq: 0 }, { upsert: true }).exec().catch(() => null);
+      return;
+    }
+
+    const bulkOps = [];
+    for (let i = 0; i < docs.length; i++) {
+      const desired = i + 1;
+      if (docs[i].questionNumber !== desired) {
+        bulkOps.push({
+          updateOne: {
+            filter: { _id: docs[i]._id },
+            update: { $set: { questionNumber: desired } }
+          }
+        });
+      }
+    }
+
+    if (bulkOps.length > 0) {
+      await Model.bulkWrite(bulkOps);
+    }
+
+    await Counter.findByIdAndUpdate('contributorQuestionSeq', { seq: total }, { upsert: true }).exec().catch(() => null);
   } catch (err) {
-    // swallow errors to avoid affecting the delete operation; log if desired
-    // console.error('Error adjusting question numbers after delete:', err);
+    // swallow errors so delete operations don't fail because of resequencing issues
+    // console.error('Error resequencing contributor questions:', err);
   }
+}
+
+// Hook into several delete entrypoints so resequencing runs automatically.
+ContributorQuestionSchema.post('findOneAndDelete', async function (doc) {
+  // doc may be null if nothing was deleted
+  await resequenceQuestionNumbers();
+});
+
+ContributorQuestionSchema.post('findOneAndRemove', async function (doc) {
+  await resequenceQuestionNumbers();
+});
+
+ContributorQuestionSchema.post('deleteOne', { document: false, query: true }, async function (res) {
+  // query-level deleteOne
+  await resequenceQuestionNumbers();
+});
+
+// document-level deleteOne (e.g., when calling doc.deleteOne())
+ContributorQuestionSchema.post('deleteOne', { document: true, query: false }, async function () {
+  await resequenceQuestionNumbers();
+});
+
+ContributorQuestionSchema.post('deleteMany', { document: false, query: true }, async function (res) {
+  // res may contain deletedCount depending on mongoose version
+  await resequenceQuestionNumbers();
 });
 
 // Support document-level remove()
 ContributorQuestionSchema.post('remove', async function () {
-  if (typeof this.questionNumber !== 'number') return;
-  const deletedNumber = this.questionNumber;
-  const Model = mongoose.model('ContributorQuestion');
-  try {
-    await Model.updateMany({ questionNumber: { $gt: deletedNumber } }, { $inc: { questionNumber: -1 } }).exec();
-    await Counter.findByIdAndUpdate('contributorQuestionSeq', { $inc: { seq: -1 } }).exec();
-  } catch (err) {
-    // console.error('Error adjusting question numbers after remove:', err);
-  }
+  await resequenceQuestionNumbers();
 });
 
 module.exports = mongoose.model('ContributorQuestion', ContributorQuestionSchema);
