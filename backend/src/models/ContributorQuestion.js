@@ -3,7 +3,9 @@ const mongoose = require('mongoose');
 const OptionSchema = new mongoose.Schema({
   text: { type: String },
   imageUrl: { type: String },
+  imageUrls: { type: [String], default: [] },
   imagePublicId: { type: String },
+  imagePublicIds: { type: [String], default: [] },
   isCorrect: { type: Boolean, default: false }
 }, { _id: false });
 
@@ -29,6 +31,9 @@ const ContributorQuestionSchema = new mongoose.Schema({
   question: { type: String, required: true },
   questionImageUrl: { type: String },
   questionImagePublicId: { type: String },
+  // support multiple question images while keeping single-field names
+  questionImageUrls: { type: [String], default: [] },
+  questionImagePublicIds: { type: [String], default: [] },
   options: { type: [OptionSchema], default: [] },
   solutions: { type: [SolutionSchema], default: [] }
 }, { timestamps: true });

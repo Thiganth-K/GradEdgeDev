@@ -23,7 +23,7 @@ const PlacementReadyQuestions: React.FC = () => {
   const questionSingleInputRef = useRef<HTMLInputElement | null>(null);
   const solutionSingleInputRefs = useRef<Array<HTMLInputElement | null>>([]);
   const [options, setOptions] = useState<Option[]>([{ text: '', isCorrect: false }, { text: '', isCorrect: false }]);
-  const [optionFiles, setOptionFiles] = useState<Array<File | null>>([null, null]);
+  const [optionFiles, setOptionFiles] = useState<Array<File[]>>([[], []]);
   const [metadataDifficulty, setMetadataDifficulty] = useState('Easy');
   const [subTopic, setSubTopic] = useState('');
   const [solutions, setSolutions] = useState<Solution[]>([{ explanation: '' }]);
@@ -49,7 +49,7 @@ const PlacementReadyQuestions: React.FC = () => {
     setQuestion(''); setImageFiles([]); setImagePreviews([]);
     setOptions([{ text: '', isCorrect: false }, { text: '', isCorrect: false }]); setMetadataDifficulty('Easy'); setSubTopic('');
     setSolutions([{ explanation: '' }]); setSolutionFiles([[]]); setEditingId(null);
-    setOptionFiles([null, null]);
+    setOptionFiles([[], []]);
   };
 
   const openCreate = () => { resetForm(); setShowForm(true); };
@@ -110,11 +110,11 @@ const PlacementReadyQuestions: React.FC = () => {
   };
 
   const handleOptionFileChange = (index: number, e: ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files && e.target.files[0] ? e.target.files[0] : null;
+    const files = e.target.files ? Array.from(e.target.files) : [];
     setOptionFiles(prev => {
-      const copy = prev.map(v => v);
-      while (copy.length <= index) copy.push(null);
-      copy[index] = f;
+      const copy = prev.map(arr => Array.isArray(arr) ? [...arr] : []);
+      while (copy.length <= index) copy.push([]);
+      copy[index] = files;
       return copy;
     });
     if (e.target) (e.target as HTMLInputElement).value = '';
@@ -129,19 +129,26 @@ const PlacementReadyQuestions: React.FC = () => {
     fd.append('subTopic', subTopic);
     fd.append('difficulty', metadataDifficulty);
     fd.append('question', question);
-    // append only the first question image (backend accepts single image file under 'image')
+    // append question images (new 'images' array) and append single 'image' for backward compatibility
     if (imageFiles && imageFiles.length) {
-      const f = imageFiles[0];
-      if (f) fd.append('image', f);
+      for (let i = 0; i < imageFiles.length; i++) {
+        const f = imageFiles[i];
+        if (f) fd.append('images', f);
+      }
+      const first = imageFiles[0];
+      if (first) fd.append('image', first);
     }
     fd.append('options', JSON.stringify(options));
     // append option images and build mapping of which option index each image belongs to
     const optionMapping: number[] = [];
     for (let oi = 0; oi < optionFiles.length; oi++) {
-      const f = optionFiles[oi];
-      if (f) {
-        fd.append('optionImages', f);
-        optionMapping.push(oi);
+      const arr = optionFiles[oi] || [];
+      for (let j = 0; j < arr.length; j++) {
+        const f = arr[j];
+        if (f) {
+          fd.append('optionImages', f);
+          optionMapping.push(oi);
+        }
       }
     }
     if (optionMapping.length) fd.append('optionImageOptionIndex', JSON.stringify(optionMapping));
@@ -172,7 +179,7 @@ const PlacementReadyQuestions: React.FC = () => {
       for (let i = 0; i < options.length; i++) {
         const opt = options[i] || { text: '' };
         const hasText = typeof opt.text === 'string' && opt.text.trim().length > 0;
-        const hasImage = !!(optionFiles[i]);
+        const hasImage = Array.isArray(optionFiles[i]) ? optionFiles[i].length > 0 : !!optionFiles[i];
         if (!hasText && !hasImage) throw new Error(`Option ${i + 1} must have text or an image`);
       }
       const fd = prepareFormData();
@@ -204,10 +211,10 @@ const PlacementReadyQuestions: React.FC = () => {
     else if (q.imageUrls && q.imageUrls.length) previews.push(...q.imageUrls);
     setImagePreviews(previews);
     setImageFiles([]);
-    setOptions(q.options && q.options.length ? q.options.map((o: any) => ({ text: o.text, isCorrect: !!o.isCorrect, imageUrl: (o.imageUrl || (o.imageUrls && o.imageUrls[0])) })) : [{ text: '', isCorrect: false }]);
+    setOptions(q.options && q.options.length ? q.options.map((o: any) => ({ text: o.text, isCorrect: !!o.isCorrect, imageUrl: (o.imageUrl || (o.imageUrls && o.imageUrls[0])), imageUrls: (o.imageUrls && o.imageUrls.length) ? o.imageUrls : (o.imageUrl ? [o.imageUrl] : []), imagePublicIds: (o.imagePublicIds && o.imagePublicIds.length) ? o.imagePublicIds : (o.imagePublicId ? [o.imagePublicId] : []) })) : [{ text: '', isCorrect: false }]);
     setSolutions((q.solutions && q.solutions.length) ? q.solutions.map((s: any) => ({ explanation: s.explanation || s.text || '', imageUrls: (s.imageUrls && s.imageUrls.length) ? s.imageUrls : (s.imageUrl ? [s.imageUrl] : []) })) : [{ explanation: '' }]);
     setSolutionFiles((q.solutions && q.solutions.length) ? q.solutions.map(() => []) : [[]]);
-    setOptionFiles((q.options && q.options.length) ? q.options.map(() => null) : [null, null]);
+    setOptionFiles((q.options && q.options.length) ? q.options.map(() => []) : [[], []]);
   };
 
   const submitUpdate = async () => {
@@ -286,7 +293,9 @@ const PlacementReadyQuestions: React.FC = () => {
                   <div className="grid grid-cols-1 gap-2">
                     {q.options.map((opt: any, i: number) => (
                       <div key={i} className="flex items-center gap-3 p-2 border rounded">
-                        {opt.imageUrl ? <img src={opt.imageUrl} alt={`opt-${i}`} className="max-h-20 object-contain" /> : null}
+                        {((opt.imageUrls && opt.imageUrls.length) ? opt.imageUrls : (opt.imageUrl ? [opt.imageUrl] : [])).map((u: string, ui: number) => (
+                          <img key={ui} src={u} alt={`opt-${i}-${ui}`} className="max-h-20 object-contain" />
+                        ))}
                         <div className="flex-1 text-sm">{opt.text}</div>
                         {opt.isCorrect ? <div className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">Correct</div> : null}
                       </div>
@@ -345,9 +354,35 @@ const PlacementReadyQuestions: React.FC = () => {
                       <input value={opt.text} onChange={e => setOptions(prev => { const c = [...prev]; c[idx].text = e.target.value; return c; })} className="flex-1 p-2 border rounded" placeholder={`Option ${idx + 1}`} />
                       <label className="flex items-center gap-2"><input type="checkbox" checked={!!opt.isCorrect} onChange={e => setOptions(prev => { const c = [...prev]; c[idx].isCorrect = e.target.checked; return c; })} /> Correct</label>
                       <div className="flex items-center gap-2">
-                        <input type="file" accept="image/*" onChange={(e) => handleOptionFileChange(idx, e)} />
-                        {opt.imageUrl && <img src={opt.imageUrl} alt={`opt-${idx}`} className="max-h-16 object-contain border rounded" />}
-                        {optionFiles[idx] && <img src={URL.createObjectURL(optionFiles[idx] as File)} alt={`opt-preview-${idx}`} className="max-h-16 object-contain border rounded" />}
+                        <input type="file" accept="image/*" multiple onChange={(e) => handleOptionFileChange(idx, e)} />
+                        {/* existing images from DB (editable) */}
+                        {((opt.imageUrls && opt.imageUrls.length) ? opt.imageUrls : (opt.imageUrl ? [opt.imageUrl] : [])).map((u: string, ui: number) => (
+                          <div key={`existing-${ui}`} className="relative">
+                            <img src={u} alt={`opt-${idx}-${ui}`} className="max-h-16 object-contain border rounded" />
+                            <button type="button" onClick={() => {
+                              // remove existing image URL and its corresponding public id from option
+                              setOptions(prev => {
+                                const copy = prev.map(o => ({ ...o }));
+                                if (!copy[idx]) return prev;
+                                const arr = copy[idx].imageUrls ? [...copy[idx].imageUrls] : [];
+                                const pidArr = copy[idx].imagePublicIds ? [...copy[idx].imagePublicIds] : [];
+                                // remove by same index
+                                arr.splice(ui, 1);
+                                pidArr.splice(ui, 1);
+                                copy[idx].imageUrls = arr;
+                                copy[idx].imagePublicIds = pidArr;
+                                // update fallback imageUrl
+                                copy[idx].imageUrl = arr && arr.length ? arr[0] : undefined;
+                                copy[idx].imagePublicId = pidArr && pidArr.length ? pidArr[0] : undefined;
+                                return copy;
+                              });
+                            }} className="absolute top-0 right-0 bg-white text-red-600 rounded-full px-1">x</button>
+                          </div>
+                        ))}
+                        {/* previews for newly selected files */}
+                        {(optionFiles[idx] || []).map((f, fi) => (
+                          <img key={fi} src={URL.createObjectURL(f)} alt={`opt-preview-${idx}-${fi}`} className="max-h-16 object-contain border rounded" />
+                        ))}
                       </div>
                       {options.length > 2 && <button onClick={() => removeOption(idx)} className="px-2 py-1 bg-gray-200 rounded">Remove</button>}
                     </div>
@@ -423,7 +458,9 @@ const PlacementReadyQuestions: React.FC = () => {
               <div>
                 <div className="font-semibold">Question</div>
                 <div className="mt-2 text-sm text-gray-800">{viewingQuestion.question}</div>
-                {viewingQuestion.questionImageUrl && <img src={viewingQuestion.questionImageUrl} alt="question" className="mt-3 max-h-48 object-contain" />}
+                {((viewingQuestion.questionImageUrls && viewingQuestion.questionImageUrls.length) ? viewingQuestion.questionImageUrls : (viewingQuestion.imageUrls && viewingQuestion.imageUrls.length) ? viewingQuestion.imageUrls : (viewingQuestion.questionImageUrl ? [viewingQuestion.questionImageUrl] : (viewingQuestion.imageUrl ? [viewingQuestion.imageUrl] : []))).map((u: string, ui: number) => (
+                  <img key={ui} src={u} alt={`question-${ui}`} className="mt-3 max-h-48 object-contain" />
+                ))}
               </div>
 
               {Array.isArray(viewingQuestion.options) && viewingQuestion.options.length ? (
@@ -432,7 +469,9 @@ const PlacementReadyQuestions: React.FC = () => {
                   <div className="mt-2 grid gap-2">
                     {viewingQuestion.options.map((opt: any, i: number) => (
                       <div key={i} className="flex items-center gap-3 p-2 border rounded">
-                        {opt.imageUrl ? <img src={opt.imageUrl} alt={`opt-${i}`} className="max-h-20 object-contain" /> : null}
+                        {((opt.imageUrls && opt.imageUrls.length) ? opt.imageUrls : (opt.imageUrl ? [opt.imageUrl] : [])).map((u: string, ui: number) => (
+                          <img key={ui} src={u} alt={`opt-${i}-${ui}`} className="max-h-20 object-contain" />
+                        ))}
                         <div className="flex-1 text-sm">{opt.text}</div>
                         {opt.isCorrect ? <div className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">Correct</div> : null}
                       </div>

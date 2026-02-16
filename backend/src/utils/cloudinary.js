@@ -20,6 +20,13 @@ function uploadBuffer(buffer, folder = 'contributor_questions') {
   });
 }
 
+// upload multiple buffers (in parallel)
+async function uploadBuffers(buffers, folder = 'contributor_questions') {
+  if (!Array.isArray(buffers)) return [];
+  const uploads = buffers.map(b => uploadBuffer(b, folder).catch(err => ({ error: err })));
+  return Promise.all(uploads);
+}
+
 module.exports = { cloudinary, uploadBuffer };
 
 // delete a resource by its public id
@@ -35,6 +42,24 @@ async function deletePublicId(publicId) {
 }
 
 module.exports.deletePublicId = deletePublicId;
+
+// delete multiple public ids
+async function deletePublicIds(publicIds) {
+  if (!Array.isArray(publicIds) || publicIds.length === 0) return [];
+  const results = [];
+  for (const pid of publicIds) {
+    try {
+      const r = await deletePublicId(pid);
+      results.push(r);
+    } catch (err) {
+      results.push({ error: err && err.message, id: pid });
+    }
+  }
+  return results;
+}
+
+module.exports.uploadBuffers = uploadBuffers;
+module.exports.deletePublicIds = deletePublicIds;
 
 // attempt to extract public id from a Cloudinary URL
 function extractPublicIdFromUrl(url) {
