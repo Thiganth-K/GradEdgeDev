@@ -43,10 +43,13 @@ import StudentTests from './pages/Student/Tests'
 import StudentResults from './pages/Student/Results'
 import StudentProfile from './pages/Student/Profile'
 import StudentWorkInProgress from './pages/Student/WorkInProgress'
+import StudentSandbox from './pages/Student/Sandbox'
+import CodingTestAttempt from './pages/Student/CodingTestAttempt'
 import ContributorDashboard from './pages/Contributor/Dashboard'
 import UnifiedContributionRequest from './pages/Contributor/UnifiedContributionRequest'
 import ContributorChat from './pages/Contributor/Chat'
 import ContributorLibrary from './pages/Contributor/Library'
+import PlacementReadyQuestions from './pages/Contributor/PlacementReadyQuestions'
 import AdminContributorRequestManagement from './pages/Admin/ContributorRequestManagement'
 import AdminContributorChatManagement from './pages/Admin/ContributorChatManagement'
 import AdminSuperadminChatManagement from './pages/Admin/SuperadminChatManagement'
@@ -108,7 +111,10 @@ const App: React.FC = () => {
         <Route path="/student/results" element={<StudentResults />} />
         <Route path="/student/profile" element={<StudentProfile />} />
         <Route path="/student/wip/:section" element={<StudentWorkInProgress />} />
+        <Route path="/student/sandbox" element={<StudentSandbox />} />
+        <Route path="/student/test/:testId/attempt" element={<CodingTestAttempt />} />
         <Route path="/contributor/dashboard" element={<ContributorDashboard />} />
+        <Route path="/contributor/placement-questions" element={<PlacementReadyQuestions />} />
         <Route path="/contributor/create-request" element={<UnifiedContributionRequest />} />
         <Route path="/contributor/chat" element={<ContributorChat />} />
         <Route path="/contributor/library" element={<ContributorLibrary />} />

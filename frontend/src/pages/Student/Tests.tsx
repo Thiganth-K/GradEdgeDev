@@ -57,7 +57,7 @@ const StudentTests: React.FC = () => {
                       <div className="flex-1">
                         <div className="flex items-center gap-3">
                           <h3 className="text-lg font-semibold text-gray-800">{t.name}</h3>
-                          <span className="text-sm text-gray-500">{t.type || ''}</span>
+                          <span className="text-sm text-gray-500">{t.type ? t.type.charAt(0).toUpperCase() + t.type.slice(1) : ''}</span>
                           {t.priority && <span className="ml-2 inline-block text-xs bg-red-600 text-white px-2 py-0.5 rounded">{t.priority}</span>}
                           {t.isFRITest && (
                             <span className="inline-block text-xs bg-purple-600 text-white px-2 py-0.5 rounded font-medium shadow-sm">

@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const InstitutionControllers = require('../../controllers/Institution/InstitutionControllers');
+const CodingTestController = require('../../controllers/CodingTestController');
 
 const verifyInstitution = require('../../middleware/verifyInstitution');
 const verifyFaculty = require('../../middleware/verifyFaculty');

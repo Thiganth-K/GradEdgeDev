@@ -7,14 +7,14 @@ const OptionSchema = new mongoose.Schema({
 
 const QuestionSchema = new mongoose.Schema({
   text: { type: String, required: true },
-  options: { type: [OptionSchema], validate: v => Array.isArray(v) && v.length >= 2 },
+  options: { type: [OptionSchema] }, // Validation moved to schema path validator below
   // Legacy field for backward compatibility - keep for single-answer questions
   correctIndex: { type: Number },
   // NEW: Multiple correct answers support
   correctIndices: [{ type: Number }],
   // New field: multiple correct answers support via isCorrect in options
   // If correctIndex is present, it takes precedence for backward compatibility
-  category: { type: String, enum: ['aptitude', 'technical', 'psychometric'], required: true },
+  category: { type: String, enum: ['aptitude', 'technical', 'psychometric', 'coding'], required: true },
   // New field: subtopic for organizing questions within main categories
   subtopic: { type: String, required: true },
   // Main topic derived from category (Aptitude, Technical, Psychometric)
@@ -28,8 +28,38 @@ const QuestionSchema = new mongoose.Schema({
   details: { type: String },
   // Flag to indicate if question is in library
   inLibrary: { type: Boolean, default: false },
+  
+  // CODING QUESTION FIELDS
+  isCoding: { type: Boolean, default: false }, // If true, it's a coding question
+  testCases: [{
+    input: { type: String, default: '' },
+    output: { type: String, default: '' },
+    isHidden: { type: Boolean, default: false }
+  }],
+  starterCode: { type: String },
+  
   createdAt: { type: Date, default: Date.now },
 });
+
+// Remove the array length validation from the schema definition
+// and move it to a pre-validate hook or custom validator that checks isCoding
+/*
+  options: { 
+    type: [OptionSchema], 
+    validate: {
+      validator: function(v) {
+        if (this.isCoding) return true; // Coding questions don't need options
+        return Array.isArray(v) && v.length >= 2;
+      },
+      message: 'Non-coding questions must have at least 2 options'
+    }
+  },
+*/
+// Modifying the options field in place:
+QuestionSchema.path('options').validate(function(v) {
+  if (this.isCoding) return true;
+  return Array.isArray(v) && v.length >= 2;
+}, 'Non-coding questions must have at least 2 options');
 
 // Helper method to get main topic from category
 QuestionSchema.methods.getMainTopic = function() {
