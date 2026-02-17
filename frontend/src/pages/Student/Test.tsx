@@ -24,6 +24,13 @@ const StudentTest: React.FC = () => {
       // Normalize questions and set test
       const normalizedQuestions = (body.data && Array.isArray(body.data.questions)) ? body.data.questions : [];
       console.debug('[StudentTest] loaded test data', body.data);
+      
+      // Check for coding questions and redirect
+      if (normalizedQuestions.some((q: any) => q.isCoding)) {
+        navigate(`/student/test/${id}/attempt`);
+        return;
+      }
+
       setTest({ ...(body.data || {}), questions: normalizedQuestions });
       // Initialize answers: null for single-answer, [] for multiple-answer questions
       setAnswers(normalizedQuestions.map((q: any) => q.isMultipleAnswer ? [] : null));
