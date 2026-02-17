@@ -9,7 +9,7 @@ const STORAGE_KEY = 'test_creation_draft';
 
 const TestCreateDetails: React.FC = () => {
   const [name, setName] = useState('');
-  const [type, setType] = useState<'aptitude' | 'technical' | 'psychometric'>('aptitude');
+  const [type, setType] = useState<'aptitude' | 'technical' | 'psychometric' | 'coding'>('aptitude');
   const [assignedFacultyId, setAssignedFacultyId] = useState('');
   const [batches, setBatches] = useState<any[]>([]);
   const [selectedBatchIds, setSelectedBatchIds] = useState<string[]>([]);
@@ -121,6 +121,7 @@ const TestCreateDetails: React.FC = () => {
                     <option value="aptitude">Aptitude</option>
                     <option value="technical">Technical</option>
                     <option value="psychometric">Psychometric</option>
+                    <option value="coding">Coding</option>
                   </select>
                 </div>
                 <div>
