@@ -7,6 +7,8 @@ const createFacultyTest = async (req, res) => {
   try {
     const facultyId = req.faculty?.id;
     const facultyUsername = req.faculty?.username;
+    const institutionId = req.faculty?.institutionId;
+    console.log('[FacultyTest.createFacultyTest] called by faculty:', facultyUsername, 'institutionId:', institutionId);
     const payload = req.body || {};
     // normalize incoming fields
     const libraryQuestionIds = payload.libraryQuestionIds || payload.questionIds || [];
@@ -17,6 +19,7 @@ const createFacultyTest = async (req, res) => {
       type: payload.type,
       assignedFaculty: facultyId,
       createdBy: facultyId,
+      isFacultyGraded: true,  // Mark as faculty-created test
       libraryQuestionIds,
       customQuestions: payload.customQuestions || [],
       questions: payload.questions || [],
@@ -30,14 +33,29 @@ const createFacultyTest = async (req, res) => {
 
     // Also create a canonical Test document so students can attempt it using existing flows
     try {
+      // Populate questions from library and custom questions
+      const allQuestions = await t.getAllQuestions();
+      
+      // Convert options to match Test schema (expects objects with 'text' property)
+      const formattedQuestions = allQuestions.map(q => ({
+        questionId: q.questionId || q._id,
+        text: q.text,
+        options: Array.isArray(q.options) 
+          ? q.options.map(opt => typeof opt === 'string' ? { text: opt } : opt)
+          : [],
+        correctIndex: q.correctIndex,
+        correctIndices: q.correctIndices || [],
+      }));
+      
       const testDoc = new Test({
         name: t.name,
         type: t.type,
         assignedFaculty: facultyId,
-        createdBy: req.faculty?.institutionId || null,
+        createdBy: institutionId,  // Use the extracted institutionId
+        isFacultyGraded: true,  // Mark linked test as faculty-graded
         libraryQuestionIds: libraryQuestionIds,
         customQuestions: t.customQuestions || [],
-        questions: t.questions || [],
+        questions: formattedQuestions,  // Use formatted questions with proper schema
         durationMinutes: t.durationMinutes || 30,
         startTime: t.startTime || null,
         endTime: t.endTime || null,
@@ -47,6 +65,7 @@ const createFacultyTest = async (req, res) => {
       await testDoc.save();
       t.linkedTestId = testDoc._id;
       await t.save();
+      console.log('[FacultyTest.createFacultyTest] ✓ linked Test created - id:', testDoc._id, 'with', formattedQuestions.length, 'questions, assignedBatches:', assignedBatches.length, 'createdBy:', institutionId);
     } catch (err) {
       console.error('[FacultyTest.createFacultyTest] failed to create linked Test doc', err.message);
     }
@@ -72,6 +91,8 @@ const listFacultyTests = async (req, res) => {
       libraryQuestionIds: ft.libraryQuestionIds || [],
       customQuestions: ft.customQuestions || [],
       linkedTestId: ft.linkedTestId?._id || null,
+      isInstitutionGraded: ft.isInstitutionGraded || false,
+      isFacultyGraded: ft.isFacultyGraded || false,
       questionsCount: ((ft.libraryQuestionIds||[]).length + (ft.customQuestions||[]).length) || (ft.linkedTestId?.questions?.length || 0),
     }));
     res.json({ success: true, data: transformed });
@@ -123,19 +144,34 @@ const updateFacultyTest = async (req, res) => {
     // sync linked Test doc if present
     if (t.linkedTestId) {
       try {
+        // Populate questions from library and custom questions
+        const allQuestions = await t.getAllQuestions();
+        
+        // Convert options to match Test schema (expects objects with 'text' property)
+        const formattedQuestions = allQuestions.map(q => ({
+          questionId: q.questionId || q._id,
+          text: q.text,
+          options: Array.isArray(q.options) 
+            ? q.options.map(opt => typeof opt === 'string' ? { text: opt } : opt)
+            : [],
+          correctIndex: q.correctIndex,
+          correctIndices: q.correctIndices || [],
+        }));
+        
         const testDoc = await Test.findById(t.linkedTestId);
         if (testDoc) {
           testDoc.name = t.name;
           testDoc.type = t.type;
           testDoc.libraryQuestionIds = t.libraryQuestionIds || [];
           testDoc.customQuestions = t.customQuestions || [];
-          testDoc.questions = t.questions || [];
+          testDoc.questions = formattedQuestions;  // Use formatted questions with proper schema
           testDoc.durationMinutes = t.durationMinutes || testDoc.durationMinutes;
           testDoc.startTime = t.startTime || testDoc.startTime;
           testDoc.endTime = t.endTime || testDoc.endTime;
           testDoc.assignedBatches = t.assignedBatches || testDoc.assignedBatches;
           testDoc.assignedStudents = t.assignedStudents || testDoc.assignedStudents;
           await testDoc.save();
+          console.log('[FacultyTest.updateFacultyTest] ✓ linked Test synced with', formattedQuestions.length, 'questions');
         }
       } catch (e) { console.error('[FacultyTest.updateFacultyTest] sync linked test failed', e.message); }
     }

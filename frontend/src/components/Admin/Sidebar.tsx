@@ -10,7 +10,8 @@ import {
   FaClipboardList,
   FaSignOutAlt,
   FaChevronLeft,
-  FaChevronRight
+  FaChevronRight,
+  FaClipboardCheck
 } from 'react-icons/fa';
 
 const Sidebar: React.FC = () => {
@@ -42,6 +43,7 @@ const Sidebar: React.FC = () => {
     { name: 'Dashboard', path: '/admin/dashboard', icon: <FaChartPie /> },
     { name: 'Announcements', path: '/admin/announcements', icon: <FaBullhorn /> },
     { name: 'Institutions', path: '/admin/institutions', icon: <FaUniversity /> },
+    { name: 'FRI Tests', path: '/admin/fri-tests', icon: <FaClipboardCheck /> },
     { name: 'Contributors', path: '/admin/contributors', icon: <FaUsers /> },
     { name: 'Contributor Requests', path: '/admin/contributor-requests', icon: <FaUserPlus /> },
     { name: 'Superadmin Chats', path: '/admin/superadmin-chats', icon: <FaComments /> },

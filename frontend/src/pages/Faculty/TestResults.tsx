@@ -70,7 +70,19 @@ const FacultyTestResults: React.FC = () => {
             <div className="bg-white rounded shadow p-6 mb-6">
               <div className="flex justify-between items-start">
                 <div>
-                  <h2 className="text-2xl font-bold mb-1">{test.name}</h2>
+                  <div className="flex items-center gap-2 mb-1">
+                    <h2 className="text-2xl font-bold">{test.name}</h2>
+                    {test.isInstitutionGraded && (
+                      <span className="inline-block text-xs bg-blue-600 text-white px-2 py-0.5 rounded font-medium">
+                        Institution Graded Test
+                      </span>
+                    )}
+                    {test.isFacultyGraded && (
+                      <span className="inline-block text-xs bg-green-600 text-white px-2 py-0.5 rounded font-medium">
+                        Faculty Graded Test
+                      </span>
+                    )}
+                  </div>
                   <p className="text-gray-600 text-sm">Type: <span className="font-medium capitalize">{test.type}</span> • Questions: {test.questions?.length || 0}</p>
                 </div>
                 <button onClick={() => navigate('/faculty/dashboard')} className="px-4 py-2 border rounded hover:bg-gray-50">Back to Dashboard</button>

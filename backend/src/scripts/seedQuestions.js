@@ -6,6 +6,7 @@ dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
 const Question = require('../models/Question');
 const Institution = require('../models/Institution');
+const Library = require('../models/Library');
 
 const aptitudeQuestions = [
   {
@@ -302,11 +303,41 @@ async function seedQuestions() {
     // await Question.deleteMany({});
     // console.log('Cleared existing questions');
 
-    // Prepare all questions
+    // Helper to add subtopic based on question content or default
+    const addSubtopic = (q) => {
+      // If question already has subtopic, keep it
+      if (q.subtopic) return q;
+      
+      // Add default subtopics based on category
+      const defaultSubtopics = {
+        aptitude: 'General Aptitude',
+        technical: 'General Technical',
+        psychometric: 'General Psychometric'
+      };
+      
+      return { ...q, subtopic: defaultSubtopics[q.category] || 'General' };
+    };
+
+    // Prepare all questions with inLibrary flag and subtopic
     const allQuestions = [
-      ...aptitudeQuestions.map(q => ({ ...q, createdBy: institutionId, options: q.options.map(text => ({ text })) })),
-      ...technicalQuestions.map(q => ({ ...q, createdBy: institutionId, options: q.options.map(text => ({ text })) })),
-      ...psychometricQuestions.map(q => ({ ...q, createdBy: institutionId, options: q.options.map(text => ({ text })) })),
+      ...aptitudeQuestions.map(q => ({ 
+        ...addSubtopic(q), 
+        createdBy: institutionId, 
+        inLibrary: true,  // Mark as in library
+        options: q.options.map(text => ({ text })) 
+      })),
+      ...technicalQuestions.map(q => ({ 
+        ...addSubtopic(q), 
+        createdBy: institutionId, 
+        inLibrary: true,  // Mark as in library
+        options: q.options.map(text => ({ text })) 
+      })),
+      ...psychometricQuestions.map(q => ({ 
+        ...addSubtopic(q), 
+        createdBy: institutionId, 
+        inLibrary: true,  // Mark as in library
+        options: q.options.map(text => ({ text })) 
+      })),
     ];
 
     // Insert all questions
@@ -316,6 +347,27 @@ async function seedQuestions() {
     console.log(`   - ${aptitudeQuestions.length} Aptitude questions`);
     console.log(`   - ${technicalQuestions.length} Technical questions`);
     console.log(`   - ${psychometricQuestions.length} psychometric questions`);
+    
+    // Add all questions to Library collection
+    let libraryCount = 0;
+    for (const q of inserted) {
+      try {
+        // Map category to main topic
+        const topicMap = {
+          'aptitude': 'Aptitude',
+          'technical': 'Technical',
+          'psychometric': 'Psychometric'
+        };
+        const topic = topicMap[q.category] || 'Aptitude';
+        
+        await Library.addQuestionToLibrary(q._id, topic, q.subtopic);
+        libraryCount++;
+      } catch (err) {
+        console.error(`⚠️  Failed to add question ${q._id} to library:`, err.message);
+      }
+    }
+    
+    console.log(`✅ Added ${libraryCount} questions to Library collection`);
 
     process.exit(0);
   } catch (error) {

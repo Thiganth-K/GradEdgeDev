@@ -78,8 +78,8 @@ const facultyLogin = async (req, res) => {
       return res.status(500).json({ success: false, message: 'server jwt secret not configured' });
     }
 
-    const token = jwt.sign({ id: f._id, username: f.username, role: 'faculty' }, secret, { expiresIn: '7d' });
-    console.log('[Institution.facultyLogin] ✓ authenticated faculty:', username, 'role:', f.role, '- generated token');
+    const token = jwt.sign({ id: f._id, username: f.username, role: 'faculty', institutionId: f.createdBy }, secret, { expiresIn: '7d' });
+    console.log('[Institution.facultyLogin] ✓ authenticated faculty:', username, 'role:', f.role, 'institutionId:', f.createdBy, '- generated token');
     try { await AdminLog.createLog({ actorId: f._id, actorUsername: f.username, role: 'faculty', actionType: 'login', message: `${f.username} logged in` }); } catch (e) {}
     return res.json({ success: true, role: 'faculty', token, data: { id: f._id, username: f.username, role: f.role } });
   } catch (err) {
@@ -727,6 +727,7 @@ const createTest = async (req, res) => {
       assignedFaculty: assignedFacultyId || undefined,
       assignedBatches: Array.isArray(batchIds) ? batchIds : [],
       createdBy: req.institution?.id,
+      isInstitutionGraded: true,  // Mark as institution-created test
       libraryQuestionIds,  // NEW: Store library question references
       customQuestions: customQs,  // NEW: Store custom questions
       questions: legacyQuestions,  // LEGACY: Keep for backward compatibility
@@ -912,10 +913,15 @@ const deleteTest = async (req, res) => {
 const listStudentTests = async (req, res) => {
   try {
     const studentId = req.student?.id;
+    const studentUsername = req.student?.username;
+    console.log('[Institution.listStudentTests] called by student:', studentUsername, 'id:', studentId);
     if (!studentId) return res.status(401).json({ success: false, message: 'unauthorized' });
     const batches = await Batch.find({ students: studentId }).select('_id');
     const batchIds = batches.map((b) => b._id);
+    console.log('[Institution.listStudentTests] student is in', batches.length, 'batches:', batchIds.map(b => String(b)));
     const now = new Date();
+    
+    // Fetch regular tests
     const tests = await Test.find({
       $or: [
         { assignedStudents: studentId },
@@ -925,9 +931,62 @@ const listStudentTests = async (req, res) => {
         { $or: [{ startTime: { $exists: false } }, { startTime: { $lte: now } }] },
         { $or: [{ endTime: { $exists: false } }, { endTime: { $gte: now } }] },
       ],
-    }).sort({ startTime: 1 });
-    res.json({ success: true, data: tests });
+    }).select('name type durationMinutes startTime endTime questions libraryQuestionIds customQuestions isInstitutionGraded isFacultyGraded').sort({ startTime: 1 });
+    console.log('[Institution.listStudentTests] ✓ found', tests.length, 'regular tests');
+    
+    // Fetch FRI test schedules assigned to this student
+    const FRITestSchedule = require('../../models/FRITestSchedule');
+    const FRITest = require('../../models/FRITest');
+    
+    const friSchedules = await FRITestSchedule.find({
+      $or: [
+        { assignedStudents: studentId },
+        { assignedBatches: { $in: batchIds } }
+      ],
+      status: { $in: ['scheduled', 'active'] },
+      scheduledDate: { $lte: new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000) } // Within next 30 days
+    }).populate('friTestId').sort({ scheduledDate: 1 });
+    
+    console.log('[Institution.listStudentTests] ✓ found', friSchedules.length, 'FRI test schedules');
+    
+    // Convert FRI schedules to test format
+    const friTests = friSchedules
+      .filter(schedule => schedule.friTestId) // Ensure FRI test exists
+      .map(schedule => {
+        const friTest = schedule.friTestId;
+        return {
+          _id: schedule._id,
+          name: friTest.name || 'FRI Test',
+          type: 'fri', // Mark as FRI type
+          durationMinutes: friTest.testDurationMinutes || 60,
+          startTime: schedule.scheduledDate,
+          endTime: schedule.scheduledEndDate,
+          questions: schedule.generatedQuestions || [],
+          isFRITest: true, // NEW: Flag to identify FRI tests
+          isFRIGraded: true, // NEW: Flag for badge display
+          isInstitutionGraded: false,
+          isFacultyGraded: false,
+          friTestId: friTest._id,
+          scheduleId: schedule._id
+        };
+      });
+    
+    console.log('[Institution.listStudentTests] ✓ converted', friTests.length, 'FRI tests');
+    
+    // Merge regular tests and FRI tests
+    const allTests = [
+      ...tests.map(t => ({ ...t.toObject(), isFRITest: false })),
+      ...friTests
+    ].sort((a, b) => {
+      const dateA = a.startTime ? new Date(a.startTime).getTime() : 0;
+      const dateB = b.startTime ? new Date(b.startTime).getTime() : 0;
+      return dateA - dateB;
+    });
+    
+    console.log('[Institution.listStudentTests] ✓ total tests:', allTests.length, '(', tests.length, 'regular +', friTests.length, 'FRI)');
+    res.json({ success: true, data: allTests });
   } catch (err) {
+    console.error('[Institution.listStudentTests] ✗ error:', err.message);
     res.status(500).json({ success: false, message: 'failed to list student tests' });
   }
 };
@@ -936,13 +995,92 @@ const getStudentTest = async (req, res) => {
   try {
     const { id } = req.params;
     const studentId = req.student?.id;
+    const studentUsername = req.student?.username;
+    console.log('[Institution.getStudentTest] called by student:', studentUsername, 'for test:', id);
+    
     const batches = await Batch.find({ students: studentId }).select('_id');
     const batchIds = batches.map((b) => b._id);
-    const t = await Test.findOne({
+    
+    // Try to find regular test first
+    let t = await Test.findOne({
       _id: id,
       $or: [{ assignedStudents: studentId }, { assignedBatches: { $in: batchIds } }],
     });
-    if (!t) return res.status(404).json({ success: false, message: 'test not found' });
+    
+    // If not found in regular tests, check FRI test schedules
+    if (!t) {
+      console.log('[Institution.getStudentTest] Not found in regular tests, checking FRI schedules...');
+      const FRITestSchedule = require('../../models/FRITestSchedule');
+      
+      const friSchedule = await FRITestSchedule.findOne({
+        _id: id,
+        $or: [
+          { assignedStudents: studentId },
+          { assignedBatches: { $in: batchIds } }
+        ],
+        status: { $in: ['scheduled', 'active'] }
+      }).populate('friTestId');
+      
+      if (!friSchedule || !friSchedule.friTestId) {
+        console.log('[Institution.getStudentTest] ✗ test not found in regular tests or FRI schedules');
+        return res.status(404).json({ success: false, message: 'test not found' });
+      }
+      
+      console.log('[Institution.getStudentTest] ✓ found FRI test schedule:', friSchedule._id);
+      
+      // Fetch full question details for FRI test
+      const questionIds = friSchedule.generatedQuestions.map(q => q.questionId);
+      const questions = await Question.find({ _id: { $in: questionIds } }).lean();
+      
+      // Create question map for easy lookup
+      const questionMap = {};
+      questions.forEach(q => {
+        questionMap[String(q._id)] = q;
+      });
+      
+      // Build questions array in the correct order with full details
+      const orderedQuestions = friSchedule.generatedQuestions
+        .map(gq => questionMap[String(gq.questionId)])
+        .filter(q => q); // Remove any nulls
+      
+      console.log('[Institution.getStudentTest] ✓ loaded', orderedQuestions.length, 'FRI questions');
+      
+      // Return FRI test in the same format as regular tests
+      const sanitized = {
+        _id: friSchedule._id,
+        name: friSchedule.friTestId.name || 'FRI Test',
+        type: 'fri',
+        durationMinutes: friSchedule.friTestId.testDurationMinutes || 60,
+        startTime: friSchedule.scheduledDate,
+        endTime: friSchedule.scheduledEndDate,
+        isFRITest: true,
+        isFRIGraded: true,
+        isInstitutionGraded: false,
+        isFacultyGraded: false,
+        questions: orderedQuestions.map((q) => {
+          const options = Array.isArray(q.options) 
+            ? q.options.map(o => (typeof o === 'string' ? o : (o && o.text) || String(o))) 
+            : [];
+          
+          let correctIndices = [];
+          if (Array.isArray(q.correctIndices) && q.correctIndices.length > 0) correctIndices = q.correctIndices;
+          else if (typeof q.correctIndex === 'number') correctIndices = [q.correctIndex];
+          
+          return {
+            text: q.text,
+            options,
+            isMultipleAnswer: correctIndices.length > 1
+          };
+        })
+      };
+      
+      console.log('[Institution.getStudentTest] ✓ returning FRI test with', sanitized.questions.length, 'questions');
+      return res.json({ success: true, data: sanitized });
+    }
+    
+    // Regular test found - continue with existing logic
+    console.log('[Institution.getStudentTest] ✓ found regular test:', t._id);
+    
     // Use model helper to gather library + custom questions if available
     let allQuestions = [];
     if (typeof t.getAllQuestions === 'function') {
@@ -963,6 +1101,9 @@ const getStudentTest = async (req, res) => {
       durationMinutes: t.durationMinutes,
       startTime: t.startTime,
       endTime: t.endTime,
+      isInstitutionGraded: t.isInstitutionGraded || false,
+      isFacultyGraded: t.isFacultyGraded || false,
+      isFRITest: false,
       questions: allQuestions.map((q) => {
         // normalize options: may be strings or objects
         const options = Array.isArray(q.options) ? q.options.map(o => (typeof o === 'string' ? o : (o && o.text) || String(o))) : [];
@@ -1024,26 +1165,63 @@ const startTestAttempt = async (req, res) => {
     console.log('[Institution.startTestAttempt] called by student:', studentUsername);
     console.log('[Institution.startTestAttempt] test id:', id);
     
-    const t = await Test.findById(id);
-    if (!t) {
-      console.log('[Institution.startTestAttempt] ✗ test not found:', id);
-      return res.status(404).json({ success: false, message: 'test not found' });
-    }
-    
     const batches = await Batch.find({ students: studentId }).select('_id');
     const batchIds = batches.map((b) => b._id.toString());
-    const eligible = t.assignedStudents?.map(String).includes(String(studentId)) || t.assignedBatches?.map(String).some((b) => batchIds.includes(b));
-    if (!eligible) {
-      console.log('[Institution.startTestAttempt] ✗ student not eligible for test:', id);
-      return res.status(403).json({ success: false, message: 'not eligible for this test' });
+    
+    // Try regular test first
+    let t = await Test.findById(id);
+    let questionCount = 0;
+    let isFRITest = false;
+    
+    if (!t) {
+      // Check if it's an FRI test
+      console.log('[Institution.startTestAttempt] Not found in regular tests, checking FRI schedules...');
+      const FRITestSchedule = require('../../models/FRITestSchedule');
+      
+      const friSchedule = await FRITestSchedule.findOne({
+        _id: id,
+        $or: [
+          { assignedStudents: studentId },
+          { assignedBatches: { $in: batchIds } }
+        ],
+        status: { $in: ['scheduled', 'active'] }
+      });
+      
+      if (!friSchedule) {
+        console.log('[Institution.startTestAttempt] ✗ test not found:', id);
+        return res.status(404).json({ success: false, message: 'test not found' });
+      }
+      
+      console.log('[Institution.startTestAttempt] ✓ found FRI test schedule');
+      isFRITest = true;
+      questionCount = friSchedule.generatedQuestions?.length || 0;
+      
+      // For FRI tests, check eligibility from schedule
+      const eligible = friSchedule.assignedStudents?.map(String).includes(String(studentId)) || 
+                      friSchedule.assignedBatches?.map(String).some((b) => batchIds.includes(b));
+      if (!eligible) {
+        console.log('[Institution.startTestAttempt] ✗ student not eligible for FRI test:', id);
+        return res.status(403).json({ success: false, message: 'not eligible for this test' });
+      }
+    } else {
+      // Regular test
+      console.log('[Institution.startTestAttempt] ✓ found regular test');
+      questionCount = t.questions?.length || 0;
+      
+      const eligible = t.assignedStudents?.map(String).includes(String(studentId)) || 
+                      t.assignedBatches?.map(String).some((b) => batchIds.includes(b));
+      if (!eligible) {
+        console.log('[Institution.startTestAttempt] ✗ student not eligible for test:', id);
+        return res.status(403).json({ success: false, message: 'not eligible for this test' });
+      }
     }
     
     let attempt = await TestAttempt.findOne({ testId: id, studentId });
     if (!attempt) {
-      attempt = await TestAttempt.create({ testId: id, studentId, total: t.questions.length });
-      console.log('[Institution.startTestAttempt] ✓ new attempt created - id:', attempt._id.toString());
+      attempt = await TestAttempt.create({ testId: id, studentId, total: questionCount });
+      console.log('[Institution.startTestAttempt] ✓ new attempt created - id:', attempt._id.toString(), 'isFRI:', isFRITest);
     } else {
-      console.log('[Institution.startTestAttempt] ✓ existing attempt found - id:', attempt._id.toString());
+      console.log('[Institution.startTestAttempt] ✓ existing attempt found - id:', attempt._id.toString(), 'isFRI:', isFRITest);
     }
     
     res.json({ success: true, data: { attemptId: attempt._id, startedAt: attempt.startedAt } });
@@ -1062,18 +1240,50 @@ const submitTestAttempt = async (req, res) => {
     console.log('[Institution.submitTestAttempt] called by student:', studentUsername);
     console.log('[Institution.submitTestAttempt] test id:', id, '| responseCount:', responses?.length || 0);
     
-    const t = await Test.findById(id);
-    if (!t) {
-      console.log('[Institution.submitTestAttempt] ✗ test not found:', id);
-      return res.status(404).json({ success: false, message: 'test not found' });
-    }
-    
-    // Use unified question list (library + custom) for grading so counts match frontend
+    // Try regular test first
+    let t = await Test.findById(id);
     let questionsForGrading = [];
-    if (typeof t.getAllQuestions === 'function') {
-      try { questionsForGrading = await t.getAllQuestions(); } catch (e) { questionsForGrading = t.questions || []; }
+    let isFRITest = false;
+    
+    if (!t) {
+      // Check if it's an FRI test
+      console.log('[Institution.submitTestAttempt] Not found in regular tests, checking FRI schedules...');
+      const FRITestSchedule = require('../../models/FRITestSchedule');
+      
+      const friSchedule = await FRITestSchedule.findById(id);
+      
+      if (!friSchedule) {
+        console.log('[Institution.submitTestAttempt] ✗ test not found:', id);
+        return res.status(404).json({ success: false, message: 'test not found' });
+      }
+      
+      console.log('[Institution.submitTestAttempt] ✓ found FRI test schedule');
+      isFRITest = true;
+      
+      // Load questions for FRI test
+      const questionIds = friSchedule.generatedQuestions.map(q => q.questionId);
+      const questions = await Question.find({ _id: { $in: questionIds } }).lean();
+      
+      // Create question map for easy lookup
+      const questionMap = {};
+      questions.forEach(q => {
+        questionMap[String(q._id)] = q;
+      });
+      
+      // Build questions array in the correct order
+      questionsForGrading = friSchedule.generatedQuestions
+        .map(gq => questionMap[String(gq.questionId)])
+        .filter(q => q); // Remove any nulls
+      
+      console.log('[Institution.submitTestAttempt] ✓ loaded', questionsForGrading.length, 'FRI questions for grading');
     } else {
-      questionsForGrading = t.questions || [];
+      // Regular test - use unified question list (library + custom) for grading
+      console.log('[Institution.submitTestAttempt] ✓ found regular test');
+      if (typeof t.getAllQuestions === 'function') {
+        try { questionsForGrading = await t.getAllQuestions(); } catch (e) { questionsForGrading = t.questions || []; }
+      } else {
+        questionsForGrading = t.questions || [];
+      }
     }
 
     if (!Array.isArray(responses) || responses.length !== questionsForGrading.length) {
@@ -1147,7 +1357,7 @@ const submitTestAttempt = async (req, res) => {
       console.log('[Institution.submitTestAttempt] ✓ attempt updated - score:', score);
     }
     
-    res.json({ success: true, data: { score, correctCount, total: t.questions.length } });
+    res.json({ success: true, data: { score, correctCount, total: questionsForGrading.length } });
   } catch (err) {
     console.error('[Institution.submitTestAttempt] ✗ error:', err.message);
     res.status(500).json({ success: false, message: 'failed to submit attempt' });
@@ -1164,16 +1374,38 @@ const listAssignedTestsForFaculty = async (req, res) => {
     const facultyUsername = req.faculty?.username;
     console.log('[Institution.listAssignedTestsForFaculty] called by faculty:', facultyUsername);
     
-    const tests = await Test.find({ assignedFaculty: facultyId }).sort({ startTime: 1 });
+    // Fetch both institution-assigned tests AND faculty-created tests
+    const institutionTests = await Test.find({ assignedFaculty: facultyId }).sort({ startTime: 1 });
+    
+    // Fetch faculty-created tests (these are stored in FacultyTest collection)
+    const FacultyTest = require('../../models/FacultyTest');
+    const facultyCreatedTests = await FacultyTest.find({ createdBy: facultyId }).populate('linkedTestId').sort({ createdAt: -1 });
+    
+    // Get the linked Test documents for faculty-created tests
+    const facultyTestDocs = facultyCreatedTests
+      .filter(ft => ft.linkedTestId) // Only include those with linked Test documents
+      .map(ft => ft.linkedTestId);
+    
+    // Combine both lists, avoiding duplicates
+    const allTests = [...institutionTests];
+    const existingIds = new Set(institutionTests.map(t => String(t._id)));
+    
+    facultyTestDocs.forEach(t => {
+      if (t && !existingIds.has(String(t._id))) {
+        allTests.push(t);
+      }
+    });
     
     // Sanitize tests - remove correct answers from questions for faculty
-    const sanitizedTests = tests.map(t => ({
+    const sanitizedTests = allTests.map(t => ({
       _id: t._id,
       name: t.name,
       type: t.type,
       durationMinutes: t.durationMinutes,
       startTime: t.startTime,
       endTime: t.endTime,
+      isInstitutionGraded: t.isInstitutionGraded || false,
+      isFacultyGraded: t.isFacultyGraded || false,
       questions: t.questions.map(q => {
         // Normalize options - handle both string arrays and object arrays
         const normalizedOptions = Array.isArray(q.options) 
@@ -1188,7 +1420,7 @@ const listAssignedTestsForFaculty = async (req, res) => {
       })
     }));
     
-    console.log('[Institution.listAssignedTestsForFaculty] ✓ found', tests.length, 'assigned tests');
+    console.log('[Institution.listAssignedTestsForFaculty] ✓ found', sanitizedTests.length, 'assigned tests (institution:', institutionTests.length, ', faculty-created:', facultyTestDocs.length, ')');
     res.json({ success: true, data: sanitizedTests });
   } catch (err) {
     console.error('[Institution.listAssignedTestsForFaculty] ✗ error:', err.message);
@@ -1253,6 +1485,8 @@ const getTestResultsForFaculty = async (req, res) => {
       durationMinutes: t.durationMinutes,
       startTime: t.startTime,
       endTime: t.endTime,
+      isInstitutionGraded: t.isInstitutionGraded || false,
+      isFacultyGraded: t.isFacultyGraded || false,
       questions: t.questions.map((q, idx) => {
         // Normalize options - handle both string arrays and object arrays
         const normalizedOptions = Array.isArray(q.options) 
@@ -1434,7 +1668,7 @@ const listStudentResults = async (req, res) => {
     // Find attempts by this student, include related test summary
     const attempts = await TestAttempt.find({ studentId })
       .sort({ completedAt: -1, startedAt: -1 })
-      .populate({ path: 'testId', select: 'name type durationMinutes startTime endTime' });
+      .populate({ path: 'testId', select: 'name type durationMinutes startTime endTime isInstitutionGraded isFacultyGraded' });
 
     const data = attempts.map((a) => ({
       _id: a._id,
@@ -1449,6 +1683,8 @@ const listStudentResults = async (req, res) => {
       total: a.total,
       score: a.score,
       status: a.completedAt ? 'completed' : 'in-progress',
+      isInstitutionGraded: a.testId?.isInstitutionGraded || false,
+      isFacultyGraded: a.testId?.isFacultyGraded || false,
     }));
 
     return res.json({ success: true, data });

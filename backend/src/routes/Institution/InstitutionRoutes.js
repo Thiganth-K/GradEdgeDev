@@ -159,4 +159,27 @@ router.post('/admin-chat', verifyInstitution, adminInstChat.sendByInstitution);
 console.log('[InstitutionRoutes] GET /admin-chat - List admin-chat messages (institution)');
 router.get('/admin-chat', verifyInstitution, adminInstChat.listForInstitution);
 
+// FRI Test Management (Foundation Readiness Test) - Institution
+const FRITestController = require('../../controllers/Institution/FRITestController');
+console.log('[InstitutionRoutes] GET /fri-tests - List available FRI Tests (institution)');
+router.get('/fri-tests', verifyInstitution, FRITestController.listAvailableFRITests);
+
+console.log('[InstitutionRoutes] GET /fri-tests/:id - Get FRI Test details (institution)');
+router.get('/fri-tests/:id', verifyInstitution, FRITestController.getFRITestDetails);
+
+console.log('[InstitutionRoutes] POST /fri-tests/:id/schedule - Schedule FRI Test (institution)');
+router.post('/fri-tests/:id/schedule', verifyInstitution, FRITestController.scheduleFRITest);
+
+console.log('[InstitutionRoutes] GET /fri-tests-scheduled - List scheduled FRI Tests (institution)');
+router.get('/fri-tests-scheduled', verifyInstitution, FRITestController.listScheduledFRITests);
+
+console.log('[InstitutionRoutes] GET /fri-tests-scheduled/:id - Get scheduled FRI Test (institution)');
+router.get('/fri-tests-scheduled/:id', verifyInstitution, FRITestController.getScheduledFRITest);
+
+console.log('[InstitutionRoutes] PUT /fri-tests-scheduled/:id - Update scheduled FRI Test (institution)');
+router.put('/fri-tests-scheduled/:id', verifyInstitution, FRITestController.updateScheduledFRITest);
+
+console.log('[InstitutionRoutes] DELETE /fri-tests-scheduled/:id - Cancel scheduled FRI Test (institution)');
+router.delete('/fri-tests-scheduled/:id', verifyInstitution, FRITestController.cancelScheduledFRITest);
+
 module.exports = router;

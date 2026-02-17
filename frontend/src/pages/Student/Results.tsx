@@ -16,6 +16,8 @@ type Result = {
   total: number;
   score: number;
   status: 'completed' | 'in-progress';
+  isInstitutionGraded?: boolean;
+  isFacultyGraded?: boolean;
 };
 
 const StudentResults: React.FC = () => {
@@ -57,6 +59,7 @@ const StudentResults: React.FC = () => {
                     <tr className="text-left text-gray-600">
                       <th className="py-2 pr-4">Test</th>
                       <th className="py-2 pr-4">Type</th>
+                      <th className="py-2 pr-4">Grading</th>
                       <th className="py-2 pr-4">Score</th>
                       <th className="py-2 pr-4">Correct/Total</th>
                       <th className="py-2 pr-4">Status</th>
@@ -68,6 +71,21 @@ const StudentResults: React.FC = () => {
                       <tr key={r._id}>
                         <td className="py-2 pr-4 font-medium">{r.testName || 'Test'}</td>
                         <td className="py-2 pr-4">{r.testType}</td>
+                        <td className="py-2 pr-4">
+                          {r.isInstitutionGraded && (
+                            <span className="inline-block text-xs bg-blue-600 text-white px-2 py-0.5 rounded font-medium">
+                              Institution
+                            </span>
+                          )}
+                          {r.isFacultyGraded && (
+                            <span className="inline-block text-xs bg-green-600 text-white px-2 py-0.5 rounded font-medium">
+                              Faculty
+                            </span>
+                          )}
+                          {!r.isInstitutionGraded && !r.isFacultyGraded && (
+                            <span className="text-gray-400 text-xs">—</span>
+                          )}
+                        </td>
                         <td className="py-2 pr-4">{Math.round(r.score)}</td>
                         <td className="py-2 pr-4">{r.correctCount}/{r.total}</td>
                         <td className="py-2 pr-4">

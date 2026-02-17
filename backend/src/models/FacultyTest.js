@@ -26,6 +26,13 @@ const FacultyTestSchema = new mongoose.Schema({
   type: { type: String, enum: ['aptitude', 'technical', 'psychometric'], required: true },
   assignedFaculty: { type: require('mongoose').Schema.Types.ObjectId, ref: 'Faculty' },
   createdBy: { type: require('mongoose').Schema.Types.ObjectId, ref: 'Faculty' },
+  
+  // Flag to indicate if test is created by institution (for badge display)
+  isInstitutionGraded: { type: Boolean, default: false },
+  
+  // Flag to indicate if test is created by faculty (for badge display)
+  isFacultyGraded: { type: Boolean, default: false },
+  
   libraryQuestionIds: [{ type: require('mongoose').Schema.Types.ObjectId, ref: 'Question' }],
   customQuestions: { type: [CustomQuestionSchema], default: [] },
   questions: { type: [EmbeddedQuestionSchema], default: [] },

@@ -59,6 +59,21 @@ const StudentTests: React.FC = () => {
                           <h3 className="text-lg font-semibold text-gray-800">{t.name}</h3>
                           <span className="text-sm text-gray-500">{t.type || ''}</span>
                           {t.priority && <span className="ml-2 inline-block text-xs bg-red-600 text-white px-2 py-0.5 rounded">{t.priority}</span>}
+                          {t.isFRITest && (
+                            <span className="inline-block text-xs bg-purple-600 text-white px-2 py-0.5 rounded font-medium shadow-sm">
+                              🏆 FRI Graded Test
+                            </span>
+                          )}
+                          {t.isInstitutionGraded && !t.isFRITest && (
+                            <span className="inline-block text-xs bg-blue-600 text-white px-2 py-0.5 rounded font-medium">
+                              Institution Graded Test
+                            </span>
+                          )}
+                          {t.isFacultyGraded && !t.isFRITest && (
+                            <span className="inline-block text-xs bg-green-600 text-white px-2 py-0.5 rounded font-medium">
+                              Faculty Graded Test
+                            </span>
+                          )}
                         </div>
                         <div className="mt-2 text-sm text-gray-600">
                           Questions: <strong className="text-gray-800">{t.questions?.length || t.questionCount || '—'}</strong>

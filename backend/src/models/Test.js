@@ -30,6 +30,12 @@ const TestSchema = new mongoose.Schema({
   assignedFaculty: { type: require('mongoose').Schema.Types.ObjectId, ref: 'Faculty' },
   createdBy: { type: require('mongoose').Schema.Types.ObjectId, ref: 'Institution' },
   
+  // Flag to indicate if test is created by institution (for badge display)
+  isInstitutionGraded: { type: Boolean, default: false },
+  
+  // Flag to indicate if test is created by faculty (for badge display)
+  isFacultyGraded: { type: Boolean, default: false },
+  
   // NEW: Clear separation of question types
   // Library Questions: referenced by ID, changes affect master question
   libraryQuestionIds: [{ type: require('mongoose').Schema.Types.ObjectId, ref: 'Question' }],

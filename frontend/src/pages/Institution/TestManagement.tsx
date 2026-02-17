@@ -292,7 +292,19 @@ const TestManagement: React.FC = () => {
               <div key={t._id} className="bg-white rounded-lg shadow-sm border border-gray-100 p-6 flex items-center justify-between">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 flex-1">
                   <div>
-                    <div className="text-lg font-semibold text-gray-900">{t.name}</div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg font-semibold text-gray-900">{t.name}</span>
+                      {t.isInstitutionGraded && (
+                        <span className="inline-block text-xs bg-blue-600 text-white px-2 py-0.5 rounded font-medium">
+                          Institution Graded Test
+                        </span>
+                      )}
+                      {t.isFacultyGraded && (
+                        <span className="inline-block text-xs bg-green-600 text-white px-2 py-0.5 rounded font-medium">
+                          Faculty Graded Test
+                        </span>
+                      )}
+                    </div>
                     <div className="text-sm text-gray-500 mt-1">{t.type ? String(t.type).charAt(0).toUpperCase() + String(t.type).slice(1) : '—'}</div>
                   </div>
                   <div>

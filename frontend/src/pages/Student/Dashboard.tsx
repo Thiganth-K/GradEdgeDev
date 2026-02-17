@@ -117,7 +117,14 @@ const StudentDashboard: React.FC = () => {
                 {tests.map((t:any) => (
                   <div key={t._id} className="flex items-center justify-between border rounded p-3">
                     <div>
-                      <div className="font-medium">{t.name} ({t.type})</div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{t.name} ({t.type})</span>
+                        {t.isFRITest && (
+                          <span className="inline-block text-xs bg-purple-600 text-white px-2 py-0.5 rounded font-medium shadow-sm">
+                            🏆 FRI
+                          </span>
+                        )}
+                      </div>
                       <div className="text-sm text-gray-600">Questions: {t.questions?.length || 0} • Duration: {t.durationMinutes} min</div>
                     </div>
                     <button onClick={() => navigate(`/student/test/${t._id}`)} className="px-3 py-2 border rounded hover:bg-gray-50">Take Test</button>

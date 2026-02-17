@@ -131,4 +131,24 @@ router.delete('/library/questions/:questionId', verifyAdmin, AdminControllers.re
 console.log('[AdminRoutes] GET /library/structure - Get library structure (admin)');
 router.get('/library/structure', verifyAdmin, AdminControllers.getLibraryStructure);
 
+// FRI Test Management (Foundation Readiness Test)
+const FRITestController = require('../../controllers/Admin/FRITestController');
+console.log('[AdminRoutes] POST /fri-tests - Create FRI Test (admin)');
+router.post('/fri-tests', verifyAdmin, FRITestController.createFRITest);
+
+console.log('[AdminRoutes] GET /fri-tests - List FRI Tests (admin)');
+router.get('/fri-tests', verifyAdmin, FRITestController.listFRITests);
+
+console.log('[AdminRoutes] GET /fri-tests/:id - Get FRI Test (admin)');
+router.get('/fri-tests/:id', verifyAdmin, FRITestController.getFRITest);
+
+console.log('[AdminRoutes] PUT /fri-tests/:id - Update FRI Test (admin)');
+router.put('/fri-tests/:id', verifyAdmin, FRITestController.updateFRITest);
+
+console.log('[AdminRoutes] DELETE /fri-tests/:id - Archive FRI Test (admin)');
+router.delete('/fri-tests/:id', verifyAdmin, FRITestController.deleteFRITest);
+
+console.log('[AdminRoutes] GET /fri-tests/:id/stats - Get FRI Test statistics (admin)');
+router.get('/fri-tests/:id/stats', verifyAdmin, FRITestController.getFRITestStats);
+
 module.exports = router;

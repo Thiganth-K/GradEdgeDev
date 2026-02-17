@@ -39,7 +39,19 @@ const FacultyTestList: React.FC = () => {
               {tests.map((t:any) => (
                 <div key={t._id} className="flex items-center justify-between border rounded p-3">
                   <div>
-                    <div className="font-medium">{t.name} ({t.type})</div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">{t.name} ({t.type})</span>
+                      {t.isInstitutionGraded && (
+                        <span className="inline-block text-xs bg-blue-600 text-white px-2 py-0.5 rounded font-medium">
+                          Institution Graded Test
+                        </span>
+                      )}
+                      {t.isFacultyGraded && (
+                        <span className="inline-block text-xs bg-green-600 text-white px-2 py-0.5 rounded font-medium">
+                          Faculty Graded Test
+                        </span>
+                      )}
+                    </div>
                     <div className="text-sm text-gray-600">Questions: {(t.libraryQuestionIds?.length || 0) + (t.customQuestions?.length || 0)}</div>
                   </div>
                   <div className="flex gap-2">

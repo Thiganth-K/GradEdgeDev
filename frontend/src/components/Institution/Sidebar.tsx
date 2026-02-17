@@ -11,7 +11,8 @@ import {
   FaBook,
   FaSignOutAlt,
   FaChevronLeft,
-  FaChevronRight
+  FaChevronRight,
+  FaClipboardCheck
 } from 'react-icons/fa';
 
 const InstitutionSidebar: React.FC = () => {
@@ -45,6 +46,7 @@ const InstitutionSidebar: React.FC = () => {
     { name: 'Students', path: '/institution/students', icon: <FaUserGraduate /> },
     { name: 'Batches', path: '/institution/batches', icon: <FaLayerGroup /> },
     { name: 'Tests', path: '/institution/tests', icon: <FaClipboardList /> },
+    { name: 'FRI Tests', path: '/institution/fri-tests', icon: <FaClipboardCheck /> },
     { name: 'Announcements', path: '/institution/announcements', icon: <FaBullhorn /> },
     { name: 'Chats', path: '/institution/chat', icon: <FaComments /> },
     { name: 'Library', path: '/institution/library', icon: <FaBook /> }
