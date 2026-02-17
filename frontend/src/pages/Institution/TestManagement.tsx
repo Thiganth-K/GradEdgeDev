@@ -18,7 +18,7 @@ const TestManagement: React.FC = () => {
 
   // Create Test form state
   const [name, setName] = useState('');
-  const [type, setType] = useState<'aptitude' | 'technical' | 'psychometric'>('aptitude');
+  const [type, setType] = useState<'aptitude' | 'technical' | 'psychometric' | 'coding'>('aptitude');
   const [assignedFacultyId, setAssignedFacultyId] = useState('');
   const [selectedBatchIds, setSelectedBatchIds] = useState<string[]>([]);
   const [durationMinutes, setDurationMinutes] = useState<number>(30);
@@ -226,7 +226,8 @@ const TestManagement: React.FC = () => {
                       <select value={type} onChange={(e)=>setType(e.target.value as any)} className="border border-gray-200 px-3 py-2 w-full rounded-lg shadow-sm">
                         <option value="aptitude">Aptitude</option>
                         <option value="technical">Technical</option>
-                        <option value="psychometric">psychometric</option>
+                        <option value="psychometric">Psychometric</option>
+                        <option value="coding">Coding</option>
                       </select>
                     </div>
                     <div>
@@ -343,7 +344,8 @@ const TestManagement: React.FC = () => {
                   <select value={editingTest.type} onChange={(e) => setEditingTest((prev: any) => ({ ...prev, type: e.target.value }))} className="border border-gray-200 px-3 py-2 w-full rounded-lg shadow-sm">
                     <option value="aptitude">Aptitude</option>
                     <option value="technical">Technical</option>
-                    <option value="psychometric">psychometric</option>
+                    <option value="psychometric">Psychometric</option>
+                    <option value="coding">Coding</option>
                   </select>
                 </div>
 
