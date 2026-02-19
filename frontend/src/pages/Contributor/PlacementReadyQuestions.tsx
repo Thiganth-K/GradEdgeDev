@@ -62,10 +62,10 @@ const PlacementReadyQuestions: React.FC = () => {
   };
 
   const handleQuestionSingleChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files && e.target.files[0];
-    if (f) {
-      setImageFiles(prev => [...prev, f]);
-      setImagePreviews(prev => [...prev, URL.createObjectURL(f)]);
+    const files = e.target.files ? Array.from(e.target.files) : [];
+    if (files.length) {
+      setImageFiles(prev => [...prev, ...files]);
+      setImagePreviews(prev => [...prev, ...files.map(f => URL.createObjectURL(f))]);
     }
     if (e.target) (e.target as HTMLInputElement).value = '';
   };
@@ -81,13 +81,13 @@ const PlacementReadyQuestions: React.FC = () => {
   };
 
   const handleSolutionSingleChange = (index: number, e: ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files && e.target.files[0];
-    if (f) {
+    const files = e.target.files ? Array.from(e.target.files) : [];
+    if (files.length) {
       setSolutionFiles(prev => {
         const copy = prev.map(arr => Array.isArray(arr) ? [...arr] : []);
         while (copy.length <= index) copy.push([]);
         copy[index] = copy[index] || [];
-        copy[index].push(f);
+        copy[index] = [...copy[index], ...files];
         return copy;
       });
     }
@@ -334,7 +334,7 @@ const PlacementReadyQuestions: React.FC = () => {
                 <div className="flex items-center gap-2">
                   <input type="file" accept="image/*" onChange={handleImageChange} multiple />
                   <button type="button" onClick={triggerQuestionSingle} className="px-2 py-1 bg-white border rounded">Add One</button>
-                  <input ref={questionSingleInputRef} type="file" accept="image/*" onChange={handleQuestionSingleChange} style={{ display: 'none' }} />
+                  <input ref={questionSingleInputRef} type="file" accept="image/*" onChange={handleQuestionSingleChange} style={{ display: 'none' }} multiple />
                 </div>
                 <div className="flex gap-2 flex-wrap mt-2">
                   {imagePreviews.map((p, i) => (
@@ -402,7 +402,7 @@ const PlacementReadyQuestions: React.FC = () => {
                         <div className="flex items-center gap-2">
                           <input type="file" accept="image/*" onChange={(e) => handleSolutionFileChange(idx, e)} multiple />
                           <button type="button" onClick={() => triggerSolutionSingle(idx)} className="px-2 py-1 bg-white border rounded">Add One</button>
-                          <input ref={el => { solutionSingleInputRefs.current[idx] = el; }} type="file" accept="image/*" onChange={(e) => handleSolutionSingleChange(idx, e)} style={{ display: 'none' }} />
+                          <input ref={el => { solutionSingleInputRefs.current[idx] = el; }} type="file" accept="image/*" onChange={(e) => handleSolutionSingleChange(idx, e)} style={{ display: 'none' }} multiple />
                         </div>
                         <div className="flex gap-2 flex-wrap mt-2">
                           {/* existing solution image URLs from DB */}
