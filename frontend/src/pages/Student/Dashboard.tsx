@@ -84,7 +84,6 @@ const StudentDashboard: React.FC = () => {
                 { name: 'Profile', slug: 'profile' },
                 { name: 'Settings', slug: 'settings' },
                 { name: 'Support', slug: 'support' },
-                { name: 'Coding Playground', slug: 'sandbox' },
               ].map((it) => (
                 <button
                   key={it.slug}
@@ -92,7 +91,6 @@ const StudentDashboard: React.FC = () => {
                     it.slug === 'announcements' ? '/student/announcements' :
                     it.slug === 'tests' ? '/student/tests' :
                     it.slug === 'results' ? '/student/results' :
-                    it.slug === 'sandbox' ? '/student/sandbox' :
                     `/student/wip/${it.slug}`
                   )}
                   className="text-left p-4 border rounded hover:bg-gray-50"

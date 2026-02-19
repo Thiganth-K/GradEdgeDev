@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
 const InstitutionControllers = require('../../controllers/Institution/InstitutionControllers');
-const CodingTestController = require('../../controllers/CodingTestController');
 
 const verifyInstitution = require('../../middleware/verifyInstitution');
 const verifyFaculty = require('../../middleware/verifyFaculty');
@@ -159,8 +158,5 @@ router.post('/admin-chat', verifyInstitution, adminInstChat.sendByInstitution);
 
 console.log('[InstitutionRoutes] GET /admin-chat - List admin-chat messages (institution)');
 router.get('/admin-chat', verifyInstitution, adminInstChat.listForInstitution);
-
-// Student - Coding Test Execution
-router.post('/student/run-code', verifyStudent, CodingTestController.runCode);
 
 module.exports = router;
