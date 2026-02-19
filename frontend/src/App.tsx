@@ -54,6 +54,7 @@ import AdminContributorRequestManagement from './pages/Admin/ContributorRequestM
 import AdminContributorChatManagement from './pages/Admin/ContributorChatManagement'
 import AdminSuperadminChatManagement from './pages/Admin/SuperadminChatManagement'
 import AdminLibraryManagement from './pages/Admin/LibraryManagement'
+import PendingContributorQuestions from './pages/Admin/PendingContributorQuestions'
 import './App.css'
 
 const App: React.FC = () => {
@@ -120,6 +121,7 @@ const App: React.FC = () => {
         <Route path="/admin/contributor-chats" element={<AdminContributorChatManagement />} />
         <Route path="/admin/superadmin-chats" element={<AdminSuperadminChatManagement />} />
         <Route path="/admin/library" element={<AdminLibraryManagement />} />
+        <Route path="/admin/pending-questions" element={<PendingContributorQuestions />} />
         <Route path="*" element={<div className="p-8">Page not found</div>} />
       </Routes>
     </div>

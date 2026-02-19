@@ -120,6 +120,7 @@ const createQuestion = async (req, res) => {
       }
     }
 
+    const contributorId = req.contributor && req.contributor.id;
     const doc = new ContributorQuestion({
       subTopic: payload.subTopic,
       difficulty: payload.difficulty,
@@ -130,7 +131,9 @@ const createQuestion = async (req, res) => {
       questionImagePublicIds: payload.questionImagePublicIds,
       options: payload.options,
       solutions: payload.solutions,
-      contributor: req.contributor && req.contributor.id
+      contributorId: contributorId,
+      contributor: contributorId,
+      status: 'pending'
     });
 
     await doc.save();
@@ -437,7 +440,11 @@ const listQuestions = async (req, res) => {
     if (req.query.contributor) q.contributor = req.query.contributor;
     if (req.query.tag) q.tags = req.query.tag;
 
-    const docs = await ContributorQuestion.find(q).sort({ questionNumber: 1 }).limit(100);
+    // if request is authenticated contributor, limit to their questions
+    if (req.contributor && req.contributor.id) {
+      q.contributor = req.contributor.id;
+    }
+    const docs = await ContributorQuestion.find(q).sort({ createdAt: -1 }).limit(100);
     return res.json({ success: true, data: docs });
   } catch (err) {
     console.error('[listQuestions] error', err);
