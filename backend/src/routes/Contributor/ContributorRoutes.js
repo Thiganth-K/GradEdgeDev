@@ -3,6 +3,7 @@ const router = express.Router();
 const multer = require('multer');
 const ContributorControllers = require('../../controllers/Contributor/ContributorControllers');
 const BulkQuestionControllers = require('../../controllers/Contributor/BulkQuestionControllers');
+const ContributorQuestionControllers = require('../../controllers/Contributor/ContributorQuestionControllers');
 const verifyContributor = require('../../middleware/verifyContributor');
 
 // Configure multer for file upload (memory storage)
@@ -26,6 +27,17 @@ const upload = multer({
   }
 });
 
+// image upload for contributor question images (memory storage)
+const imageUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+  fileFilter: (req, file, cb) => {
+    const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    if (allowed.includes(file.mimetype)) cb(null, true);
+    else cb(new Error('Only images are allowed (jpeg, png, webp, gif)'));
+  }
+});
+
 console.log('[ContributorRoutes] POST /login - Contributor login');
 router.post('/login', ContributorControllers.login);
 
@@ -42,7 +54,7 @@ console.log('[ContributorRoutes] GET /requests/:id - Get request by ID');
 router.get('/requests/:id', verifyContributor, ContributorControllers.getRequestById);
 
 console.log('[ContributorRoutes] GET /contributions - Get my contributed questions');
-router.get('/contributions', verifyContributor, ContributorControllers.getMyContributions);
+router.get('/contributions', verifyContributor, ContributorQuestionControllers.listQuestions);
 
 console.log('[ContributorRoutes] POST /contributions - Create a new contributed question');
 // Expected form fields (multipart/form-data):

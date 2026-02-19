@@ -1,3 +1,4 @@
+const axios = require('axios');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const Institution = require('../../models/Institution');
@@ -489,7 +490,7 @@ const createQuestion = async (req, res) => {
       console.log('[Institution.createQuestion] ✗ invalid payload');
       return res.status(400).json({ success: false, message: 'invalid question payload' });
     }
-    if (!['aptitude', 'technical', 'psychometric'].includes(category)) {
+    if (!['aptitude', 'technical', 'psychometric', 'coding'].includes(category)) {
       console.log('[Institution.createQuestion] ✗ invalid category:', category);
       return res.status(400).json({ success: false, message: 'invalid category' });
     }
@@ -540,7 +541,7 @@ const updateQuestion = async (req, res) => {
       q.correctIndex = undefined;
     }
     
-    if (category && ['aptitude', 'technical', 'psychometric'].includes(category)) q.category = category;
+    if (category && ['aptitude', 'technical', 'psychometric', 'coding'].includes(category)) q.category = category;
     if (difficulty) q.difficulty = difficulty;
     if (tags) q.tags = tags;
     await q.save();
@@ -620,7 +621,7 @@ const createTest = async (req, res) => {
     console.log('[Institution.createTest] called by institution:', instName);
     console.log('[Institution.createTest] payload: { name:', name, ', type:', type, ', duration:', durationMinutes, ', batchCount:', batchIds?.length || 0, '}');
     
-    if (!name || !['aptitude', 'technical', 'psychometric'].includes(type)) {
+    if (!name || !['aptitude', 'technical', 'psychometric', 'coding'].includes(type)) {
       console.log('[Institution.createTest] ✗ invalid payload');
       return res.status(400).json({ success: false, message: 'invalid test payload' });
     }
@@ -666,37 +667,42 @@ const createTest = async (req, res) => {
     // Process Custom Questions (embedded, test-specific)
     if (Array.isArray(customQuestions) && customQuestions.length) {
       for (const cq of customQuestions) {
-        const { text, options, correctIndex, correctIndices, difficulty } = cq;
-        if (!text || !Array.isArray(options) || options.length < 2) {
-          console.log('[Institution.createTest] ⚠ skipping invalid custom question - missing text or options');
+        const { text, options, correctIndex, correctIndices, difficulty, isCoding, starterCode, testCases } = cq;
+        if (!text || (!isCoding && (!Array.isArray(options) || options.length < 2))) {
+          console.log('[Institution.createTest] ⚠ skipping invalid custom question - missing text, options, or invalid coding config');
           continue;
         }
         
         // Support both single (correctIndex) and multiple (correctIndices) answers
         let finalCorrectIndices = [];
-        if (Array.isArray(correctIndices) && correctIndices.length > 0) {
-          finalCorrectIndices = correctIndices;
-        } else if (typeof correctIndex === 'number') {
-          finalCorrectIndices = [correctIndex];
-        } else {
-          console.log('[Institution.createTest] ⚠ skipping invalid custom question - no correct answer specified');
-          continue;
+        if (!isCoding) {
+          if (Array.isArray(correctIndices) && correctIndices.length > 0) {
+            finalCorrectIndices = correctIndices;
+          } else if (typeof correctIndex === 'number') {
+            finalCorrectIndices = [correctIndex];
+          } else {
+            console.log('[Institution.createTest] ⚠ skipping invalid custom question - no correct answer specified for non-coding question');
+            continue;
+          }
         }
         
         customQs.push({ 
           text, 
-          options, 
+          options: isCoding ? [] : options, 
           correctIndices: finalCorrectIndices,
-          correctIndex: finalCorrectIndices[0], // Keep first for backward compatibility
-          difficulty: difficulty || 'medium' 
+          correctIndex: finalCorrectIndices[0], 
+          difficulty: difficulty || 'medium',
+          isCoding: !!isCoding,
+          starterCode: starterCode || '',
+          testCases: Array.isArray(testCases) ? testCases : []
         });
         
-        console.log(`[Test Creation] Custom Q: "${text}" - correct answers: [${finalCorrectIndices.join(', ')}]`);
+        console.log(`[Test Creation] Custom Q: "${text}" - coding: ${!!isCoding}`);
         
         // Also populate legacy format (only if valid)
         legacyQuestions.push({ 
           text, 
-          options: options.map(o => ({ text: String(o) })), 
+          options: Array.isArray(options) ? options.map(o => ({ text: String(o) })) : [], 
           correctIndices: finalCorrectIndices,
           correctIndex: finalCorrectIndices[0]
         });
@@ -760,7 +766,7 @@ const updateTest = async (req, res) => {
     
     // Update basic fields
     if (name !== undefined) t.name = name;
-    if (type !== undefined && ['aptitude', 'technical', 'psychometric'].includes(type)) t.type = type;
+    if (type !== undefined && ['aptitude', 'technical', 'psychometric', 'coding'].includes(type)) t.type = type;
     if (durationMinutes !== undefined) t.durationMinutes = durationMinutes;
     if (startTime !== undefined) t.startTime = startTime ? new Date(startTime) : undefined;
     if (endTime !== undefined) t.endTime = endTime ? new Date(endTime) : undefined;
@@ -776,11 +782,21 @@ const updateTest = async (req, res) => {
     if (Array.isArray(newCustomQs)) {
       t.customQuestions = newCustomQs.filter(cq => {
         const hasText = cq.text;
+        const isCoding = cq.isCoding;
         const hasOptions = Array.isArray(cq.options) && cq.options.length >= 2;
         const hasSingleAnswer = typeof cq.correctIndex === 'number';
         const hasMultipleAnswers = Array.isArray(cq.correctIndices) && cq.correctIndices.length > 0;
-        return hasText && hasOptions && (hasSingleAnswer || hasMultipleAnswers);
-      });
+        return hasText && (isCoding || (hasOptions && (hasSingleAnswer || hasMultipleAnswers)));
+      }).map(cq => ({
+        text: cq.text,
+        options: cq.isCoding ? [] : cq.options,
+        correctIndex: cq.correctIndex,
+        correctIndices: cq.correctIndices,
+        difficulty: cq.difficulty,
+        isCoding: !!cq.isCoding,
+        starterCode: cq.starterCode,
+        testCases: cq.testCases
+      }));
       console.log('[Institution.updateTest] updated customQuestions:', t.customQuestions.length);
     }
 
@@ -973,9 +989,13 @@ const getStudentTest = async (req, res) => {
         else if (typeof q.correctIndex === 'number') correctIndices = [q.correctIndex];
 
         return {
+          _id: q._id,
           text: q.text,
           options,
-          isMultipleAnswer: correctIndices.length > 1
+          isMultipleAnswer: correctIndices.length > 1,
+          isCoding: q.isCoding,
+          starterCode: q.starterCode,
+          testCases: q.testCases
         };
       }),
     };
@@ -1103,25 +1123,88 @@ const submitTestAttempt = async (req, res) => {
         selectedIndices = [Number(sel)];
       }
       
-      // Get correct answers for this question
-      // Get correct indices from unified question object; support both formats
-      const correctIndices = Array.isArray(q.correctIndices) && q.correctIndices.length > 0
-        ? q.correctIndices
-        : (typeof q.correctIndex === 'number' ? [q.correctIndex] : []);
-      
-      console.log(`[Grading] Q${i + 1}: "${q.text}" - Student selected: [${selectedIndices.join(', ')}], Correct: [${correctIndices.join(', ')}]`);
-      
-      // Check if selected answers match correct answers exactly
-      // Must match all correct answers and no extra answers
-      if (selectedIndices.length === correctIndices.length) {
-        const sortedSelected = [...selectedIndices].sort((a, b) => a - b);
-        const sortedCorrect = [...correctIndices].sort((a, b) => a - b);
-        isCorrect = sortedSelected.every((val, idx) => val === sortedCorrect[idx]);
+      // Handle Coding Questions
+      if (q.isCoding) {
+        let submittedCode = '';
+        let submittedLanguage = 'javascript';
+        
+        if (typeof sel === 'object' && sel !== null) {
+          submittedCode = sel.code || '';
+          submittedLanguage = sel.language || 'javascript';
+        } else {
+          submittedCode = sel || '';
+        }
+        
+        console.log(`[Grading] Q${i + 1} (Coding): Executing submitted code with language: ${submittedLanguage}...`);
+        
+        try {
+          // Re-use logic for Piston execution
+          const PISTON_API = 'https://emkc.org/api/v2/piston/execute';
+          const runtimes = {
+            'javascript': { language: 'javascript', version: '18.15.0' },
+            'python': { language: 'python', version: '3.10.0' },
+            'java': { language: 'java', version: '15.0.2' },
+            'cpp': { language: 'c++', version: '10.2.0' },
+            'c': { language: 'c', version: '10.2.0' }
+          };
+          const runtime = runtimes[submittedLanguage] || runtimes['javascript'];
+          
+          let passedCases = 0;
+          const testCases = q.testCases || [];
+          
+          if (testCases.length > 0) {
+            for (const tc of testCases) {
+              const payload = {
+                language: runtime.language,
+                version: runtime.version,
+                files: [{ content: submittedCode }],
+                stdin: tc.input || '',
+              };
+              
+              const pistonRes = await axios.post(PISTON_API, payload);
+              const { run } = pistonRes.data;
+              const actual = (run.output || '').trim();
+              const expected = (tc.output || '').trim();
+              if (actual === expected) passedCases++;
+            }
+            
+            // Score is strict LeetCode style: only 100% if all pass
+            if (passedCases === testCases.length) {
+              isCorrect = true;
+              correctCount += 1;
+              console.log(`[Grading] Q${i + 1} (Coding) Result: ${passedCases}/${testCases.length} passed. ALL PASSED. Full credit.`);
+            } else {
+              isCorrect = false;
+              console.log(`[Grading] Q${i + 1} (Coding) Result: ${passedCases}/${testCases.length} passed. FAILED. 0 credit.`);
+            }
+          } else {
+            // No test cases? Mark as correct if any code submitted?
+            isCorrect = true;
+            correctCount += 1;
+          }
+        } catch (err) {
+          console.error(`[Grading] Q${i + 1} (Coding) execution failed:`, err.message);
+          isCorrect = false;
+        }
+      } else {
+        // Handle MCQ Questions
+        // Get correct indices from unified question object; support both formats
+        const correctIndices = Array.isArray(q.correctIndices) && q.correctIndices.length > 0
+          ? q.correctIndices
+          : (typeof q.correctIndex === 'number' ? [q.correctIndex] : []);
+        
+        console.log(`[Grading] Q${i + 1}: "${q.text}" - Student selected: [${selectedIndices.join(', ')}], Correct: [${correctIndices.join(', ')}]`);
+        
+        // Check if selected answers match correct answers exactly
+        if (selectedIndices.length === correctIndices.length) {
+          const sortedSelected = [...selectedIndices].sort((a, b) => a - b);
+          const sortedCorrect = [...correctIndices].sort((a, b) => a - b);
+          isCorrect = sortedSelected.every((val, idx) => val === sortedCorrect[idx]);
+        }
+        
+        console.log(`[Grading] Q${i + 1} Result: ${isCorrect ? 'CORRECT ✓' : 'WRONG ✗'}`);
+        if (isCorrect) correctCount++;
       }
-      
-      console.log(`[Grading] Q${i + 1} Result: ${isCorrect ? 'CORRECT ✓' : 'WRONG ✗'}`);
-      
-      if (isCorrect) correctCount++;
       
       // Build response objects that match TestAttempt ResponseSchema
       respRecords.push({

@@ -6,6 +6,13 @@ const CustomQuestionSchema = new mongoose.Schema({
   options: [{ type: String, required: true }],
   correctIndex: { type: Number },
   correctIndices: [{ type: Number }],
+  isCoding: { type: Boolean, default: false },
+  starterCode: { type: String },
+  testCases: [{
+    input: { type: String, default: '' },
+    output: { type: String, default: '' },
+    isHidden: { type: Boolean, default: false }
+  }],
   difficulty: { type: String, enum: ['easy', 'medium', 'hard'], default: 'medium' },
   createdAt: { type: Date, default: Date.now },
 });
@@ -26,7 +33,7 @@ const EmbeddedQuestionSchema = new mongoose.Schema({
 
 const TestSchema = new mongoose.Schema({
   name: { type: String, required: true },
-  type: { type: String, enum: ['aptitude', 'technical', 'psychometric'], required: true },
+  type: { type: String, enum: ['aptitude', 'technical', 'psychometric', 'coding'], required: true },
   assignedFaculty: { type: require('mongoose').Schema.Types.ObjectId, ref: 'Faculty' },
   createdBy: { type: require('mongoose').Schema.Types.ObjectId, ref: 'Institution' },
   
@@ -66,7 +73,10 @@ TestSchema.methods.getAllQuestions = async function() {
       correctIndices: correctAnswers, // All correct answers for multiple choice support
       difficulty: q.difficulty,
       source: 'library',
-      questionId: q._id
+      questionId: q._id,
+      isCoding: q.isCoding,
+      starterCode: q.starterCode,
+      testCases: q.testCases
     };
   });
   
@@ -83,7 +93,10 @@ TestSchema.methods.getAllQuestions = async function() {
       correctIndex: correctAnswers[0], // First correct answer for backward compatibility
       correctIndices: correctAnswers, // All correct answers for multiple choice support
       difficulty: q.difficulty,
-      source: 'custom'
+      source: 'custom',
+      isCoding: q.isCoding,
+      starterCode: q.starterCode,
+      testCases: q.testCases
     };
   });
   
