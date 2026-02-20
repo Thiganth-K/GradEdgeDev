@@ -67,14 +67,16 @@ console.log('[ContributorRoutes] POST /contributions - Create a new contributed 
 // - optionImages (files) -> optional files; send `optionImageOptionIndex` (JSON array) to map files to option indexes
 // - solutionImages (files) -> optional files; send `solutionImageSolutionIndex` (JSON array) to map files to solution indexes
 // Note: `image` is limited to 1 file now to match new backend model.
-router.post('/contributions', verifyContributor, imageUpload.fields([{ name: 'image', maxCount: 1 }, { name: 'optionImages', maxCount: 20 }, { name: 'solutionImages', maxCount: 20 }]), ContributorQuestionControllers.createQuestion);
+// Accept both legacy single `image` and new `images` (multiple) to remain compatible
+router.post('/contributions', verifyContributor, imageUpload.fields([{ name: 'image', maxCount: 1 }, { name: 'images', maxCount: 20 }, { name: 'optionImages', maxCount: 20 }, { name: 'solutionImages', maxCount: 20 }]), ContributorQuestionControllers.createQuestion);
 
 console.log('[ContributorRoutes] GET /contributions/:id - Get contributed question by id');
 router.get('/contributions/:id', verifyContributor, ContributorQuestionControllers.getQuestion);
 
 console.log('[ContributorRoutes] PUT /contributions/:id - Update contributed question');
 // Same fields as create. `image` is single-file replacement; `optionImages` and `solutionImages` may map to indexes via their respective mapping arrays.
-router.put('/contributions/:id', verifyContributor, imageUpload.fields([{ name: 'image', maxCount: 1 }, { name: 'optionImages', maxCount: 20 }, { name: 'solutionImages', maxCount: 20 }]), ContributorQuestionControllers.updateQuestion);
+// Accept both legacy single `image` and new `images` (multiple) to remain compatible
+router.put('/contributions/:id', verifyContributor, imageUpload.fields([{ name: 'image', maxCount: 1 }, { name: 'images', maxCount: 20 }, { name: 'optionImages', maxCount: 20 }, { name: 'solutionImages', maxCount: 20 }]), ContributorQuestionControllers.updateQuestion);
 
 console.log('[ContributorRoutes] DELETE /contributions/:id - Delete contributed question');
 router.delete('/contributions/:id', verifyContributor, ContributorQuestionControllers.deleteQuestion);

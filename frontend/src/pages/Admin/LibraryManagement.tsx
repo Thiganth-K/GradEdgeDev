@@ -142,21 +142,28 @@ const AdminLibraryManagement: React.FC = () => {
               </span>
             </div>
             <p className="text-gray-800 mb-2">{question.text}</p>
+            { (question as any).questionImageUrls && (question as any).questionImageUrls.length > 0 && (
+              <div className="mt-2 flex gap-2 flex-wrap">
+                {(question as any).questionImageUrls.map((u: string, i: number) => (
+                  <img key={i} src={u} alt={`qimg-${i}`} className="w-28 h-28 object-cover rounded" />
+                ))}
+              </div>
+            )}
             <div className="space-y-1 mb-2">
               {question.options.map((option, optIndex) => (
-                <div 
-                  key={optIndex} 
-                  className={`text-sm p-2 rounded ${
-                    correctAnswers.includes(optIndex) 
-                      ? 'bg-green-50 border border-green-300 font-medium' 
-                      : 'bg-gray-50'
-                  }`}
-                >
-                  <span className="font-semibold mr-2">{String.fromCharCode(65 + optIndex)}.</span>
-                  {option.text}
-                  {correctAnswers.includes(optIndex) && (
-                    <span className="ml-2 text-green-600 text-xs">✓ Correct</span>
-                  )}
+                <div key={optIndex} className={`text-sm p-2 rounded ${correctAnswers.includes(optIndex) ? 'bg-green-50 border border-green-300 font-medium' : 'bg-gray-50'}`}>
+                  <div className="flex items-start gap-3">
+                    <div className="w-6 font-semibold">{String.fromCharCode(65 + optIndex)}.</div>
+                    <div className="flex-1">
+                      <div>{option.text}</div>
+                      { (option as any).imageUrls && (option as any).imageUrls.length > 0 && (
+                        <div className="mt-2 flex gap-2">
+                          {(option as any).imageUrls.map((u: string, i: number) => <img key={i} src={u} className="w-20 h-20 object-cover rounded" />)}
+                        </div>
+                      )}
+                    </div>
+                    {correctAnswers.includes(optIndex) && <div className="ml-2 text-green-600 text-xs">✓ Correct</div>}
+                  </div>
                 </div>
               ))}
             </div>
@@ -172,6 +179,21 @@ const AdminLibraryManagement: React.FC = () => {
             {question.details && isExpanded && (
               <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded">
                 <p className="text-sm text-gray-700"><strong>Details:</strong> {question.details}</p>
+              </div>
+            )}
+            { (question as any).solutions && (question as any).solutions.length > 0 && isExpanded && (
+              <div className="mt-3">
+                <h4 className="font-semibold mb-2">Solutions</h4>
+                {(question as any).solutions.map((s: any, si: number) => (
+                  <div key={si} className="mb-3">
+                    {s.explanation && <div className="text-sm mb-2">{s.explanation}</div>}
+                    {s.imageUrls && s.imageUrls.length > 0 && (
+                      <div className="flex gap-2 flex-wrap">
+                        {s.imageUrls.map((u: string, i: number) => <img key={i} src={u} className="w-28 h-28 object-cover rounded" />)}
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
             )}
           </div>
