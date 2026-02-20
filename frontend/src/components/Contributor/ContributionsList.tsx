@@ -3,12 +3,15 @@ import React, { useState } from 'react';
 interface Question {
   _id: string;
   text: string;
-  options: Array<{ text: string }>;
-  correctIndex: number;
+  options: Array<{ text?: string; isCorrect?: boolean; imageUrls?: string[] }>;
+  correctIndex?: number;
+  correctIndices?: number[];
   category: string;
   difficulty: string;
   tags?: string[];
   details?: string;
+  questionImageUrls?: string[];
+  solutions?: Array<{ explanation?: string; imageUrls?: string[] }>
   createdAt: string;
 }
 
@@ -53,6 +56,14 @@ const ContributionsList: React.FC<ContributionsListProps> = ({ questions }) => {
     }
   };
 
+  const getCorrectAnswers = (question: Question): number[] => {
+    if (Array.isArray(question.correctIndices) && question.correctIndices.length > 0) return question.correctIndices;
+    if (typeof question.correctIndex === 'number') return [question.correctIndex];
+    const correct: number[] = [];
+    question.options.forEach((opt, idx) => { if (opt && opt.isCorrect) correct.push(idx); });
+    return correct;
+  };
+
   if (questions.length === 0) {
     return (
       <div className="text-center py-12 bg-white rounded-lg border-2 border-gray-300">
@@ -82,27 +93,35 @@ const ContributionsList: React.FC<ContributionsListProps> = ({ questions }) => {
 
           <div className="mb-3">
             <p className="text-black font-medium">{question.text}</p>
+            {question.questionImageUrls && question.questionImageUrls.length > 0 && (
+              <div className="mt-2 flex gap-2 flex-wrap">
+                {question.questionImageUrls.map((u, i) => (
+                  <img key={i} src={u} alt={`qimg-${i}`} className="w-24 h-24 object-cover rounded" />
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="space-y-2 mb-3">
-            {question.options.map((option, optIndex) => (
-              <div
-                key={optIndex}
-                className={`px-3 py-2 rounded ${
-                  optIndex === question.correctIndex
-                    ? 'bg-green-100 border-2 border-green-500 text-green-900 font-semibold'
-                    : 'bg-gray-100 border border-gray-300 text-gray-700'
-                }`}
-              >
-                <span className="mr-2 font-semibold">
-                  {String.fromCharCode(65 + optIndex)}.
-                </span>
-                {option.text}
-                {optIndex === question.correctIndex && (
-                  <span className="ml-2 text-green-600">✓ Correct</span>
-                )}
-              </div>
-            ))}
+            {question.options.map((option, optIndex) => {
+              const isCorrect = getCorrectAnswers(question).includes(optIndex);
+              return (
+                <div key={optIndex} className={`px-3 py-2 rounded ${isCorrect ? 'bg-green-100 border-2 border-green-500 text-green-900 font-semibold' : 'bg-gray-100 border border-gray-300 text-gray-700'}`}>
+                  <div className="flex items-start gap-3">
+                    <div className="w-6 font-semibold">{String.fromCharCode(65 + optIndex)}.</div>
+                    <div className="flex-1">
+                      <div>{option.text}</div>
+                      {option.imageUrls && option.imageUrls.length > 0 && (
+                        <div className="mt-2 flex gap-2">
+                          {option.imageUrls.map((u, i) => <img key={i} src={u} className="w-20 h-20 object-cover rounded" />)}
+                        </div>
+                      )}
+                    </div>
+                    {isCorrect && <div className="ml-2 text-green-600">✓ Correct</div>}
+                  </div>
+                </div>
+              );
+            })}
           </div>
           {question.tags && question.tags.length > 0 && (
             <div className="flex flex-wrap gap-2 mb-3">
@@ -145,27 +164,35 @@ const ContributionsList: React.FC<ContributionsListProps> = ({ questions }) => {
               <div>
                 <h3 className="font-semibold text-lg mb-2">Question</h3>
                 <p className="text-black font-medium">{selected.text}</p>
+                {selected.questionImageUrls && selected.questionImageUrls.length > 0 && (
+                  <div className="mt-2 flex gap-2 flex-wrap">
+                    {selected.questionImageUrls.map((u, i) => <img key={i} src={u} className="w-24 h-24 object-cover rounded" />)}
+                  </div>
+                )}
               </div>
 
               <div>
                 <h3 className="font-semibold text-lg mb-2">Options</h3>
                 <div className="space-y-2">
-                  {selected.options.map((opt, i) => (
-                    <div
-                      key={i}
-                      className={`px-3 py-2 rounded ${
-                        i === selected.correctIndex
-                          ? 'bg-green-100 border-2 border-green-500 text-green-900 font-semibold'
-                          : 'bg-gray-100 border border-gray-300 text-gray-700'
-                      }`}
-                    >
-                      <span className="mr-2 font-semibold">{String.fromCharCode(65 + i)}.</span>
-                      {opt.text}
-                      {i === selected.correctIndex && (
-                        <span className="ml-2 text-green-600">✓ Correct</span>
-                      )}
-                    </div>
-                  ))}
+                  {selected.options.map((opt, i) => {
+                    const isCorrect = getCorrectAnswers(selected).includes(i);
+                    return (
+                      <div key={i} className={`px-3 py-2 rounded ${isCorrect ? 'bg-green-100 border-2 border-green-500 text-green-900 font-semibold' : 'bg-gray-100 border border-gray-300 text-gray-700'}`}>
+                        <div className="flex items-start gap-3">
+                          <div className="w-6 font-semibold">{String.fromCharCode(65 + i)}.</div>
+                          <div className="flex-1">
+                            <div>{opt.text}</div>
+                            { (opt as any).imageUrls && (opt as any).imageUrls.length > 0 && (
+                              <div className="mt-2 flex gap-2">
+                                {(opt as any).imageUrls.map((u: string, idx: number) => <img key={idx} src={u} className="w-20 h-20 object-cover rounded" />)}
+                              </div>
+                            )}
+                          </div>
+                          {isCorrect && <div className="ml-2 text-green-600">✓ Correct</div>}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -184,6 +211,22 @@ const ContributionsList: React.FC<ContributionsListProps> = ({ questions }) => {
                       <span key={idx} className="px-2 py-1 bg-gray-200 text-gray-700 text-xs rounded">#{t}</span>
                     ))}
                   </div>
+                </div>
+              )}
+
+              {selected.solutions && selected.solutions.length > 0 && (
+                <div>
+                  <h3 className="font-semibold text-lg mb-2">Solutions</h3>
+                  {selected.solutions.map((s, si) => (
+                    <div key={si} className="mb-3">
+                      {s.explanation && <div className="text-sm mb-2">{s.explanation}</div>}
+                      { (s as any).imageUrls && (s as any).imageUrls.length > 0 && (
+                        <div className="flex gap-2 flex-wrap">
+                          {(s as any).imageUrls.map((u: string, i: number) => <img key={i} src={u} className="w-28 h-28 object-cover rounded" />)}
+                        </div>
+                      )}
+                    </div>
+                  ))}
                 </div>
               )}
 

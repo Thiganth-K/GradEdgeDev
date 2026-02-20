@@ -8,6 +8,7 @@ const ContributorRequest = require('../../models/ContributorRequest');
 const AdminContributorChat = require('../../models/AdminContributorChat');
 const Question = require('../../models/Question');
 const Library = require('../../models/Library');
+const ContributorQuestion = require('../../models/ContributorQuestion');
 const Batch = require('../../models/Batch');
 const Faculty = require('../../models/Faculty');
 const Student = require('../../models/Student');
@@ -846,26 +847,41 @@ const addQuestionToLibrary = async (req, res) => {
     const adminUser = req.admin && req.admin.username;
     const { questionId } = req.params;
     console.log('[Admin.addQuestionToLibrary] called by', adminUser, 'for question', questionId);
-
-    const question = await Question.findById(questionId);
-    if (!question) {
-      return res.status(404).json({ success: false, message: 'Question not found' });
+    // Try to find in primary Question collection first
+    const question = await Question.findById(questionId).lean().exec().catch(() => null);
+    if (question) {
+      if (!question.subtopic) return res.status(400).json({ success: false, message: 'Question must have a subtopic to be added to library' });
+      // Map fields from Question -> Library
+      const mainTopic = (question.getMainTopic && typeof question.getMainTopic === 'function') ? question.getMainTopic() : (question.category === 'aptitude' ? 'Aptitude' : (question.category === 'technical' ? 'Technical' : 'Psychometric'));
+      // Build library doc fields
+      const libDoc = {
+        topic: mainTopic,
+        subtopic: question.subtopic,
+        subTopic: question.subtopic,
+        difficulty: question.difficulty,
+        question: question.text,
+        options: question.options || [],
+        solutions: [],
+        contributorId: question.createdByContributor || question.createdBy
+      };
+      // mark in library
+      await Library.create(libDoc);
+      // update question flag
+      try { await Question.findByIdAndUpdate(questionId, { inLibrary: true }).exec(); } catch (e) {}
+      return res.json({ success: true, message: 'Question added to library' });
     }
 
-    if (!question.subtopic) {
-      return res.status(400).json({ success: false, message: 'Question must have a subtopic to be added to library' });
-    }
+    // If not found in Question, try ContributorQuestion
+    const contrib = await ContributorQuestion.findById(questionId).lean().exec().catch(() => null);
+    if (!contrib) return res.status(404).json({ success: false, message: 'Question not found' });
 
-    // Update question
-    question.inLibrary = true;
-    await question.save();
-
-    // Add to library structure
-    const mainTopic = question.getMainTopic();
-    await Library.addQuestionToLibrary(questionId, mainTopic, question.subtopic);
-
-    console.log('[Admin.addQuestionToLibrary] ✓ added question to library');
-    return res.json({ success: true, message: 'Question added to library' });
+    // Create a library entry from contributor question
+    const mainTopic = req.body && req.body.topic ? req.body.topic : undefined;
+    const subtopic = req.body && req.body.subtopic ? req.body.subtopic : (contrib.subTopic || contrib.subtopic);
+    const libEntry = await Library.createFromContributorQuestion(contrib, mainTopic, subtopic);
+    // mark contributor question as approved
+    try { await ContributorQuestion.findByIdAndUpdate(questionId, { status: 'approved' }).exec(); } catch (e) {}
+    return res.json({ success: true, message: 'Contributor question added to library', libraryEntry: libEntry });
   } catch (err) {
     console.error('[Admin.addQuestionToLibrary] ✗ error:', err.message);
     return res.status(500).json({ success: false, message: err.message });
@@ -911,6 +927,71 @@ const getLibraryStructure = async (req, res) => {
     return res.json({ success: true, data: library });
   } catch (err) {
     console.error('[Admin.getLibraryStructure] ✗ error:', err.message);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// =====================
+// CONTRIBUTOR QUESTION REVIEW (admin-protected)
+// =====================
+
+const listPendingContributorQuestions = async (req, res) => {
+  try {
+    const adminUser = req.admin && req.admin.username;
+    console.log('[Admin.listPendingContributorQuestions] called by', adminUser);
+    const docs = await ContributorQuestion.find({ status: 'pending' }).sort({ createdAt: -1 }).limit(500).lean();
+    return res.json({ success: true, data: docs });
+  } catch (err) {
+    console.error('[Admin.listPendingContributorQuestions] ✗ error:', err && err.message);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+const approveContributorQuestion = async (req, res) => {
+  try {
+    const adminUser = req.admin && req.admin.username;
+    const { id } = req.params;
+    const { topic, subtopic } = req.body || {};
+    console.log('[Admin.approveContributorQuestion] called by', adminUser, 'for', id);
+
+    const doc = await ContributorQuestion.findById(id);
+    if (!doc) return res.status(404).json({ success: false, message: 'contributor question not found' });
+
+    // Create library entry from contributor question
+    const libEntry = await Library.createFromContributorQuestion(doc, topic, subtopic);
+
+    // mark contributor question as approved
+    doc.status = 'approved';
+    await doc.save();
+
+    try { await AdminLog.createLog({ actorId: req.admin && req.admin.id, actorUsername: adminUser, role: 'admin', actionType: 'approve', message: `${adminUser} approved contributor question ${id}`, refs: { entity: 'ContributorQuestion', id } }); } catch (e) {}
+
+    return res.json({ success: true, message: 'approved', libraryEntry: libEntry });
+  } catch (err) {
+    console.error('[Admin.approveContributorQuestion] ✗ error:', err && err.message);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+const rejectContributorQuestion = async (req, res) => {
+  try {
+    const adminUser = req.admin && req.admin.username;
+    const { id } = req.params;
+    const { reason } = req.body || {};
+    console.log('[Admin.rejectContributorQuestion] called by', adminUser, 'for', id);
+
+    const doc = await ContributorQuestion.findById(id);
+    if (!doc) return res.status(404).json({ success: false, message: 'contributor question not found' });
+
+    doc.status = 'rejected';
+    if (reason) doc.rejectionReason = reason;
+    await doc.save();
+
+    try { await AdminLog.createLog({ actorId: req.admin && req.admin.id, actorUsername: adminUser, role: 'admin', actionType: 'reject', message: `${adminUser} rejected contributor question ${id}`, refs: { entity: 'ContributorQuestion', id } }); } catch (e) {}
+
+    return res.json({ success: true, message: 'rejected' });
+  } catch (err) {
+    console.error('[Admin.rejectContributorQuestion] ✗ error:', err && err.message);
     return res.status(500).json({ success: false, message: err.message });
   }
 };
@@ -971,6 +1052,9 @@ module.exports = {
   addQuestionToLibrary,
   removeQuestionFromLibrary,
   getLibraryStructure,
+  listPendingContributorQuestions,
+  approveContributorQuestion,
+  rejectContributorQuestion,
   getInstitutionBatches
 };
 

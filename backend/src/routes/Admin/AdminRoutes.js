@@ -131,4 +131,14 @@ router.delete('/library/questions/:questionId', verifyAdmin, AdminControllers.re
 console.log('[AdminRoutes] GET /library/structure - Get library structure (admin)');
 router.get('/library/structure', verifyAdmin, AdminControllers.getLibraryStructure);
 
+// Contributor question review
+console.log('[AdminRoutes] GET /contributor-questions/pending - List pending contributor questions (admin)');
+router.get('/contributor-questions/pending', verifyAdmin, AdminControllers.listPendingContributorQuestions);
+
+console.log('[AdminRoutes] PUT /contributor-questions/:id/approve - Approve a contributor question (admin)');
+router.put('/contributor-questions/:id/approve', verifyAdmin, AdminControllers.approveContributorQuestion);
+
+console.log('[AdminRoutes] PUT /contributor-questions/:id/reject - Reject a contributor question (admin)');
+router.put('/contributor-questions/:id/reject', verifyAdmin, AdminControllers.rejectContributorQuestion);
+
 module.exports = router;

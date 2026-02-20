@@ -10,10 +10,13 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@monaco-editor/react": "^4.7.0",
+    "axios": "^1.13.5",
     "cross-env": "^10.1.0",
     "gradedgedev": "file:..",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "react-hot-toast": "^2.6.0",
     "react-icons": "^5.5.0",
     "react-router-dom": "^6.14.1",
     "xlsx": "^0.18.5"
