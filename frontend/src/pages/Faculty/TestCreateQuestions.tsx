@@ -11,6 +11,7 @@ const TestCreateQuestions: React.FC = () => {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [customQuestions, setCustomQuestions] = useState<any[]>([]);
   const [topic, setTopic] = useState<'aptitude'|'technical'|'psychometric'>('aptitude');
+  const [questionTypeFilter, setQuestionTypeFilter] = useState<'all'|'mcq'|'placement'>('all');
   const [draft, setDraft] = useState<any>({});
   const [loading, setLoading] = useState(true);
 
@@ -85,18 +86,50 @@ const TestCreateQuestions: React.FC = () => {
             </div>
           </div>
 
+          {/* Question type filter tabs */}
+          <div className="mb-4 flex items-center gap-2">
+            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Filter:</span>
+            {(['all', 'mcq', 'placement'] as const).map(f => (
+              <button key={f} onClick={() => setQuestionTypeFilter(f)}
+                className={`px-3 py-1 rounded-full text-xs font-semibold border transition-all ${
+                  questionTypeFilter === f
+                    ? f === 'placement' ? 'bg-purple-600 text-white border-purple-600'
+                    : f === 'mcq' ? 'bg-blue-600 text-white border-blue-600'
+                    : 'bg-gray-800 text-white border-gray-800'
+                    : 'bg-white text-gray-600 border-gray-300'
+                }`}>
+                {f === 'all' ? 'All' : f === 'mcq' ? 'MCQ' : 'Placement Ready'}
+              </button>
+            ))}
+          </div>
+
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2">
               <div className="bg-white rounded-lg shadow p-4">
                 <h3 className="font-semibold mb-2">Library Questions ({libraryQuestions.length})</h3>
                 <div className="space-y-2 max-h-96 overflow-auto">
-                  {libraryQuestions.map((q:any, idx:number) => (
-                    <label key={q._id} className="flex items-start space-x-3 p-3 bg-white rounded-lg border hover:border-red-300 cursor-pointer">
+                  {libraryQuestions
+                    .filter(q => questionTypeFilter === 'all' || (q.questionType || 'mcq') === questionTypeFilter)
+                    .map((q:any) => (
+                    <label key={q._id} className={`flex items-start space-x-3 p-3 bg-white rounded-lg border cursor-pointer transition-all ${
+                      selectedIds.includes(String(q._id)) ? 'border-red-400 bg-red-50/30' : 'hover:border-red-300'
+                    }`}>
                       <input type="checkbox" checked={selectedIds.includes(String(q._id))} onChange={() => toggle(String(q._id))} className="mt-1" />
                       <div className="flex-1">
+                        <div className="flex flex-wrap items-center gap-1.5 mb-1">
+                          {q.questionType === 'placement'
+                            ? <span className="text-[10px] font-bold bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded">Placement</span>
+                            : <span className="text-[10px] font-bold bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">MCQ</span>
+                          }
+                          {q.difficulty && <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${q.difficulty === 'hard' ? 'bg-red-100 text-red-700' : q.difficulty === 'medium' ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'}`}>{q.difficulty}</span>}
+                        </div>
                         <div className="font-medium text-gray-800">{q.text}</div>
                         <div className="text-sm text-gray-600 mt-1">
-                          {(q.options || []).map((o:any,i:number)=> <div key={i} className="text-sm">{String.fromCharCode(65+i)}) {o.text}</div>)}
+                          {(q.options || []).map((o:any,i:number)=> (
+                            <div key={i} className={`text-xs py-0.5 ${o.isCorrect ? 'text-green-700 font-semibold' : ''}`}>
+                              {String.fromCharCode(65+i)}) {o.text}{o.isCorrect ? ' ✓' : ''}
+                            </div>
+                          ))}
                         </div>
                       </div>
                     </label>

@@ -133,6 +133,7 @@ const createQuestion = async (req, res) => {
       solutions: payload.solutions,
       contributorId: contributorId,
       contributor: contributorId,
+      questionType: payload.questionType === 'placement' ? 'placement' : 'mcq',
       status: 'pending'
     });
 
@@ -340,7 +341,7 @@ const updateQuestion = async (req, res) => {
     // apply updates
     const allowedArrays = ['options', 'solutions'];
     allowedArrays.forEach(k => { if (payload[k] !== undefined) existing[k] = payload[k]; });
-    const allowedScalars = ['subTopic','difficulty','question','questionImageUrl','questionImagePublicId','questionImageUrls','questionImagePublicIds'];
+    const allowedScalars = ['subTopic','difficulty','question','questionImageUrl','questionImagePublicId','questionImageUrls','questionImagePublicIds','questionType'];
     allowedScalars.forEach(k => { if (payload[k] !== undefined) existing[k] = payload[k]; });
 
     // If options were updated or created via images, validate they each have text or image

@@ -16,6 +16,11 @@ const TestManagement: React.FC = () => {
   const [editingTest, setEditingTest] = useState<any | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
 
+  // Preview / answer sheet state
+  const [previewData, setPreviewData] = useState<any | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewTab, setPreviewTab] = useState<'preview'|'answersheet'>('preview');
+
   // Create Test form state
   const [name, setName] = useState('');
   const [type, setType] = useState<'aptitude' | 'technical' | 'psychometric' | 'coding'>('aptitude');
@@ -188,6 +193,18 @@ const TestManagement: React.FC = () => {
 
   const removeTest = async (id: string) => { await fetch(`${BACKEND}/institution/tests/${id}`, { method: 'DELETE', headers: getHeaders() }); load(); };
 
+  const openPreview = async (id: string) => {
+    setPreviewLoading(true);
+    setPreviewData(null);
+    setPreviewTab('preview');
+    try {
+      const res = await fetch(`${BACKEND}/institution/tests/${id}/preview`, { headers: getHeaders() });
+      const body = await res.json().catch(() => ({}));
+      if (res.ok && body.success) setPreviewData(body.data);
+    } catch (_) {}
+    setPreviewLoading(false);
+  };
+
   
 
   return (
@@ -307,6 +324,12 @@ const TestManagement: React.FC = () => {
                 </div>
 
                 <div className="flex items-center space-x-3 ml-4">
+                  <button onClick={() => openPreview(t._id)} className="text-gray-500 hover:text-green-600 p-2 rounded-full hover:bg-gray-50" title="Preview & Answer Sheet">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                  </button>
                   <button onClick={() => openEditModal(t._id)} className="text-gray-500 hover:text-blue-600 p-2 rounded-full hover:bg-gray-50" title="Edit">
                     <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5h6M5 7v12a2 2 0 002 2h10a2 2 0 002-2V7" />
@@ -422,6 +445,97 @@ const TestManagement: React.FC = () => {
             </div>
           </div>
         )}
+        {/* Test Preview & Answer Sheet Modal */}
+        {(previewLoading || previewData) && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center p-4 z-50 overflow-auto">
+            <div className="bg-white rounded-2xl shadow-xl w-full my-6 ring-1 ring-gray-100" style={{ maxWidth: '800px' }}>
+              <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b">
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900">{previewData?.name || 'Test Preview'}</h3>
+                  <p className="text-sm text-gray-500 mt-0.5">{previewData?.totalQuestions || 0} Questions • {previewData?.durationMinutes || '—'} min</p>
+                </div>
+                <button onClick={() => setPreviewData(null)} className="text-gray-400 hover:text-gray-700 text-2xl leading-none">&times;</button>
+              </div>
+
+              {previewLoading && <div className="p-12 text-center text-gray-500">Loading preview…</div>}
+
+              {!previewLoading && previewData && (
+                <>
+                  {/* Tabs */}
+                  <div className="flex border-b px-6">
+                    <button onClick={() => setPreviewTab('preview')}
+                      className={`py-3 px-4 text-sm font-semibold border-b-2 transition-colors ${previewTab === 'preview' ? 'border-red-600 text-red-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
+                      Question Preview
+                    </button>
+                    <button onClick={() => setPreviewTab('answersheet')}
+                      className={`py-3 px-4 text-sm font-semibold border-b-2 transition-colors ${previewTab === 'answersheet' ? 'border-red-600 text-red-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
+                      Answer Sheet
+                    </button>
+                  </div>
+
+                  {/* Preview Tab */}
+                  {previewTab === 'preview' && (
+                    <div className="p-6 space-y-6 overflow-auto max-h-[70vh]">
+                      {previewData.questions.map((q: any) => (
+                        <div key={q._id || q.number} className="border rounded-xl p-4 bg-gray-50">
+                          <div className="flex items-start gap-3 mb-3">
+                            <span className="flex-shrink-0 w-7 h-7 rounded-full bg-red-600 text-white text-xs font-bold flex items-center justify-center">{q.number}</span>
+                            <div className="flex-1">
+                              <p className="font-medium text-gray-900">{q.text}</p>
+                              <div className="flex gap-2 mt-1 flex-wrap">
+                                <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${q.difficulty === 'hard' ? 'bg-red-100 text-red-700' : q.difficulty === 'medium' ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'}`}>{q.difficulty}</span>
+                                {q.isCoding && <span className="text-[10px] font-bold bg-blue-100 text-blue-700 px-2 py-0.5 rounded uppercase">Coding</span>}
+                              </div>
+                            </div>
+                          </div>
+                          {!q.isCoding && (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3 ml-10">
+                              {q.options.map((opt: string, i: number) => (
+                                <div key={i} className={`flex items-center gap-2 p-2 rounded-lg border text-sm ${q.correctIndices?.includes(i) ? 'bg-green-50 border-green-300 font-semibold text-green-800' : 'bg-white border-gray-200 text-gray-700'}`}>
+                                  <span className={`w-6 h-6 flex-shrink-0 rounded-full flex items-center justify-center text-xs font-bold ${q.correctIndices?.includes(i) ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-600'}`}>{String.fromCharCode(65 + i)}</span>
+                                  <span>{opt}</span>
+                                  {q.correctIndices?.includes(i) && <span className="ml-auto text-green-700 text-xs">✓ Correct</span>}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          {q.isCoding && (
+                            <div className="ml-10 mt-2 text-xs text-gray-500">{q.testCases?.length || 0} test case(s)</div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Answer Sheet Tab */}
+                  {previewTab === 'answersheet' && (
+                    <div className="p-6 overflow-auto max-h-[70vh]">
+                      <div className="grid grid-cols-1 gap-3">
+                        {previewData.answerSheet.map((item: any) => (
+                          <div key={item.number} className="flex items-start gap-4 p-3 border rounded-lg bg-gray-50">
+                            <span className="w-8 h-8 flex-shrink-0 rounded-full bg-red-600 text-white text-sm font-bold flex items-center justify-center">{item.number}</span>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-gray-800 line-clamp-2">{item.questionText}</p>
+                              <div className="mt-1 flex flex-wrap gap-2">
+                                {item.correctOptionLabels.length > 0 && item.correctOptionLabels.map((label: string, i: number) => (
+                                  <span key={i} className="inline-flex items-center gap-1 bg-green-100 text-green-800 text-xs font-bold px-2 py-0.5 rounded">
+                                    {label}
+                                  </span>
+                                ))}
+                                <span className="text-xs text-gray-600">{item.correctAnswers.join(' / ')}</span>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+        )}
+
           </div>
         </div>
       </main>

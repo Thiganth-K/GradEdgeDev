@@ -55,10 +55,15 @@ const StudentTests: React.FC = () => {
                   return (
                     <div key={t._id} className="p-4 border rounded-lg flex items-center justify-between bg-white">
                       <div className="flex-1">
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-3 flex-wrap">
                           <h3 className="text-lg font-semibold text-gray-800">{t.name}</h3>
                           <span className="text-sm text-gray-500">{t.type ? t.type.charAt(0).toUpperCase() + t.type.slice(1) : ''}</span>
-                          {t.priority && <span className="ml-2 inline-block text-xs bg-red-600 text-white px-2 py-0.5 rounded">{t.priority}</span>}
+                          {/* Creator role badge */}
+                          {t.creatorRole === 'faculty'
+                            ? <span className="inline-block text-xs bg-indigo-100 text-indigo-700 font-semibold px-2 py-0.5 rounded">Faculty Graded</span>
+                            : <span className="inline-block text-xs bg-teal-100 text-teal-700 font-semibold px-2 py-0.5 rounded">Institution</span>
+                          }
+                          {t.priority && <span className="ml-1 inline-block text-xs bg-red-600 text-white px-2 py-0.5 rounded">{t.priority}</span>}
                         </div>
                         <div className="mt-2 text-sm text-gray-600">
                           Questions: <strong className="text-gray-800">{t.questions?.length || t.questionCount || '—'}</strong>

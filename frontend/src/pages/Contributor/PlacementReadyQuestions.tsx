@@ -28,6 +28,7 @@ const PlacementReadyQuestions: React.FC = () => {
   const [subTopic, setSubTopic] = useState('');
   const [solutions, setSolutions] = useState<Solution[]>([{ explanation: '' }]);
   const [solutionFiles, setSolutionFiles] = useState<Array<File[]>>([[]]);
+  const [questionType, setQuestionType] = useState<'mcq'|'placement'>('mcq');
   
 
   useEffect(() => { fetchQuestions(); }, []);
@@ -49,7 +50,7 @@ const PlacementReadyQuestions: React.FC = () => {
     setQuestion(''); setImageFiles([]); setImagePreviews([]);
     setOptions([{ text: '', isCorrect: false }, { text: '', isCorrect: false }]); setMetadataDifficulty('Easy'); setSubTopic('');
     setSolutions([{ explanation: '' }]); setSolutionFiles([[]]); setEditingId(null);
-    setOptionFiles([[], []]);
+    setOptionFiles([[], []]); setQuestionType('mcq');
   };
 
   const openCreate = () => { resetForm(); setShowForm(true); };
@@ -129,6 +130,7 @@ const PlacementReadyQuestions: React.FC = () => {
     fd.append('subTopic', subTopic);
     fd.append('difficulty', metadataDifficulty);
     fd.append('question', question);
+    fd.append('questionType', questionType);
     // append question images (new 'images' array) and append single 'image' for backward compatibility
     if (imageFiles && imageFiles.length) {
       for (let i = 0; i < imageFiles.length; i++) {
@@ -215,6 +217,7 @@ const PlacementReadyQuestions: React.FC = () => {
     setSolutions((q.solutions && q.solutions.length) ? q.solutions.map((s: any) => ({ explanation: s.explanation || s.text || '', imageUrls: (s.imageUrls && s.imageUrls.length) ? s.imageUrls : (s.imageUrl ? [s.imageUrl] : []) })) : [{ explanation: '' }]);
     setSolutionFiles((q.solutions && q.solutions.length) ? q.solutions.map(() => []) : [[]]);
     setOptionFiles((q.options && q.options.length) ? q.options.map(() => []) : [[], []]);
+    setQuestionType(q.questionType === 'placement' ? 'placement' : 'mcq');
   };
 
   const submitUpdate = async () => {
@@ -270,7 +273,18 @@ const PlacementReadyQuestions: React.FC = () => {
             <div key={q._id} className="bg-white border rounded p-4">
               <div className="flex justify-between items-start">
                 <div>
-                  <div className="font-semibold text-lg">#{q.questionNumber || '-'} — {q.subTopic || q.topic || 'General'} — {q.difficulty || (q.metadata && q.metadata.difficulty) || 'N/A'}</div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-semibold text-lg">#{q.questionNumber || '-'} — {q.subTopic || q.topic || 'General'} — {q.difficulty || (q.metadata && q.metadata.difficulty) || 'N/A'}</span>
+                    {q.questionType === 'placement'
+                      ? <span className="text-xs bg-purple-100 text-purple-700 font-bold px-2 py-0.5 rounded">Placement</span>
+                      : <span className="text-xs bg-blue-100 text-blue-700 font-bold px-2 py-0.5 rounded">MCQ</span>
+                    }
+                    <span className={`text-xs px-2 py-0.5 rounded font-medium ${
+                      q.status === 'approved' ? 'bg-green-100 text-green-700' :
+                      q.status === 'rejected' ? 'bg-red-100 text-red-700' :
+                      'bg-yellow-100 text-yellow-700'
+                    }`}>{q.status || 'pending'}</span>
+                  </div>
                   <div className="text-sm text-gray-600">{q.question || q.questionText}</div>
                 </div>
                 <div className="flex gap-2">
@@ -325,6 +339,19 @@ const PlacementReadyQuestions: React.FC = () => {
                   <option>Medium</option>
                   <option>Hard</option>
                 </select>
+              </div>
+
+              {/* Question Type selector */}
+              <div className="flex items-center gap-4">
+                <span className="text-sm font-semibold text-gray-700">Question Type:</span>
+                <label className="flex items-center gap-1.5 cursor-pointer">
+                  <input type="radio" name="questionType" value="mcq" checked={questionType === 'mcq'} onChange={() => setQuestionType('mcq')} className="accent-red-600" />
+                  <span className="text-sm">MCQ (Standard)</span>
+                </label>
+                <label className="flex items-center gap-1.5 cursor-pointer">
+                  <input type="radio" name="questionType" value="placement" checked={questionType === 'placement'} onChange={() => setQuestionType('placement')} className="accent-purple-600" />
+                  <span className="text-sm">Placement Readiness</span>
+                </label>
               </div>
 
               <textarea value={question} onChange={e => setQuestion(e.target.value)} placeholder="Question Text" className="w-full p-3 border rounded h-28" />

@@ -35,6 +35,8 @@ const FacultyTestSchema = new mongoose.Schema({
   assignedBatches: [{ type: require('mongoose').Schema.Types.ObjectId, ref: 'Batch' }],
   assignedStudents: [{ type: require('mongoose').Schema.Types.ObjectId, ref: 'Student' }],
   linkedTestId: { type: require('mongoose').Schema.Types.ObjectId, ref: 'Test' },
+  // always 'faculty' for this model
+  creatorRole: { type: String, enum: ['faculty'], default: 'faculty' },
   createdAt: { type: Date, default: Date.now },
 });
 
