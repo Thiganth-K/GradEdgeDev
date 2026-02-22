@@ -43,6 +43,7 @@ const createFacultyTest = async (req, res) => {
         endTime: t.endTime || null,
         assignedBatches: assignedBatches,
         assignedStudents: t.assignedStudents || [],
+        creatorRole: 'faculty',
       });
       await testDoc.save();
       t.linkedTestId = testDoc._id;

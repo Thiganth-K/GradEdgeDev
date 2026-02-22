@@ -10,7 +10,7 @@ const verifyContributor = require('../../middleware/verifyContributor');
 const upload = multer({ 
   storage: multer.memoryStorage(),
   limits: { 
-    fileSize: 10 * 1024 * 1024 // 10MB limit
+    fileSize: 50 * 1024 * 1024 // 50MB limit
   },
   fileFilter: (req, file, cb) => {
     // Accept only Excel files
@@ -30,7 +30,7 @@ const upload = multer({
 // image upload for contributor question images (memory storage)
 const imageUpload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
   fileFilter: (req, file, cb) => {
     const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
     if (allowed.includes(file.mimetype)) cb(null, true);
@@ -104,5 +104,24 @@ router.get('/bulk/template', verifyContributor, BulkQuestionControllers.generate
 
 console.log('[ContributorRoutes] POST /bulk/parse - Parse uploaded bulk question file');
 router.post('/bulk/parse', verifyContributor, upload.single('file'), BulkQuestionControllers.parseUploadedFile);
+
+// ── Multer error handler ─────────────────────────────────────────────────────
+// Must have 4 params so Express recognises it as an error-handling middleware.
+// eslint-disable-next-line no-unused-vars
+router.use((err, req, res, next) => {
+  if (err && err.code === 'LIMIT_FILE_SIZE') {
+    return res.status(413).json({
+      success: false,
+      message: `File too large. Maximum allowed size is ${err.field === 'image' || err.field === 'images' || err.field === 'optionImages' || err.field === 'solutionImages' ? '10 MB' : '50 MB'}.`,
+    });
+  }
+  if (err && err.name === 'MulterError') {
+    return res.status(400).json({ success: false, message: `Upload error: ${err.message}` });
+  }
+  if (err) {
+    return res.status(400).json({ success: false, message: err.message || 'Upload failed' });
+  }
+  next();
+});
 
 module.exports = router;

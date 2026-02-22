@@ -25,6 +25,8 @@ const ContributorQuestionSchema = new mongoose.Schema({
   // status for review workflow
   status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
   rejectionReason: { type: String },
+  // question type: 'mcq' = standard multiple choice, 'placement' = placement readiness question
+  questionType: { type: String, enum: ['mcq', 'placement'], default: 'mcq' },
   subTopic: { type: String, required: true, trim: true },
   difficulty: { type: String, required: true, trim: true },
   question: { type: String, required: true },

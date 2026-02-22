@@ -98,6 +98,9 @@ router.delete('/tests/:id', verifyInstitution, InstitutionControllers.deleteTest
 console.log('[InstitutionRoutes] POST /tests/:id/assign - Assign test to batches (institution)');
 router.post('/tests/:id/assign', verifyInstitution, InstitutionControllers.assignTestBatches);
 
+console.log('[InstitutionRoutes] GET /tests/:id/preview - Get test preview with answer sheet (institution)');
+router.get('/tests/:id/preview', verifyInstitution, InstitutionControllers.getTestPreview);
+
 // Student Test Participation (student-protected)
 console.log('[InstitutionRoutes] GET /student/tests - List available tests (student)');
 router.get('/student/tests', verifyStudent, InstitutionControllers.listStudentTests);

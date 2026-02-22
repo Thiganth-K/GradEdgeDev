@@ -2,8 +2,8 @@ const mongoose = require('mongoose');
 
 // Schema for Custom Questions (embedded, test-specific, NOT in library)
 const CustomQuestionSchema = new mongoose.Schema({
-  text: { type: String, required: true },
-  options: [{ type: String, required: true }],
+  text: { type: String, default: '' },
+  options: [{ type: String }],
   correctIndex: { type: Number },
   correctIndices: [{ type: Number }],
   isCoding: { type: Boolean, default: false },
@@ -13,13 +13,13 @@ const CustomQuestionSchema = new mongoose.Schema({
     output: { type: String, default: '' },
     isHidden: { type: Boolean, default: false }
   }],
-  difficulty: { type: String, enum: ['easy', 'medium', 'hard'], default: 'medium' },
+  difficulty: { type: String, enum: ['easy', 'medium', 'hard'], default: 'medium', set: v => (v ? v.toLowerCase() : 'medium') },
   createdAt: { type: Date, default: Date.now },
 });
 
 // Option schema to match Question model structure
 const OptionSchema = new mongoose.Schema({
-  text: { type: String, required: true }
+  text: { type: String, default: '' }
 });
 
 // Legacy schema for backward compatibility
@@ -52,25 +52,25 @@ const TestSchema = new mongoose.Schema({
   endTime: { type: Date },
   assignedBatches: [{ type: require('mongoose').Schema.Types.ObjectId, ref: 'Batch' }],
   assignedStudents: [{ type: require('mongoose').Schema.Types.ObjectId, ref: 'Student' }],
+  // 'institution' = created by institution admin, 'faculty' = created by faculty member
+  creatorRole: { type: String, enum: ['institution', 'faculty'], default: 'institution' },
   createdAt: { type: Date, default: Date.now },
 });
 
-// Helper method to get all questions (library + custom) in unified format
+// Helper method to get all questions (library + custom + legacy fallback) in unified format
 TestSchema.methods.getAllQuestions = async function() {
   await this.populate('libraryQuestionIds');
-  
+
   const libraryQuestions = (this.libraryQuestionIds || []).map(q => {
-    // Get correct answers - support both single and multiple
     const correctAnswers = q.getCorrectAnswers ? q.getCorrectAnswers() :
-      (Array.isArray(q.correctIndices) && q.correctIndices.length > 0 ? q.correctIndices : 
+      (Array.isArray(q.correctIndices) && q.correctIndices.length > 0 ? q.correctIndices :
         (typeof q.correctIndex === 'number' ? [q.correctIndex] : []));
-    
     return {
       _id: q._id,
       text: q.text,
       options: q.options.map(o => o.text || o),
-      correctIndex: correctAnswers[0], // First correct answer for backward compatibility
-      correctIndices: correctAnswers, // All correct answers for multiple choice support
+      correctIndex: correctAnswers[0],
+      correctIndices: correctAnswers,
       difficulty: q.difficulty,
       source: 'library',
       questionId: q._id,
@@ -79,19 +79,17 @@ TestSchema.methods.getAllQuestions = async function() {
       testCases: q.testCases
     };
   });
-  
+
   const customQs = (this.customQuestions || []).map(q => {
-    // Get correct answers - support both single and multiple
-    const correctAnswers = Array.isArray(q.correctIndices) && q.correctIndices.length > 0 
-      ? q.correctIndices 
+    const correctAnswers = Array.isArray(q.correctIndices) && q.correctIndices.length > 0
+      ? q.correctIndices
       : (typeof q.correctIndex === 'number' ? [q.correctIndex] : []);
-    
     return {
       _id: q._id,
       text: q.text,
       options: q.options,
-      correctIndex: correctAnswers[0], // First correct answer for backward compatibility
-      correctIndices: correctAnswers, // All correct answers for multiple choice support
+      correctIndex: correctAnswers[0],
+      correctIndices: correctAnswers,
       difficulty: q.difficulty,
       source: 'custom',
       isCoding: q.isCoding,
@@ -99,8 +97,24 @@ TestSchema.methods.getAllQuestions = async function() {
       testCases: q.testCases
     };
   });
-  
-  return [...libraryQuestions, ...customQs];
+
+  const combined = [...libraryQuestions, ...customQs];
+
+  // Fall back to legacy embedded questions if the new fields are both empty
+  if (combined.length === 0 && Array.isArray(this.questions) && this.questions.length > 0) {
+    return this.questions.map(q => ({
+      _id: q._id,
+      text: q.text,
+      options: Array.isArray(q.options) ? q.options.map(o => (typeof o === 'string' ? o : (o && o.text) || '')) : [],
+      correctIndex: typeof q.correctIndex === 'number' ? q.correctIndex : undefined,
+      correctIndices: Array.isArray(q.correctIndices) && q.correctIndices.length > 0 ? q.correctIndices
+        : (typeof q.correctIndex === 'number' ? [q.correctIndex] : []),
+      source: 'legacy',
+      isCoding: false,
+    }));
+  }
+
+  return combined;
 };
 
 module.exports = mongoose.models.Test || mongoose.model('Test', TestSchema);

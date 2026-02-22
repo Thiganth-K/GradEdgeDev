@@ -952,13 +952,15 @@ const approveContributorQuestion = async (req, res) => {
     const adminUser = req.admin && req.admin.username;
     const { id } = req.params;
     const { topic, subtopic } = req.body || {};
+    const finalTopic = topic || 'Technical';
+    const finalSubtopic = subtopic || doc.subTopic || '';
     console.log('[Admin.approveContributorQuestion] called by', adminUser, 'for', id);
 
     const doc = await ContributorQuestion.findById(id);
     if (!doc) return res.status(404).json({ success: false, message: 'contributor question not found' });
 
     // Create library entry from contributor question
-    const libEntry = await Library.createFromContributorQuestion(doc, topic, subtopic);
+    const libEntry = await Library.createFromContributorQuestion(doc, finalTopic, finalSubtopic);
 
     // mark contributor question as approved
     doc.status = 'approved';

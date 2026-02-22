@@ -450,28 +450,70 @@ const deleteBatch = async (req, res) => {
 // QUESTION LIBRARY
 // =====================
 
+// Map frontend category value (lowercase) to Library topic (Title case)
+const CATEGORY_TO_TOPIC = {
+  aptitude: 'Aptitude',
+  technical: 'Technical',
+  psychometric: 'Psychometric',
+};
+
 const listQuestions = async (req, res) => {
   try {
     const { category } = req.query || {};
     const instName = req.institution?.name || 'unknown';
     console.log('[Institution.listQuestions] called by institution:', instName);
     if (category) console.log('[Institution.listQuestions] category filter:', category);
-    
-    // NEW: Fetch from Library model (contributor-approved questions) instead of Question collection
-    // Library contains questions that have been reviewed and approved for use
-    const libraryEntries = await Library.find().populate('qn_id').sort({ createdAt: -1 });
-    console.log('[Institution.listQuestions] found', libraryEntries.length, 'library entries');
-    
-    // Extract actual question documents and filter by category if specified
-    let items = libraryEntries
-      .map(entry => entry.qn_id)
-      .filter(q => q !== null && q !== undefined); // Filter out any null references
-    
-    if (category) {
-      items = items.filter(q => q.category === category);
+
+    // Library only stores Aptitude / Technical / Psychometric questions.
+    // Coding questions come from custom inputs only.
+    if (category && category.toLowerCase() === 'coding') {
+      return res.json({ success: true, data: [] });
     }
-    
-    console.log('[Institution.listQuestions] ✓ found', items.length, 'approved library questions');
+
+    // Build query — filter by topic when a category is supplied.
+    // Also include entries with no topic (legacy approvals before topic was enforced)
+    // so they are visible and can be added to tests.
+    const query = {};
+    if (category && category !== 'coding') {
+      const topicValue = CATEGORY_TO_TOPIC[category.toLowerCase()];
+      if (topicValue) {
+        query.$or = [
+          { topic: topicValue },
+          { topic: { $exists: false } },
+          { topic: null },
+          { topic: '' },
+        ];
+      }
+    }
+
+    const libraryEntries = await Library.find(query).sort({ createdAt: -1 }).lean();
+    console.log('[Institution.listQuestions] found', libraryEntries.length, 'library entries');
+
+    // Normalise each entry to the shape the frontend expects:
+    //   q.text, q.options[].text, q.options[].isCorrect, q.difficulty, q.isCoding
+    const items = libraryEntries.map(entry => ({
+      _id: entry._id,
+      text: entry.question || entry.text || '',
+      question: entry.question || entry.text || '',
+      topic: entry.topic,
+      subtopic: entry.subtopic || entry.subTopic,
+      difficulty: entry.difficulty,
+      options: (entry.options || []).map(o => ({
+        text: o.text || '',
+        isCorrect: !!o.isCorrect,
+        imageUrl: o.imageUrl || null,
+        imageUrls: o.imageUrls || [],
+      })),
+      solutions: entry.solutions || [],
+      questionImageUrl: entry.questionImageUrl || null,
+      questionImageUrls: entry.questionImageUrls || [],
+      isCoding: false,
+      contributorId: entry.contributorId,
+      questionType: entry.questionType || 'mcq',
+      createdAt: entry.createdAt,
+    }));
+
+    console.log('[Institution.listQuestions] ✓ returning', items.length, 'approved library questions');
     res.json({ success: true, data: items });
   } catch (err) {
     console.error('[Institution.listQuestions] ✗ error:', err.message);
@@ -631,36 +673,45 @@ const createTest = async (req, res) => {
     const customQs = [];
     const legacyQuestions = []; // For backward compatibility
     
-    // Process Library Questions (by reference)
+    // Process Library Questions — look up by Library _id and embed as customQuestions
     if (Array.isArray(questionIds) && questionIds.length) {
-      // NEW: Validate that questionIds are actually in the Library (contributor-approved)
-      const libraryEntries = await Library.find({ qn_id: { $in: questionIds } }).populate('qn_id');
-      console.log('[Institution.createTest] found', libraryEntries.length, 'library entries for provided question IDs');
+      const libraryEntries = await Library.find({ _id: { $in: questionIds } }).lean();
+      console.log('[Institution.createTest] found', libraryEntries.length, 'library entries for provided IDs');
       
       for (const entry of libraryEntries) {
-        const q = entry.qn_id;
-        if (q && q.category === type) {
-          libraryQuestionIds.push(q._id);
-          
-          // Get correct answers using the Question model's helper method
-          const correctAnswers = q.getCorrectAnswers ? q.getCorrectAnswers() : 
-            (Array.isArray(q.correctIndices) && q.correctIndices.length > 0 ? q.correctIndices : [q.correctIndex]);
-          
-          console.log(`[Test Creation] Library Q: "${q.text}" - correct answers: [${correctAnswers.join(', ')}]`);
-          
-          // Also populate legacy format for backward compatibility
-          legacyQuestions.push({
-            questionId: q._id,
-            text: q.text,
-            options: (q.options || []).map((o) => ({ text: o.text || String(o) })),
-            correctIndex: correctAnswers[0],
-            correctIndices: correctAnswers,
-          });
+        // Map Library options (isCorrect bool) → correctIndices
+        const opts = entry.options || [];
+        const correctIndices = opts.reduce((acc, o, i) => { if (o.isCorrect) acc.push(i); return acc; }, []);
+
+        const qText = entry.question || entry.text || '';
+        if (!qText) {
+          console.log('[Institution.createTest] ⚠ skipping library entry with empty question text, id:', entry._id);
+          continue;
         }
+
+        customQs.push({
+          text: qText,
+          options: opts.map(o => o.text || ''),
+          correctIndices,
+          correctIndex: correctIndices[0] ?? 0,
+          difficulty: entry.difficulty || 'medium',
+          isCoding: false,
+          starterCode: '',
+          testCases: [],
+        });
+
+        legacyQuestions.push({
+          text: entry.question || entry.text || '',
+          options: opts.map(o => ({ text: o.text || '' })),
+          correctIndices,
+          correctIndex: correctIndices[0] ?? 0,
+        });
+
+        console.log(`[Test Creation] Library Q: "${entry.question}" - correct indices: [${correctIndices.join(', ')}]`);
       }
-      
-      if (libraryQuestionIds.length < questionIds.length) {
-        console.log('[Institution.createTest] ⚠ some question IDs were not in Library or didn\'t match category');
+
+      if (libraryEntries.length < questionIds.length) {
+        console.log('[Institution.createTest] ⚠ some question IDs were not found in Library');
       }
     }
     
@@ -713,14 +764,14 @@ const createTest = async (req, res) => {
       console.log('[Institution.createTest] ⚠ no questions provided - creating test without questions');
     }
     
-    // Enforce test limit if configured
+    // Enforce test limit if configured (0 or null = unlimited)
     const instId = req.institution?.id;
     const instDoc = instId ? await Institution.findById(instId).select('testLimit') : null;
-    if (instDoc && typeof instDoc.testLimit === 'number' && instDoc.testLimit >= 0) {
+    if (instDoc && typeof instDoc.testLimit === 'number' && instDoc.testLimit > 0) {
       const current = await Test.countDocuments({ createdBy: instId });
       if (current >= instDoc.testLimit) {
         console.log('[Institution.createTest] ✗ test limit reached -', current, '/', instDoc.testLimit);
-        return res.status(403).json({ success: false, message: 'test create limit reached' });
+        return res.status(403).json({ success: false, message: `Test limit reached (${current}/${instDoc.testLimit}). Contact your administrator to increase the limit.` });
       }
     }
     
@@ -736,6 +787,7 @@ const createTest = async (req, res) => {
       libraryQuestionIds,  // NEW: Store library question references
       customQuestions: customQs,  // NEW: Store custom questions
       questions: legacyQuestions,  // LEGACY: Keep for backward compatibility
+      creatorRole: 'institution',
     });
     
     console.log('[Institution.createTest] ✓ created - id:', t._id.toString(), 'name:', t.name, 'libraryQs:', libraryQuestionIds.length, 'customQs:', customQs.length);
@@ -921,6 +973,84 @@ const deleteTest = async (req, res) => {
   }
 };
 
+// GET /institution/tests/:id/preview — full preview with correct answers for institution admin
+const getTestPreview = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const instId = req.institution?.id;
+    console.log('[Institution.getTestPreview] called for test:', id, 'by institution:', req.institution?.name);
+
+    const t = await Test.findOne({ _id: id, createdBy: instId });
+    if (!t) return res.status(404).json({ success: false, message: 'test not found' });
+
+    // Gather all questions with correct answers
+    let allQuestions = [];
+    if (typeof t.getAllQuestions === 'function') {
+      try { allQuestions = await t.getAllQuestions(); } catch (e) { allQuestions = t.customQuestions || t.questions || []; }
+    } else {
+      allQuestions = t.customQuestions || t.questions || [];
+    }
+
+    const questionsWithAnswers = allQuestions.map((q, idx) => {
+      const options = Array.isArray(q.options)
+        ? q.options.map(o => (typeof o === 'string' ? o : (o && o.text) || String(o)))
+        : [];
+
+      let correctIndices = [];
+      if (Array.isArray(q.correctIndices) && q.correctIndices.length > 0) correctIndices = q.correctIndices;
+      else if (typeof q.correctIndex === 'number') correctIndices = [q.correctIndex];
+
+      const correctAnswers = correctIndices.map(i => options[i]).filter(Boolean);
+
+      return {
+        number: idx + 1,
+        _id: q._id,
+        text: q.text,
+        options,
+        correctIndices,
+        correctAnswers,
+        isMultipleAnswer: correctIndices.length > 1,
+        difficulty: q.difficulty || 'medium',
+        isCoding: !!q.isCoding,
+        starterCode: q.starterCode,
+        testCases: q.testCases,
+        source: q.source || 'custom',
+      };
+    });
+
+    const preview = {
+      _id: t._id,
+      name: t.name,
+      type: t.type,
+      durationMinutes: t.durationMinutes,
+      startTime: t.startTime,
+      endTime: t.endTime,
+      creatorRole: t.creatorRole || 'institution',
+      totalQuestions: questionsWithAnswers.length,
+      questions: questionsWithAnswers,
+      // Answer sheet: ordered list of Q number -> correct option labels
+      answerSheet: questionsWithAnswers.map(q => ({
+        number: q.number,
+        questionText: q.text,
+        correctAnswers: q.isCoding
+          ? ['[Coding — evaluated by test cases]']
+          : q.correctAnswers.length > 0
+            ? q.correctAnswers
+            : ['(not set)'],
+        correctOptionLabels: q.isCoding
+          ? []
+          : q.correctIndices.map(i => String.fromCharCode(65 + i)),
+      })),
+    };
+
+    console.log('[Institution.getTestPreview] ✓ returning preview - questions:', questionsWithAnswers.length);
+    res.json({ success: true, data: preview });
+  } catch (err) {
+    console.error('[Institution.getTestPreview] ✗ error:', err.message);
+    res.status(500).json({ success: false, message: 'failed to get test preview' });
+  }
+};
+
 // =====================
 // STUDENT TEST PARTICIPATION
 // =====================
@@ -942,7 +1072,19 @@ const listStudentTests = async (req, res) => {
         { $or: [{ endTime: { $exists: false } }, { endTime: { $gte: now } }] },
       ],
     }).sort({ startTime: 1 });
-    res.json({ success: true, data: tests });
+
+    // Compute real question count from whichever field has data
+    const data = tests.map(t => {
+      const customCount = Array.isArray(t.customQuestions) ? t.customQuestions.length : 0;
+      const libraryCount = Array.isArray(t.libraryQuestionIds) ? t.libraryQuestionIds.length : 0;
+      const legacyCount = Array.isArray(t.questions) ? t.questions.length : 0;
+      const questionCount = customCount + libraryCount || legacyCount;
+      const obj = t.toObject();
+      obj.questionCount = questionCount;
+      return obj;
+    });
+
+    res.json({ success: true, data });
   } catch (err) {
     res.status(500).json({ success: false, message: 'failed to list student tests' });
   }
@@ -965,11 +1107,14 @@ const getStudentTest = async (req, res) => {
       try {
         allQuestions = await t.getAllQuestions();
       } catch (e) {
-        // fallback to legacy questions
         allQuestions = t.questions || [];
       }
     } else {
       allQuestions = t.questions || [];
+    }
+    // Safety fallback: if getAllQuestions returned empty but legacy questions exist, use them
+    if (allQuestions.length === 0 && Array.isArray(t.questions) && t.questions.length > 0) {
+      allQuestions = t.questions;
     }
 
     const sanitized = {
@@ -1691,6 +1836,7 @@ module.exports = {
   updateTest,
   deleteTest,
   assignTestBatches,
+  getTestPreview,
 
   // Student participation
   listStudentTests,

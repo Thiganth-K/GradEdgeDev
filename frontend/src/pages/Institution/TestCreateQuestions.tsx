@@ -12,6 +12,7 @@ const TestCreateQuestions: React.FC = () => {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [customQuestions, setCustomQuestions] = useState<any[]>([]);
   const [topic, setTopic] = useState<'aptitude'|'technical'|'psychometric'|'coding'>('aptitude');
+  const [questionTypeFilter, setQuestionTypeFilter] = useState<'all'|'mcq'|'placement'>('all');
   const [draft, setDraft] = useState<any>({});
   const [loading, setLoading] = useState(true);
 
@@ -56,12 +57,13 @@ const TestCreateQuestions: React.FC = () => {
     };
     try {
       const res = await fetch(`${BACKEND}/institution/tests`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...(headers as any) }, body: JSON.stringify(payload) });
-      if (!res.ok) throw new Error('Failed');
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body.message || `Server error (${res.status})`);
       sessionStorage.removeItem(STORAGE_KEY);
       toast.success('Test created successfully!');
       navigate('/institution/tests');
-    } catch (error) {
-      toast.error('Failed to create test.');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to create test.');
       console.error('Error creating test:', error);
     }
   };
@@ -84,6 +86,23 @@ const TestCreateQuestions: React.FC = () => {
                 <option value="coding">Coding</option>
               </select>
             </div>
+          </div>
+
+          {/* Question type filter tabs */}
+          <div className="mb-4 flex items-center gap-2">
+            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Filter by type:</span>
+            {(['all', 'mcq', 'placement'] as const).map(f => (
+              <button key={f} onClick={() => setQuestionTypeFilter(f)}
+                className={`px-3 py-1 rounded-full text-xs font-semibold border transition-all ${
+                  questionTypeFilter === f
+                    ? f === 'placement' ? 'bg-purple-600 text-white border-purple-600'
+                    : f === 'mcq' ? 'bg-blue-600 text-white border-blue-600'
+                    : 'bg-gray-800 text-white border-gray-800'
+                    : 'bg-white text-gray-600 border-gray-300 hover:border-gray-500'
+                }`}>
+                {f === 'all' ? 'All Questions' : f === 'mcq' ? 'MCQ Only' : 'Placement Ready Only'}
+              </button>
+            ))}
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -128,30 +147,31 @@ const TestCreateQuestions: React.FC = () => {
                     <span className="text-xs font-medium bg-gray-100 text-gray-600 px-2 py-1 rounded-full">{libraryQuestions.length} Available</span>
                 </div>
                 <div className="space-y-3 max-h-[calc(100vh-320px)] overflow-auto px-2">
-                  {libraryQuestions.map((q:any) => (
+                  {libraryQuestions
+                    .filter(q => questionTypeFilter === 'all' || (q.questionType || 'mcq') === questionTypeFilter)
+                    .map((q:any) => (
                     <label key={q._id} className={`flex items-start space-x-4 p-4 rounded-xl border transition-all cursor-pointer ${selectedIds.includes(q._id) ? 'border-red-500 bg-red-50/30' : 'bg-white border-gray-100 hover:border-red-200'}`}>
                       <input type="checkbox" checked={selectedIds.includes(q._id)} onChange={() => toggle(q._id)} className="mt-1.5 w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500" />
-                      <div className="flex-1">
-                        <div className="font-medium text-gray-900 flex items-center gap-2">
-                            {q.text}
-                            {q.isCoding && <span className="bg-blue-100 text-blue-800 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded">Coding</span>}
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium text-gray-900 flex flex-wrap items-center gap-2">
+                            <span className="flex-1">{q.text}</span>
                         </div>
-                        <div className="text-sm text-gray-600 mt-2">
-                          {q.isCoding ? (
-                              <div className="flex items-center gap-4 text-xs text-gray-500 font-medium">
-                                  <span className="flex items-center gap-1">📁 {q.testCases?.length || 0} Test Cases</span>
-                                  <span className="flex items-center gap-1">{q.starterCode ? '📝 Starter Code Included' : '🗒️ No Starter Code'}</span>
-                              </div>
-                          ) : (
-                            <div className="grid grid-cols-2 gap-2 mt-1">
-                                {(q.options || []).map((o:any,i:number)=> (
-                                    <div key={i} className="text-xs flex items-center gap-2 p-1.5 bg-gray-50 rounded border border-gray-100">
-                                        <span className="w-5 h-5 flex items-center justify-center bg-white border border-gray-200 rounded-full text-[10px] font-bold">{String.fromCharCode(65+i)}</span>
-                                        <span className="truncate">{o?.text || ''}</span>
-                                    </div>
-                                ))}
-                            </div>
-                          )}
+                        <div className="flex flex-wrap gap-1 mt-1.5">
+                          {q.questionType === 'placement'
+                            ? <span className="text-[10px] font-bold uppercase tracking-wider bg-purple-100 text-purple-700 px-2 py-0.5 rounded">Placement</span>
+                            : <span className="text-[10px] font-bold uppercase tracking-wider bg-blue-100 text-blue-700 px-2 py-0.5 rounded">MCQ</span>
+                          }
+                          {q.topic && <span className="text-[10px] font-bold uppercase tracking-wider bg-teal-100 text-teal-700 px-2 py-0.5 rounded">{q.topic}</span>}
+                          {q.subtopic && <span className="text-[10px] font-semibold bg-gray-100 text-gray-600 px-2 py-0.5 rounded">{q.subtopic}</span>}
+                          {q.difficulty && <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded ${q.difficulty === 'hard' ? 'bg-red-100 text-red-700' : q.difficulty === 'medium' ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'}`}>{q.difficulty}</span>}
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 mt-2">
+                            {(q.options || []).map((o:any,i:number)=> (
+                                <div key={i} className={`text-xs flex items-center gap-2 p-1.5 rounded border ${o.isCorrect ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-100'}`}>
+                                    <span className={`w-5 h-5 flex-shrink-0 flex items-center justify-center rounded-full text-[10px] font-bold ${o.isCorrect ? 'bg-green-600 text-white' : 'bg-white border border-gray-200 text-gray-700'}`}>{String.fromCharCode(65+i)}</span>
+                                    <span className="truncate">{o?.text || ''}</span>
+                                </div>
+                            ))}
                         </div>
                       </div>
                     </label>

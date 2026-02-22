@@ -43,6 +43,9 @@ const LibrarySchema = new mongoose.Schema({
   // track original contributor (if any)
   contributorId: { type: mongoose.Schema.Types.ObjectId, ref: 'Contributor' },
 
+  // question type: 'mcq' = standard multiple choice, 'placement' = placement readiness question
+  questionType: { type: String, enum: ['mcq', 'placement'], default: 'mcq' },
+
 }, { timestamps: true });
 
 // Indexes
@@ -64,7 +67,8 @@ LibrarySchema.statics.createFromContributorQuestion = async function(contribDoc,
       questionImagePublicIds: contribDoc.questionImagePublicIds || [],
       options: contribDoc.options || [],
       solutions: contribDoc.solutions || [],
-      contributorId: contribDoc.contributorId || contribDoc.contributor
+      contributorId: contribDoc.contributorId || contribDoc.contributor,
+      questionType: contribDoc.questionType || 'mcq'
     });
     await entry.save();
     return entry;

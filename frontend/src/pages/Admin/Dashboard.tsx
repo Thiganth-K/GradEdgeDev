@@ -8,6 +8,7 @@ interface Stats {
   contributors: number;
   pendingRequests: number;
   activeChats: number;
+  pendingQuestions: number;
 }
 
 const Dashboard: React.FC = () => {
@@ -16,7 +17,8 @@ const Dashboard: React.FC = () => {
     institutions: 0,
     contributors: 0,
     pendingRequests: 0,
-    activeChats: 0
+    activeChats: 0,
+    pendingQuestions: 0
   });
   const [loading, setLoading] = useState(true);
 
@@ -52,28 +54,32 @@ const Dashboard: React.FC = () => {
       const BACKEND = import.meta.env.VITE_API_URL || 'http://localhost:5001';
 
       // Fetch all stats in parallel from configured backend
-      const [institutionsRes, contributorsRes, requestsRes, chatsRes] = await Promise.all([
+      const [institutionsRes, contributorsRes, requestsRes, chatsRes, pendingQuestionsRes] = await Promise.all([
         fetch(`${BACKEND}/admin/institutions`, { headers }),
         fetch(`${BACKEND}/admin/contributors`, { headers }),
         fetch(`${BACKEND}/admin/contributor-requests`, { headers }),
-        fetch(`${BACKEND}/admin/contributor-chats`, { headers })
+        fetch(`${BACKEND}/admin/contributor-chats`, { headers }),
+        fetch(`${BACKEND}/admin/contributor-questions/pending`, { headers })
       ]);
 
       const institutionsJson = institutionsRes.ok ? await institutionsRes.json().catch(() => null) : null;
       const contributorsJson = contributorsRes.ok ? await contributorsRes.json().catch(() => null) : null;
       const requestsJson = requestsRes.ok ? await requestsRes.json().catch(() => null) : null;
       const chatsJson = chatsRes.ok ? await chatsRes.json().catch(() => null) : null;
+      const pendingQuestionsJson = pendingQuestionsRes.ok ? await pendingQuestionsRes.json().catch(() => null) : null;
 
       const institutionsArr = institutionsJson && institutionsJson.success && Array.isArray(institutionsJson.data) ? institutionsJson.data : [];
       const contributorsArr = contributorsJson && contributorsJson.success && Array.isArray(contributorsJson.data) ? contributorsJson.data : [];
       const requestsArr = requestsJson && requestsJson.success && Array.isArray(requestsJson.data) ? requestsJson.data : [];
       const chatsArr = chatsJson && chatsJson.success && Array.isArray(chatsJson.data) ? chatsJson.data : [];
+      const pendingQuestionsArr = pendingQuestionsJson && Array.isArray(pendingQuestionsJson.data) ? pendingQuestionsJson.data : [];
 
       setStats({
         institutions: institutionsArr.length,
         contributors: contributorsArr.length,
         pendingRequests: requestsArr.filter((r: any) => r.status === 'pending').length,
-        activeChats: chatsArr.length
+        activeChats: chatsArr.length,
+        pendingQuestions: pendingQuestionsArr.length
       });
     } catch (error) {
       console.error('Error fetching stats:', error);
@@ -132,6 +138,18 @@ const Dashboard: React.FC = () => {
       bgGradient: 'from-white to-gray-50',
       textColor: 'text-red-900',
       onClick: () => navigate('/admin/contributor-chats')
+    },
+    {
+      title: 'Pending Questions',
+      value: stats.pendingQuestions,
+      icon: (
+        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      ),
+      color: 'red',
+      bgGradient: 'from-orange-500 to-orange-600',
+      onClick: () => navigate('/admin/pending-questions')
     }
   ];
 
@@ -174,16 +192,16 @@ const Dashboard: React.FC = () => {
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
               </svg>
-              {(stats.pendingRequests > 0 || stats.activeChats > 0) && (
+              {(stats.pendingRequests > 0 || stats.activeChats > 0 || stats.pendingQuestions > 0) && (
                 <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none transform translate-x-1/2 -translate-y-1/2 bg-white text-red-600 rounded-full">
-                  {stats.pendingRequests + stats.activeChats}
+                  {stats.pendingRequests + stats.activeChats + stats.pendingQuestions}
                 </span>
               )}
             </button>
           </div>
 
           {/* Stats Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
             {statCards.map((card, index) => (
               <div
                 key={index}
@@ -246,6 +264,20 @@ const Dashboard: React.FC = () => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                   </svg>
                 </button>
+                <button
+                  onClick={() => navigate('/admin/pending-questions')}
+                  className="w-full text-left p-4 bg-gradient-to-r from-orange-50 to-orange-100 hover:from-orange-100 hover:to-orange-200 rounded-lg transition-all duration-300 flex items-center justify-between group"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-700 font-medium">Review Pending Questions</span>
+                    {stats.pendingQuestions > 0 && (
+                      <span className="inline-flex items-center justify-center w-5 h-5 text-xs font-bold bg-orange-500 text-white rounded-full">{stats.pendingQuestions}</span>
+                    )}
+                  </div>
+                  <svg className="w-5 h-5 text-orange-600 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
               </div>
             </div>
 
@@ -273,7 +305,18 @@ const Dashboard: React.FC = () => {
                     <p className="text-xs text-purple-600 mt-1">Check messages</p>
                   </div>
                 )}
-                {stats.pendingRequests === 0 && stats.activeChats === 0 && (
+                {stats.pendingQuestions > 0 && (
+                  <div
+                    className="p-4 bg-orange-50 border-l-4 border-orange-500 rounded cursor-pointer hover:bg-orange-100 transition-colors"
+                    onClick={() => navigate('/admin/pending-questions')}
+                  >
+                    <p className="text-sm font-medium text-orange-800">
+                      {stats.pendingQuestions} question{stats.pendingQuestions !== 1 ? 's' : ''} awaiting review
+                    </p>
+                    <p className="text-xs text-orange-600 mt-1">Approve or reject contributor submissions</p>
+                  </div>
+                )}
+                {stats.pendingRequests === 0 && stats.activeChats === 0 && stats.pendingQuestions === 0 && (
                   <div className="p-4 bg-green-50 border-l-4 border-green-500 rounded">
                     <p className="text-sm font-medium text-green-800">All caught up!</p>
                     <p className="text-xs text-green-600 mt-1">No pending actions</p>
