@@ -768,16 +768,20 @@ const getLibraryQuestionsByContributor = async (req, res) => {
     const adminUser = req.admin && req.admin.username;
     console.log('[Admin.getLibraryQuestionsByContributor] called by', adminUser);
 
-    // Get all library questions
-    const questions = await Question.find({ inLibrary: true })
-      .populate('createdByContributor', 'username fname lname')
-      .sort({ createdAt: -1 });
+    // Get all library questions (both MCQ and CODING)
+    const questions = await Library.find()
+      .populate('contributorId', 'username fname lname')
+      .populate('createdBy', 'username fname lname')
+      .populate('mcqQuestionId')
+      .populate('codingQuestionId')
+      .sort({ createdAt: -1 })
+      .lean();
 
     // Group by contributor
     const grouped = {};
     
     questions.forEach(q => {
-      const contributor = q.createdByContributor;
+      const contributor = q.contributorId || q.createdBy;
       if (!contributor) return; // Skip questions without contributor
       
       const contributorId = contributor._id.toString();
@@ -798,7 +802,7 @@ const getLibraryQuestionsByContributor = async (req, res) => {
     // Convert to array
     const result = Object.values(grouped);
 
-    console.log('[Admin.getLibraryQuestionsByContributor] ✓ found', result.length, 'contributors with questions');
+    console.log('[Admin.getLibraryQuestionsByContributor] ✓ found', result.length, 'contributors with questions (MCQ + CODING)');
     return res.json({ success: true, data: result });
   } catch (err) {
     console.error('[Admin.getLibraryQuestionsByContributor] ✗ error:', err.message);
@@ -911,6 +915,67 @@ const removeQuestionFromLibrary = async (req, res) => {
     return res.json({ success: true, message: 'Question removed from library' });
   } catch (err) {
     console.error('[Admin.removeQuestionFromLibrary] ✗ error:', err.message);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// Get library with filters (supports MCQ/CODING filtering)
+const getLibrary = async (req, res) => {
+  try {
+    const adminUser = req.admin && req.admin.username;
+    const { type, placementReady, page = 1, limit = 50 } = req.query;
+    
+    console.log('[Admin.getLibrary] called by', adminUser, 'with filters:', { type, placementReady });
+
+    // Build filter
+    const filter = {};
+    
+    // Filter by question category (MCQ or CODING)
+    if (type) {
+      const upperType = type.toUpperCase();
+      if (!['MCQ', 'CODING'].includes(upperType)) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Invalid type. Must be MCQ or CODING' 
+        });
+      }
+      filter.questionCategory = upperType;
+    }
+    
+    // Filter by placement readiness
+    if (placementReady !== undefined) {
+      filter.isPlacementReadyQuestion = placementReady === 'true' || placementReady === true;
+    }
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    // Query with population for references
+    const questions = await Library.find(filter)
+      .populate('contributorId', 'username fname lname email')
+      .populate('createdBy', 'username fname lname email')
+      .populate('mcqQuestionId')
+      .populate('codingQuestionId')
+      .sort({ createdAt: -1 })
+      .limit(parseInt(limit))
+      .skip(skip)
+      .lean();
+
+    const total = await Library.countDocuments(filter);
+
+    console.log('[Admin.getLibrary] ✓ found', questions.length, 'library questions');
+    
+    return res.json({ 
+      success: true, 
+      data: questions,
+      pagination: {
+        total,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: Math.ceil(total / parseInt(limit))
+      }
+    });
+  } catch (err) {
+    console.error('[Admin.getLibrary] ✗ error:', err.message);
     return res.status(500).json({ success: false, message: err.message });
   }
 };
@@ -1053,6 +1118,7 @@ module.exports = {
   getLibraryQuestionsByContributorId,
   addQuestionToLibrary,
   removeQuestionFromLibrary,
+  getLibrary,
   getLibraryStructure,
   listPendingContributorQuestions,
   approveContributorQuestion,

@@ -12,7 +12,7 @@ interface PendingQuestion {
   _id: string;
   subTopic?: string;
   topic?: string;
-  difficulty?: 'easy' | 'medium' | 'hard';
+  difficulty?: 'easy' | 'medium' | 'hard' | 'Easy' | 'Medium' | 'Hard';
   question: string;
   questionImageUrls?: string[];
   options?: Option[];
@@ -23,10 +23,31 @@ interface PendingQuestion {
   createdAt?: string;
 }
 
-type FilterType = 'all' | 'mcq' | 'placement';
+interface CodingProblem {
+  _id: string;
+  subTopic: string;
+  difficulty: 'Easy' | 'Medium' | 'Hard';
+  problemName: string;
+  problemStatement: string;
+  imageUrls?: string[];
+  imagePublicIds?: string[];
+  supportedLanguages?: string[];
+  constraints?: string[];
+  sampleInput?: string;
+  sampleOutput?: string;
+  industrialTestCases?: Array<{ input: string; output: string }>;
+  hiddenTestCases?: Array<{ input: string; output: string }>;
+  solutionApproach?: string;
+  status: 'pending' | 'approved' | 'rejected';
+  createdBy?: { _id: string; username?: string; email?: string };
+  createdAt?: string;
+}
+
+type FilterType = 'all' | 'mcq' | 'placement' | 'coding';
 
 const PendingContributorQuestions: React.FC = () => {
   const [questions, setQuestions] = useState<PendingQuestion[]>([]);
+  const [codingProblems, setCodingProblems] = useState<CodingProblem[]>([]);
   const [loading, setLoading] = useState(false);
   const [filter, setFilter] = useState<FilterType>('all');
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -38,8 +59,8 @@ const PendingContributorQuestions: React.FC = () => {
   const [approveSubtopic, setApproveSubtopic] = useState('');
   const [approving, setApproving] = useState(false);
 
-  // Reject modal state
-  const [rejectModal, setRejectModal] = useState<{ open: boolean; questionId: string; questionText: string } | null>(null);
+  // Reject modal state (shared for MCQ and Coding)
+  const [rejectModal, setRejectModal] = useState<{ open: boolean; questionId: string; questionText: string; isCoding?: boolean } | null>(null);
   const [rejectReason, setRejectReason] = useState('');
   const [rejecting, setRejecting] = useState(false);
 
@@ -48,10 +69,20 @@ const PendingContributorQuestions: React.FC = () => {
   const fetchPending = async () => {
     try {
       setLoading(true);
-      const res = await apiFetch('/admin/contributor-questions/pending', { headers: makeHeaders() });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Failed to fetch pending questions');
-      setQuestions(data.data || []);
+      // Fetch both MCQ and Coding problems in parallel
+      const [mcqRes, codingRes] = await Promise.all([
+        apiFetch('/admin/contributor-questions/pending', { headers: makeHeaders() }),
+        apiFetch('/admin/coding-problems/pending', { headers: makeHeaders() })
+      ]);
+      
+      const mcqData = await mcqRes.json();
+      const codingData = await codingRes.json();
+      
+      if (!mcqRes.ok) throw new Error(mcqData.message || 'Failed to fetch MCQ questions');
+      if (!codingRes.ok) console.warn('Failed to fetch coding problems:', codingData.message);
+      
+      setQuestions(mcqData.data || []);
+      setCodingProblems(codingData.data || []);
     } catch (err: any) {
       toast.error(err.message || 'Failed to load pending questions');
     } finally { setLoading(false); }
@@ -98,31 +129,76 @@ const PendingContributorQuestions: React.FC = () => {
 
   const handleRejectConfirm = async () => {
     if (!rejectModal) return;
+    
+    // Check if this is a coding problem by looking in codingProblems array
+    const isCoding = rejectModal.isCoding || codingProblems.some(cp => cp._id === rejectModal.questionId);
+    
     try {
       setRejecting(true);
-      const res = await apiFetch(`/admin/contributor-questions/${rejectModal.questionId}/reject`, {
-        method: 'PUT',
-        headers: makeHeaders('admin_token', 'application/json'),
-        body: JSON.stringify({ reason: rejectReason.trim() || undefined })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Reject failed');
-      toast.success('Question rejected. Contributor will be notified.');
-      setQuestions(qs => qs.filter(q => q._id !== rejectModal.questionId));
+      
+      if (isCoding) {
+        // Coding problem rejection
+        const res = await apiFetch(`/admin/coding-problems/${rejectModal.questionId}/reject`, {
+          method: 'PATCH',
+          headers: makeHeaders('admin_token', 'application/json'),
+          body: JSON.stringify({ reason: rejectReason.trim() || undefined })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Reject failed');
+        toast.success('Coding problem rejected. Contributor will be notified.');
+        setCodingProblems(list => list.filter(cp => cp._id !== rejectModal.questionId));
+      } else {
+        // MCQ rejection
+        const res = await apiFetch(`/admin/contributor-questions/${rejectModal.questionId}/reject`, {
+          method: 'PUT',
+          headers: makeHeaders('admin_token', 'application/json'),
+          body: JSON.stringify({ reason: rejectReason.trim() || undefined })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Reject failed');
+        toast.success('Question rejected. Contributor will be notified.');
+        setQuestions(qs => qs.filter(q => q._id !== rejectModal.questionId));
+      }
+      
       closeRejectModal();
     } catch (err: any) {
       toast.error(err.message || 'Reject failed');
     } finally { setRejecting(false); }
   };
 
-  const filtered = questions.filter(q => {
+  const handleApproveCoding = async (id: string) => {
+    try {
+      const res = await apiFetch(`/admin/coding-problems/${id}/approve`, {
+        method: 'PUT',
+        headers: makeHeaders('admin_token', 'application/json'),
+        body: JSON.stringify({ topic: 'Technical', subtopic: undefined })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Approve failed');
+      toast.success('Coding problem approved and added to Library!');
+      setCodingProblems(list => list.filter(cp => cp._id !== id));
+    } catch (err: any) {
+      toast.error(err.message || 'Approve failed');
+    }
+  };
+
+  const handleRejectCoding = (id: string, problemName: string) => {
+    setRejectModal({ open: true, questionId: id, questionText: problemName, isCoding: true });
+    setRejectReason('');
+  };
+
+  const filteredMCQ = questions.filter(q => {
     if (filter === 'all') return true;
+    if (filter === 'coding') return false;
     return (q.questionType || 'mcq') === filter;
   });
+  
+  const filteredCoding = filter === 'all' || filter === 'coding' ? codingProblems : [];
+  const totalFiltered = filteredMCQ.length + filteredCoding.length;
 
   const difficultyBadge = (d?: string) => {
-    if (d === 'hard') return 'bg-red-100 text-red-700';
-    if (d === 'medium') return 'bg-yellow-100 text-yellow-700';
+    if (d === 'hard' || d === 'Hard') return 'bg-red-100 text-red-700';
+    if (d === 'medium' || d === 'Medium') return 'bg-yellow-100 text-yellow-700';
     return 'bg-green-100 text-green-700';
   };
 
@@ -147,7 +223,7 @@ const PendingContributorQuestions: React.FC = () => {
               </div>
               <div>
                 <p className="text-sm text-gray-300 uppercase opacity-80">Queue</p>
-                <p className="text-2xl font-semibold">{questions.length} pending question{questions.length !== 1 ? 's' : ''}</p>
+                <p className="text-2xl font-semibold">{questions.length + codingProblems.length} pending question{(questions.length + codingProblems.length) !== 1 ? 's' : ''}</p>
               </div>
             </div>
             <div className="flex gap-4 text-right">
@@ -160,13 +236,18 @@ const PendingContributorQuestions: React.FC = () => {
                 <p className="text-xs text-gray-400">Placement</p>
                 <p className="text-xl font-bold text-purple-400">{questions.filter(q => q.questionType === 'placement').length}</p>
               </div>
+              <div className="w-px bg-gray-700 mx-1" />
+              <div>
+                <p className="text-xs text-gray-400">Coding</p>
+                <p className="text-xl font-bold text-green-400">{codingProblems.length}</p>
+              </div>
             </div>
           </div>
 
           {/* Filter Tabs */}
           <div className="flex items-center gap-2 mb-6 bg-white rounded-xl shadow-sm p-2 w-fit border-2 border-red-100">
             <FaFilter className="text-gray-400 ml-2 mr-1" size={13} />
-            {(['all', 'mcq', 'placement'] as FilterType[]).map(f => (
+            {(['all', 'mcq', 'placement', 'coding'] as FilterType[]).map(f => (
               <button
                 key={f}
                 onClick={() => setFilter(f)}
@@ -176,11 +257,19 @@ const PendingContributorQuestions: React.FC = () => {
                       ? 'bg-purple-600 text-white shadow'
                       : f === 'mcq'
                         ? 'bg-blue-600 text-white shadow'
+                      : f === 'coding'
+                        ? 'bg-green-600 text-white shadow'
                         : 'bg-gradient-to-r from-red-600 to-red-700 text-white shadow'
                     : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
                 }`}
               >
-                {f === 'all' ? `All (${questions.length})` : f === 'mcq' ? `MCQ (${questions.filter(q => (q.questionType || 'mcq') === 'mcq').length})` : `Placement Ready (${questions.filter(q => q.questionType === 'placement').length})`}
+                {f === 'all' 
+                  ? `All (${questions.length + codingProblems.length})` 
+                  : f === 'mcq' 
+                    ? `MCQ (${questions.filter(q => (q.questionType || 'mcq') === 'mcq').length})` 
+                    : f === 'placement'
+                      ? `Placement Ready (${questions.filter(q => q.questionType === 'placement').length})`
+                      : `Coding (${codingProblems.length})`}
               </button>
             ))}
           </div>
@@ -191,7 +280,7 @@ const PendingContributorQuestions: React.FC = () => {
               <div className="w-10 h-10 border-4 border-red-600 border-t-transparent rounded-full animate-spin" />
               <span className="ml-4 text-gray-500 font-medium">Loading questions...</span>
             </div>
-          ) : filtered.length === 0 ? (
+          ) : totalFiltered === 0 ? (
             <div className="bg-white rounded-xl shadow-md p-12 text-center border-2 border-red-100">
               <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <FaCheck size={24} className="text-green-600" />
@@ -201,7 +290,8 @@ const PendingContributorQuestions: React.FC = () => {
             </div>
           ) : (
             <div className="space-y-4">
-              {filtered.map(q => {
+              {/* MCQ Questions */}
+              {filteredMCQ.map(q => {
                 const isExpanded = expandedId === q._id;
                 const isApproving = approvingId === q._id;
                 return (
@@ -327,6 +417,181 @@ const PendingContributorQuestions: React.FC = () => {
                                 )}
                               </div>
                             ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+              
+              {/* Coding Questions */}
+              {filteredCoding.map(cp => {
+                const isExpanded = expandedId === cp._id;
+                return (
+                  <div key={cp._id} className="bg-white rounded-xl shadow-md border-2 border-green-100 overflow-hidden hover:shadow-lg transition-shadow duration-200">
+                    {/* Card Header */}
+                    <div className="p-5">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1 min-w-0">
+                          {/* Badges row */}
+                          <div className="flex items-center flex-wrap gap-2 mb-2">
+                            <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-green-100 text-green-700 border border-green-200">Coding Problem</span>
+                            {cp.difficulty && (
+                              <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${difficultyBadge(cp.difficulty)}`}>
+                                {cp.difficulty}
+                              </span>
+                            )}
+                            {cp.subTopic && (
+                              <span className="text-xs px-2.5 py-1 rounded-full bg-gray-100 text-gray-600 border border-gray-200">{cp.subTopic}</span>
+                            )}
+                          </div>
+                          {/* Problem name */}
+                          <p className="text-gray-900 font-semibold text-base leading-snug">{cp.problemName}</p>
+                          {/* Meta */}
+                          <div className="flex items-center gap-3 mt-2 flex-wrap">
+                            {cp.createdBy?.username && (
+                              <span className="text-xs text-gray-500">
+                                By <span className="font-medium text-gray-700">{cp.createdBy.username}</span>
+                              </span>
+                            )}
+                            <span className="text-xs text-gray-400">{cp.createdAt ? new Date(cp.createdAt).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }) : ''}</span>
+                          </div>
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <button
+                            onClick={() => handleApproveCoding(cp._id)}
+                            className="flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white text-sm font-semibold rounded-lg hover:from-green-600 hover:to-green-700 transition-all duration-200 shadow-sm"
+                          >
+                            <FaCheck size={12} />
+                            Approve
+                          </button>
+                          <button
+                            onClick={() => handleRejectCoding(cp._id, cp.problemName)}
+                            className="flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-red-600 to-red-700 text-white text-sm font-semibold rounded-lg hover:from-red-700 hover:to-red-800 transition-all duration-200 shadow-sm"
+                          >
+                            <FaTimes size={12} />
+                            Reject
+                          </button>
+                          <button
+                            onClick={() => setExpandedId(isExpanded ? null : cp._id)}
+                            className="flex items-center gap-1 px-3 py-2 text-gray-500 hover:text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm transition-all duration-200"
+                          >
+                            {isExpanded ? <FaChevronUp size={12} /> : <FaChevronDown size={12} />}
+                            <span className="text-xs font-medium">{isExpanded ? 'Hide' : 'Preview'}</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Expanded Preview */}
+                    {isExpanded && (
+                      <div className="border-t border-gray-100 bg-gray-50 px-5 pb-5 pt-4">
+                        {/* Problem Statement */}
+                        <div className="mb-4">
+                          <p className="text-xs font-bold uppercase text-gray-400 tracking-wider mb-2">Problem Statement</p>
+                          <p className="text-sm text-gray-800 whitespace-pre-wrap">{cp.problemStatement}</p>
+                        </div>
+
+                        {/* Problem Images */}
+                        {cp.imageUrls && cp.imageUrls.length > 0 && (
+                          <div className="mb-4">
+                            <p className="text-xs font-bold uppercase text-gray-400 tracking-wider mb-2">Problem Images</p>
+                            <div className="flex gap-2 flex-wrap">
+                              {cp.imageUrls.map((u, i) => (
+                                <img key={i} src={u} alt={`problem-img-${i}`} className="w-28 h-28 object-cover rounded-lg border border-gray-200 shadow-sm" />
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Constraints */}
+                        {cp.constraints && cp.constraints.length > 0 && (
+                          <div className="mb-4">
+                            <p className="text-xs font-bold uppercase text-gray-400 tracking-wider mb-2">Constraints</p>
+                            <ul className="list-disc list-inside space-y-1">
+                              {cp.constraints.map((c, i) => (
+                                <li key={i} className="text-sm text-gray-700">{c}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+
+                        {/* Supported Languages */}
+                        {cp.supportedLanguages && cp.supportedLanguages.length > 0 && (
+                          <div className="mb-4">
+                            <p className="text-xs font-bold uppercase text-gray-400 tracking-wider mb-2">Supported Languages</p>
+                            <div className="flex gap-2 flex-wrap">
+                              {cp.supportedLanguages.map((lang, i) => (
+                                <span key={i} className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded">{lang}</span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Sample I/O */}
+                        {cp.sampleInput && cp.sampleOutput && (
+                          <div className="grid grid-cols-2 gap-3 mb-4">
+                            <div>
+                              <p className="text-xs font-bold uppercase text-gray-400 tracking-wider mb-2">Sample Input</p>
+                               <pre className="text-xs bg-white p-3 rounded border border-gray-200 overflow-x-auto">{cp.sampleInput}</pre>
+                            </div>
+                            <div>
+                              <p className="text-xs font-bold uppercase text-gray-400 tracking-wider mb-2">Sample Output</p>
+                              <pre className="text-xs bg-white p-3 rounded border border-gray-200 overflow-x-auto">{cp.sampleOutput}</pre>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Solution Approach */}
+                        {cp.solutionApproach && (
+                          <div className="mt-2 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                            <p className="text-xs font-bold uppercase text-blue-600 tracking-wider mb-2">Solution Approach</p>
+                            <p className="text-sm text-blue-900 whitespace-pre-wrap">{cp.solutionApproach}</p>
+                          </div>
+                        )}
+
+                        {/* Industrial Test Cases */}
+                        {cp.industrialTestCases && cp.industrialTestCases.length > 0 && (
+                          <div className="mb-4">
+                            <p className="text-xs font-bold uppercase text-gray-400 tracking-wider mb-2">Industrial Test Cases</p>
+                            <div className="space-y-2">
+                              {cp.industrialTestCases.map((tc, i) => (
+                                <div key={i} className="grid grid-cols-2 gap-3 p-3 bg-blue-50 border border-blue-200 rounded">
+                                  <div>
+                                    <p className="text-xs font-semibold text-blue-700 mb-1">Input {i + 1}</p>
+                                    <pre className="text-xs bg-white p-2 rounded border overflow-x-auto">{tc.input}</pre>
+                                  </div>
+                                  <div>
+                                    <p className="text-xs font-semibold text-blue-700 mb-1">Output {i + 1}</p>
+                                    <pre className="text-xs bg-white p-2 rounded border overflow-x-auto">{tc.output}</pre>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Hidden Test Cases */}
+                        {cp.hiddenTestCases && cp.hiddenTestCases.length > 0 && (
+                          <div className="mb-4">
+                            <p className="text-xs font-bold uppercase text-gray-400 tracking-wider mb-2">Hidden Test Cases</p>
+                            <div className="space-y-2">
+                              {cp.hiddenTestCases.map((tc, i) => (
+                                <div key={i} className="grid grid-cols-2 gap-3 p-3 bg-gray-50 border border-gray-200 rounded">
+                                  <div>
+                                    <p className="text-xs font-semibold text-gray-700 mb-1">Input {i + 1}</p>
+                                    <pre className="text-xs bg-white p-2 rounded border overflow-x-auto">{tc.input}</pre>
+                                  </div>
+                                  <div>
+                                    <p className="text-xs font-semibold text-gray-700 mb-1">Output {i + 1}</p>
+                                    <pre className="text-xs bg-white p-2 rounded border overflow-x-auto">{tc.output}</pre>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
                           </div>
                         )}
                       </div>

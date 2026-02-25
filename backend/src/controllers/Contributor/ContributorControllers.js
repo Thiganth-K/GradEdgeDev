@@ -451,6 +451,72 @@ const getLibraryStructure = async (req, res) => {
   }
 };
 
+// Get library questions with filters (MCQ + CODING)
+const getLibraryQuestions = async (req, res) => {
+  try {
+    const { category, type, page = 1, limit = 50 } = req.query;
+    console.log('[Contributor.getLibraryQuestions] called with filters:', { category, type });
+
+    // Build query for Library
+    const query = {};
+    
+    // Filter by question category (MCQ or CODING)
+    if (type) {
+      const upperType = type.toUpperCase();
+      if (['MCQ', 'CODING'].includes(upperType)) {
+        query.questionCategory = upperType;
+      }
+    }
+    
+    // Filter by topic category
+    if (category && !type) {
+      const lowerCategory = category.toLowerCase();
+      if (lowerCategory === 'coding') {
+        query.questionCategory = 'CODING';
+      } else {
+        const CATEGORY_TO_TOPIC = {
+          aptitude: 'Aptitude',
+          technical: 'Technical',
+          psychometric: 'Psychometric',
+        };
+        const topicValue = CATEGORY_TO_TOPIC[lowerCategory];
+        if (topicValue) {
+          query.topic = topicValue;
+        }
+      }
+    }
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    const questions = await Library.find(query)
+      .populate('contributorId', 'username fname lname')
+      .populate('mcqQuestionId')
+      .populate('codingQuestionId')
+      .sort({ createdAt: -1 })
+      .limit(parseInt(limit))
+      .skip(skip)
+      .lean();
+
+    const total = await Library.countDocuments(query);
+
+    console.log('[Contributor.getLibraryQuestions] ✓ found', questions.length, 'library questions (MCQ + CODING)');
+    
+    return res.json({ 
+      success: true, 
+      data: questions,
+      pagination: {
+        total,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: Math.ceil(total / parseInt(limit))
+      }
+    });
+  } catch (err) {
+    console.error('[Contributor.getLibraryQuestions] error', err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 module.exports = { 
   login, 
   dashboard,
@@ -464,6 +530,7 @@ module.exports = {
   markMessagesAsRead,
   getUnreadCount,
   getMyLibraryQuestions,
-  getLibraryStructure
+  getLibraryStructure,
+  getLibraryQuestions
 };
 

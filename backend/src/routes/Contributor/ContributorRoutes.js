@@ -4,6 +4,7 @@ const multer = require('multer');
 const ContributorControllers = require('../../controllers/Contributor/ContributorControllers');
 const BulkQuestionControllers = require('../../controllers/Contributor/BulkQuestionControllers');
 const ContributorQuestionControllers = require('../../controllers/Contributor/ContributorQuestionControllers');
+const CodingContributorRoutes = require('./CodingContributorRoutes');
 const verifyContributor = require('../../middleware/verifyContributor');
 
 // Configure multer for file upload (memory storage)
@@ -98,12 +99,17 @@ router.get('/library/my-questions', verifyContributor, ContributorControllers.ge
 
 console.log('[ContributorRoutes] GET /library/structure - Get library structure');
 router.get('/library/structure', verifyContributor, ContributorControllers.getLibraryStructure);
-
+console.log('[ContributorRoutes] GET /library/questions - Get all library questions with filters (protected)');
+router.get('/library/questions', verifyContributor, ContributorControllers.getLibraryQuestions);
 console.log('[ContributorRoutes] GET /bulk/template - Download bulk question template');
 router.get('/bulk/template', verifyContributor, BulkQuestionControllers.generateTemplate);
 
 console.log('[ContributorRoutes] POST /bulk/parse - Parse uploaded bulk question file');
 router.post('/bulk/parse', verifyContributor, upload.single('file'), BulkQuestionControllers.parseUploadedFile);
+
+// Mount coding problem routes
+console.log('[ContributorRoutes] Mounting coding problem routes at /coding-problems');
+router.use('/coding-problems', CodingContributorRoutes);
 
 // ── Multer error handler ─────────────────────────────────────────────────────
 // Must have 4 params so Express recognises it as an error-handling middleware.

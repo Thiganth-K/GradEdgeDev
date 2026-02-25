@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const AdminControllers = require('../../controllers/Admin/AdminControllers');
 const AdminLogController = require('../../controllers/Admin/AdminLogController');
+const CodingContributorController = require('../../controllers/Contributor/CodingContributorController');
 const verifyAdmin = require('../../middleware/verifyAdmin');
 
 // Authentication
@@ -128,6 +129,9 @@ router.post('/library/questions/:questionId', verifyAdmin, AdminControllers.addQ
 console.log('[AdminRoutes] DELETE /library/questions/:questionId - Remove question from library (admin)');
 router.delete('/library/questions/:questionId', verifyAdmin, AdminControllers.removeQuestionFromLibrary);
 
+console.log('[AdminRoutes] GET /library - Get library questions with filters (admin)');
+router.get('/library', verifyAdmin, AdminControllers.getLibrary);
+
 console.log('[AdminRoutes] GET /library/structure - Get library structure (admin)');
 router.get('/library/structure', verifyAdmin, AdminControllers.getLibraryStructure);
 
@@ -140,5 +144,15 @@ router.put('/contributor-questions/:id/approve', verifyAdmin, AdminControllers.a
 
 console.log('[AdminRoutes] PUT /contributor-questions/:id/reject - Reject a contributor question (admin)');
 router.put('/contributor-questions/:id/reject', verifyAdmin, AdminControllers.rejectContributorQuestion);
+
+// Coding problem review (follows same pattern as MCQ approval)
+console.log('[AdminRoutes] GET /coding-problems/pending - List pending coding problems (admin)');
+router.get('/coding-problems/pending', verifyAdmin, CodingContributorController.getPendingCodingProblems);
+
+console.log('[AdminRoutes] PUT /coding-problems/:id/approve - Approve a coding problem (admin)');
+router.put('/coding-problems/:id/approve', verifyAdmin, CodingContributorController.approveCodingProblem);
+
+console.log('[AdminRoutes] PUT /coding-problems/:id/reject - Reject a coding problem (admin)');
+router.put('/coding-problems/:id/reject', verifyAdmin, CodingContributorController.rejectCodingProblem);
 
 module.exports = router;

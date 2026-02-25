@@ -154,6 +154,12 @@ const ContributorDashboard: React.FC = () => {
                 Placement Ready Questions
               </button>
               <button
+                onClick={() => navigate('/contributor/coding-questions')}
+                className="px-6 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 font-semibold"
+              >
+                Coding Questions
+              </button>
+              <button
                 onClick={() => navigate('/contributor/chat')}
                 className="relative px-6 py-3 bg-black text-white rounded-md hover:bg-gray-800 font-semibold"
               >

@@ -50,6 +50,7 @@ import UnifiedContributionRequest from './pages/Contributor/UnifiedContributionR
 import ContributorChat from './pages/Contributor/Chat'
 import ContributorLibrary from './pages/Contributor/Library'
 import PlacementReadyQuestions from './pages/Contributor/PlacementReadyQuestions'
+import CodingQuestions from './pages/Contributor/CodingQuestions'
 import AdminContributorRequestManagement from './pages/Admin/ContributorRequestManagement'
 import AdminContributorChatManagement from './pages/Admin/ContributorChatManagement'
 import AdminSuperadminChatManagement from './pages/Admin/SuperadminChatManagement'
@@ -114,6 +115,7 @@ const App: React.FC = () => {
         <Route path="/student/test/:testId/attempt" element={<CodingTestAttempt />} />
         <Route path="/contributor/dashboard" element={<ContributorDashboard />} />
         <Route path="/contributor/placement-questions" element={<PlacementReadyQuestions />} />
+        <Route path="/contributor/coding-questions" element={<CodingQuestions />} />
         <Route path="/contributor/create-request" element={<UnifiedContributionRequest />} />
         <Route path="/contributor/chat" element={<ContributorChat />} />
         <Route path="/contributor/library" element={<ContributorLibrary />} />
