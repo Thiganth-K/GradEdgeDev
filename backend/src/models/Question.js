@@ -37,6 +37,11 @@ const QuestionSchema = new mongoose.Schema({
     isHidden: { type: Boolean, default: false }
   }],
   starterCode: { type: String },
+  constraints: { type: String, default: '' },
+  timeComplexity: { type: String, default: '' },
+  spaceComplexity: { type: String, default: '' },
+  maxTimeMs: { type: Number, default: 2000 }, // Default 2s timeout
+  maxMemoryKb: { type: Number, default: 51200 }, // Default 50MB
   
   createdAt: { type: Date, default: Date.now },
 });
