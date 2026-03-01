@@ -124,6 +124,10 @@ export const API_ENDPOINTS = {
     chatUnread: '/contributor/chat/unread',
     libraryMyQuestions: '/contributor/library/my-questions',
     libraryStructure: '/contributor/library/structure',
+    // Coding questions endpoints
+    codingProblems: '/contributor/coding-problems',
+    codingProblemsMyProblems: '/contributor/coding-problems/my-problems',
+    codingProblemById: (id: string) => `/contributor/coding-problems/${id}`,
   },
   
   // Admin endpoints
@@ -142,6 +146,10 @@ export const API_ENDPOINTS = {
     addQuestionToLibrary: (questionId: string) => `/admin/library/questions/${questionId}`,
     removeQuestionFromLibrary: (questionId: string) => `/admin/library/questions/${questionId}`,
     libraryStructure: '/admin/library/structure',
+    // Coding problems endpoints
+    codingProblemsPending: '/admin/coding-problems/pending',
+    codingProblemApprove: (id: string) => `/admin/coding-problems/${id}/approve`,
+    codingProblemReject: (id: string) => `/admin/coding-problems/${id}/reject`,
   },
 };
 

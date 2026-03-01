@@ -768,16 +768,25 @@ const getLibraryQuestionsByContributor = async (req, res) => {
     const adminUser = req.admin && req.admin.username;
     console.log('[Admin.getLibraryQuestionsByContributor] called by', adminUser);
 
-    // Get all library questions
-    const questions = await Question.find({ inLibrary: true })
-      .populate('createdByContributor', 'username fname lname')
-      .sort({ createdAt: -1 });
+    // Get all library questions (both MCQ and CODING)
+    const questions = await Library.find()
+      .populate('contributorId', 'username fname lname')
+      .populate('createdBy', 'username fname lname')
+      .populate('mcqQuestionId')
+      .populate('codingQuestionId')
+      .sort({ createdAt: -1 })
+      .lean();
 
     // Group by contributor
     const grouped = {};
     
     questions.forEach(q => {
-      const contributor = q.createdByContributor;
+      const contributor = q.contributorId || q.createdBy;
+      // Ensure coding entries include resource limits from populated coding doc
+      if (q && q.questionCategory === 'CODING') {
+        if (!q.timeLimit && q.codingQuestionId && q.codingQuestionId.timeLimit) q.timeLimit = q.codingQuestionId.timeLimit;
+        if (!q.memoryLimit && q.codingQuestionId && q.codingQuestionId.memoryLimit) q.memoryLimit = q.codingQuestionId.memoryLimit;
+      }
       if (!contributor) return; // Skip questions without contributor
       
       const contributorId = contributor._id.toString();
@@ -798,7 +807,7 @@ const getLibraryQuestionsByContributor = async (req, res) => {
     // Convert to array
     const result = Object.values(grouped);
 
-    console.log('[Admin.getLibraryQuestionsByContributor] ✓ found', result.length, 'contributors with questions');
+    console.log('[Admin.getLibraryQuestionsByContributor] ✓ found', result.length, 'contributors with questions (MCQ + CODING)');
     return res.json({ success: true, data: result });
   } catch (err) {
     console.error('[Admin.getLibraryQuestionsByContributor] ✗ error:', err.message);
@@ -894,23 +903,102 @@ const removeQuestionFromLibrary = async (req, res) => {
     const adminUser = req.admin && req.admin.username;
     const { questionId } = req.params;
     console.log('[Admin.removeQuestionFromLibrary] called by', adminUser, 'for question', questionId);
-
-    const question = await Question.findById(questionId);
-    if (!question) {
-      return res.status(404).json({ success: false, message: 'Question not found' });
+    // First: if a Library entry exists with this id, delete it directly
+    const libById = await Library.findById(questionId);
+    if (libById) {
+      await Library.findByIdAndDelete(questionId);
+      console.log('[Admin.removeQuestionFromLibrary] ✓ removed library entry by id', questionId);
+      try { await AdminLog.createLog({ actorId: req.admin && req.admin.id, actorUsername: adminUser, role: 'admin', actionType: 'delete', message: `${adminUser} removed library entry ${questionId}`, refs: { entity: 'Library', id: questionId } }); } catch (e) {}
+      return res.json({ success: true, message: 'Library entry removed' });
     }
 
-    // Update question
+    // Backwards-compatible behavior: attempt legacy Question model removal from library (no cascade)
+    const question = await Question.findById(questionId);
+    if (!question) {
+      return res.status(404).json({ success: false, message: 'Question or library entry not found' });
+    }
+
+    // Update question flag only (do not delete the original question)
     question.inLibrary = false;
     await question.save();
 
-    // Remove from library structure
-    await Library.removeQuestionFromLibrary(questionId);
+    // Also remove any Library documents that reference this Question (by mcqQuestionId)
+    await Library.deleteMany({ mcqQuestionId: question._id });
 
-    console.log('[Admin.removeQuestionFromLibrary] ✓ removed question from library');
+    console.log('[Admin.removeQuestionFromLibrary] ✓ removed question references from library for legacy Question', questionId);
+    try { await AdminLog.createLog({ actorId: req.admin && req.admin.id, actorUsername: adminUser, role: 'admin', actionType: 'delete', message: `${adminUser} removed question ${questionId} from library`, refs: { entity: 'Question', id: questionId } }); } catch (e) {}
     return res.json({ success: true, message: 'Question removed from library' });
   } catch (err) {
     console.error('[Admin.removeQuestionFromLibrary] ✗ error:', err.message);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// Get library with filters (supports MCQ/CODING filtering)
+const getLibrary = async (req, res) => {
+  try {
+    const adminUser = req.admin && req.admin.username;
+    const { type, placementReady, page = 1, limit = 50 } = req.query;
+    
+    console.log('[Admin.getLibrary] called by', adminUser, 'with filters:', { type, placementReady });
+
+    // Build filter
+    const filter = {};
+    
+    // Filter by question category (MCQ or CODING)
+    if (type) {
+      const upperType = type.toUpperCase();
+      if (!['MCQ', 'CODING'].includes(upperType)) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Invalid type. Must be MCQ or CODING' 
+        });
+      }
+      filter.questionCategory = upperType;
+    }
+    
+    // Filter by placement readiness
+    if (placementReady !== undefined) {
+      filter.isPlacementReadyQuestion = placementReady === 'true' || placementReady === true;
+    }
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    // Query with population for references
+    const questions = await Library.find(filter)
+      .populate('contributorId', 'username fname lname email')
+      .populate('createdBy', 'username fname lname email')
+      .populate('mcqQuestionId')
+      .populate('codingQuestionId')
+      .sort({ createdAt: -1 })
+      .limit(parseInt(limit))
+      .skip(skip)
+      .lean();
+
+    const total = await Library.countDocuments(filter);
+
+    // Ensure coding entries expose timeLimit/memoryLimit (prefer library doc, fall back to populated coding doc)
+    questions.forEach(q => {
+      if (q && q.questionCategory === 'CODING') {
+        if (!q.timeLimit && q.codingQuestionId && q.codingQuestionId.timeLimit) q.timeLimit = q.codingQuestionId.timeLimit;
+        if (!q.memoryLimit && q.codingQuestionId && q.codingQuestionId.memoryLimit) q.memoryLimit = q.codingQuestionId.memoryLimit;
+      }
+    });
+
+    console.log('[Admin.getLibrary] ✓ found', questions.length, 'library questions');
+    
+    return res.json({ 
+      success: true, 
+      data: questions,
+      pagination: {
+        total,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: Math.ceil(total / parseInt(limit))
+      }
+    });
+  } catch (err) {
+    console.error('[Admin.getLibrary] ✗ error:', err.message);
     return res.status(500).json({ success: false, message: err.message });
   }
 };
@@ -939,7 +1027,11 @@ const listPendingContributorQuestions = async (req, res) => {
   try {
     const adminUser = req.admin && req.admin.username;
     console.log('[Admin.listPendingContributorQuestions] called by', adminUser);
-    const docs = await ContributorQuestion.find({ status: 'pending' }).sort({ createdAt: -1 }).limit(500).lean();
+    const q = { status: 'pending' };
+    // support topic filter (and legacy category query)
+    if (req.query.topic) q.topic = (String(req.query.topic || '')).charAt(0).toUpperCase() + String(req.query.topic || '').slice(1).toLowerCase();
+    if (req.query.category && !q.topic) q.topic = (String(req.query.category || '')).charAt(0).toUpperCase() + String(req.query.category || '').slice(1).toLowerCase();
+    const docs = await ContributorQuestion.find(q).sort({ createdAt: -1 }).limit(500).lean();
     return res.json({ success: true, data: docs });
   } catch (err) {
     console.error('[Admin.listPendingContributorQuestions] ✗ error:', err && err.message);
@@ -952,12 +1044,17 @@ const approveContributorQuestion = async (req, res) => {
     const adminUser = req.admin && req.admin.username;
     const { id } = req.params;
     const { topic, subtopic } = req.body || {};
-    const finalTopic = topic || 'Technical';
-    const finalSubtopic = subtopic || doc.subTopic || '';
     console.log('[Admin.approveContributorQuestion] called by', adminUser, 'for', id);
 
     const doc = await ContributorQuestion.findById(id);
     if (!doc) return res.status(404).json({ success: false, message: 'contributor question not found' });
+
+    // determine final topic/subtopic: prefer contributor document value (normalized),
+    // then any explicit value from the request (topic or category), then fallback
+    const normalize = (raw) => { if (!raw) return null; const s = String(raw).trim(); if (!s) return null; const l = s.toLowerCase(); if (l === 'aptitude') return 'Aptitude'; if (l === 'technical') return 'Technical'; if (l === 'psychometric') return 'Psychometric'; return null; };
+    const docTopicNormalized = normalize(doc.topic);
+    const finalTopic = docTopicNormalized || normalize(topic) || normalize(req.body && req.body.category) || 'Technical';
+    const finalSubtopic = subtopic || doc.subTopic || '';
 
     // Create library entry from contributor question
     const libEntry = await Library.createFromContributorQuestion(doc, finalTopic, finalSubtopic);
@@ -1053,6 +1150,7 @@ module.exports = {
   getLibraryQuestionsByContributorId,
   addQuestionToLibrary,
   removeQuestionFromLibrary,
+  getLibrary,
   getLibraryStructure,
   listPendingContributorQuestions,
   approveContributorQuestion,

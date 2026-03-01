@@ -13,11 +13,6 @@ const CustomQuestionSchema = new mongoose.Schema({
     output: { type: String, default: '' },
     isHidden: { type: Boolean, default: false }
   }],
-  constraints: { type: String, default: '' },
-  timeComplexity: { type: String, default: '' },
-  spaceComplexity: { type: String, default: '' },
-  maxTimeMs: { type: Number, default: 2000 },
-  maxMemoryKb: { type: Number, default: 51200 },
   difficulty: { type: String, enum: ['easy', 'medium', 'hard'], default: 'medium', set: v => (v ? v.toLowerCase() : 'medium') },
   createdAt: { type: Date, default: Date.now },
 });

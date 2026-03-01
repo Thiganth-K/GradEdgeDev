@@ -1,10 +1,11 @@
 import React, { useEffect, useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import type { ChangeEvent } from 'react';
 import { apiFetch, API_ENDPOINTS } from '../../lib/api';
 import makeHeaders from '../../lib/makeHeaders';
 
-interface Option { text: string; isCorrect?: boolean; imageUrl?: string }
-interface Solution { explanation?: string; imageUrl?: string; imageUrls?: string[] }
+interface Option { text: string; isCorrect?: boolean; imageUrl?: string; imageUrls?: string[]; imagePublicId?: string; imagePublicIds?: string[] }
+interface Solution { explanation?: string; imageUrl?: string; imageUrls?: string[]; imagePublicId?: string; imagePublicIds?: string[] }
 
 const PlacementReadyQuestions: React.FC = () => {
   const [questions, setQuestions] = useState<any[]>([]);
@@ -26,9 +27,11 @@ const PlacementReadyQuestions: React.FC = () => {
   const [optionFiles, setOptionFiles] = useState<Array<File[]>>([[], []]);
   const [metadataDifficulty, setMetadataDifficulty] = useState('Easy');
   const [subTopic, setSubTopic] = useState('');
+  const [topic, setTopic] = useState<'Aptitude' | 'Technical' | 'Psychometric'>('Aptitude');
   const [solutions, setSolutions] = useState<Solution[]>([{ explanation: '' }]);
   const [solutionFiles, setSolutionFiles] = useState<Array<File[]>>([[]]);
   const [questionType, setQuestionType] = useState<'mcq'|'placement'>('mcq');
+  const navigate = useNavigate();
   
 
   useEffect(() => { fetchQuestions(); }, []);
@@ -103,7 +106,7 @@ const PlacementReadyQuestions: React.FC = () => {
 
   const addOption = () => {
     setOptions(prev => [...prev, { text: '', isCorrect: false }]);
-    setOptionFiles(prev => [...prev, null]);
+    setOptionFiles(prev => [...prev, []]);
   };
   const removeOption = (idx: number) => {
     setOptions(prev => prev.filter((_, i) => i !== idx));
@@ -127,6 +130,8 @@ const PlacementReadyQuestions: React.FC = () => {
   const prepareFormData = () => {
     const fd = new FormData();
     // Backend expects: subTopic, difficulty, question, single question image, options, solutions
+    // include topic (Aptitude|Technical|Psychometric)
+    if (topic) fd.append('topic', topic);
     fd.append('subTopic', subTopic);
     fd.append('difficulty', metadataDifficulty);
     fd.append('question', question);
@@ -175,6 +180,7 @@ const PlacementReadyQuestions: React.FC = () => {
     setLoading(true); setError(''); setSuccess('');
     try {
       // validate
+      if (!topic) throw new Error('Topic category is required');
       if (!subTopic || !question) throw new Error('Sub-topic and question text are required');
       if (options.length < 2) throw new Error('Provide at least two options');
       // ensure each option has text or an image (matches backend validation)
@@ -204,6 +210,7 @@ const PlacementReadyQuestions: React.FC = () => {
     setEditingId(q._id); setShowForm(true);
     setQuestion(q.question || q.questionText || '');
     setSubTopic(q.subTopic || '');
+    setTopic(q.topic || (q.category ? (typeof q.category === 'string' ? (q.category.charAt(0).toUpperCase() + q.category.slice(1)) : undefined) : 'Technical'));
     setMetadataDifficulty(q.difficulty || (q.metadata && q.metadata.difficulty) || 'Easy');
     // set image previews from existing image fields
     const previews: string[] = [];
@@ -261,6 +268,7 @@ const PlacementReadyQuestions: React.FC = () => {
           <h1 className="text-2xl font-bold">Placement Ready Questions</h1>
           <div className="flex items-center gap-3">
             <button onClick={openCreate} className="px-4 py-2 bg-red-600 text-white rounded-md">+ New Question</button>
+            <button onClick={() => navigate('/contributor/dashboard')} className="px-3 py-2 bg-white border rounded-md hover:bg-gray-50">To Dashboard</button>
             <button onClick={fetchQuestions} className="px-3 py-2 bg-white border rounded-md">Refresh</button>
           </div>
         </div>
@@ -332,7 +340,12 @@ const PlacementReadyQuestions: React.FC = () => {
               <button onClick={() => { setShowForm(false); resetForm(); }} className="text-gray-600">Close</button>
             </div>
             <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-3 gap-3">
+                <select value={topic} onChange={e => setTopic(e.target.value as any)} className="p-2 border rounded">
+                  <option value="Aptitude">Aptitude</option>
+                  <option value="Technical">Technical</option>
+                  <option value="Psychometric">Psychometric</option>
+                </select>
                 <input value={subTopic} onChange={e => setSubTopic(e.target.value)} placeholder="Sub-Topic" className="p-2 border rounded" />
                 <select value={metadataDifficulty} onChange={e => setMetadataDifficulty(e.target.value)} className="p-2 border rounded">
                   <option>Easy</option>

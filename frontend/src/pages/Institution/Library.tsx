@@ -16,6 +16,8 @@ interface Question {
   tags?: string[];
   details?: string;
   createdAt?: string;
+  timeLimit?: string;
+  memoryLimit?: string;
 }
 
 const InstitutionLibrary: React.FC = () => {
@@ -95,6 +97,12 @@ const InstitutionLibrary: React.FC = () => {
             {question.details && isExpanded && (
               <div className="mt-2 p-3 bg-red-50 border border-red-100 rounded">
                 <p className="text-sm text-gray-800">{question.details}</p>
+              </div>
+            )}
+            {(question.timeLimit || question.memoryLimit) && isExpanded && (
+              <div className="mt-3 text-sm text-gray-600 flex gap-4">
+                {question.timeLimit && <div>Time Limit: <span className="font-medium text-gray-800">{question.timeLimit}</span></div>}
+                {question.memoryLimit && <div>Memory Limit: <span className="font-medium text-gray-800">{question.memoryLimit}</span></div>}
               </div>
             )}
           </div>

@@ -464,56 +464,92 @@ const listQuestions = async (req, res) => {
     console.log('[Institution.listQuestions] called by institution:', instName);
     if (category) console.log('[Institution.listQuestions] category filter:', category);
 
-    // Library only stores Aptitude / Technical / Psychometric questions.
-    // Coding questions come from custom inputs only.
-    if (category && category.toLowerCase() === 'coding') {
-      return res.json({ success: true, data: [] });
-    }
-
-    // Build query — filter by topic when a category is supplied.
-    // Also include entries with no topic (legacy approvals before topic was enforced)
-    // so they are visible and can be added to tests.
+    // Build query for Library
     const query = {};
-    if (category && category !== 'coding') {
-      const topicValue = CATEGORY_TO_TOPIC[category.toLowerCase()];
-      if (topicValue) {
-        query.$or = [
-          { topic: topicValue },
-          { topic: { $exists: false } },
-          { topic: null },
-          { topic: '' },
-        ];
+    
+    // Filter by category/topic
+    if (category) {
+      const lowerCategory = category.toLowerCase();
+      
+      // Handle coding category - fetch CODING questions from Library
+      if (lowerCategory === 'coding') {
+        query.questionCategory = 'CODING';
+      } else {
+        // For MCQ categories (aptitude, technical, psychometric)
+        const topicValue = CATEGORY_TO_TOPIC[lowerCategory];
+        if (topicValue) {
+          query.$or = [
+            { topic: topicValue },
+            { topic: { $exists: false } },
+            { topic: null },
+            { topic: '' },
+          ];
+        }
+        // Only fetch MCQ questions for non-coding categories
+        query.questionCategory = { $in: ['MCQ', null] }; // null for legacy entries
       }
     }
 
-    const libraryEntries = await Library.find(query).sort({ createdAt: -1 }).lean();
+    const libraryEntries = await Library.find(query)
+      .populate('codingQuestionId') // Populate coding question details
+      .sort({ createdAt: -1 })
+      .lean();
     console.log('[Institution.listQuestions] found', libraryEntries.length, 'library entries');
 
-    // Normalise each entry to the shape the frontend expects:
-    //   q.text, q.options[].text, q.options[].isCorrect, q.difficulty, q.isCoding
-    const items = libraryEntries.map(entry => ({
-      _id: entry._id,
-      text: entry.question || entry.text || '',
-      question: entry.question || entry.text || '',
-      topic: entry.topic,
-      subtopic: entry.subtopic || entry.subTopic,
-      difficulty: entry.difficulty,
-      options: (entry.options || []).map(o => ({
-        text: o.text || '',
-        isCorrect: !!o.isCorrect,
-        imageUrl: o.imageUrl || null,
-        imageUrls: o.imageUrls || [],
-      })),
-      solutions: entry.solutions || [],
-      questionImageUrl: entry.questionImageUrl || null,
-      questionImageUrls: entry.questionImageUrls || [],
-      isCoding: false,
-      contributorId: entry.contributorId,
-      questionType: entry.questionType || 'mcq',
-      createdAt: entry.createdAt,
-    }));
+    // Normalise each entry to the shape the frontend expects
+    const items = libraryEntries.map(entry => {
+      const isCoding = entry.questionCategory === 'CODING';
+      
+      // Base structure
+      const item = {
+        _id: entry._id,
+        topic: entry.topic,
+        subtopic: entry.subtopic || entry.subTopic,
+        difficulty: entry.difficulty,
+        contributorId: entry.contributorId,
+        questionType: entry.questionType || 'mcq',
+        questionCategory: entry.questionCategory || 'MCQ',
+        createdAt: entry.createdAt,
+        isCoding: isCoding,
+      };
 
-    console.log('[Institution.listQuestions] ✓ returning', items.length, 'approved library questions');
+      if (isCoding && entry.codingQuestionId) {
+        // Coding question format
+        const codingQ = entry.codingQuestionId;
+        item.text = codingQ.problemName || '';
+        item.question = codingQ.problemStatement || '';
+        item.problemName = codingQ.problemName;
+        item.problemStatement = codingQ.problemStatement;
+        item.images = codingQ.images || [];
+        item.supportedLanguages = codingQ.supportedLanguages || [];
+        item.constraints = codingQ.constraints || [];
+        item.sampleInput = codingQ.sampleInput;
+        item.sampleOutput = codingQ.sampleOutput;
+        item.industrialTestCases = codingQ.industrialTestCases || [];
+        item.hiddenTestCases = codingQ.hiddenTestCases || [];
+        item.solutionApproach = codingQ.solutionApproach;
+        // include resource limits so frontend can display them
+        item.timeLimit = codingQ.timeLimit;
+        item.memoryLimit = codingQ.memoryLimit;
+      } else {
+        // MCQ question format
+        item.text = entry.question || entry.text || '';
+        item.question = entry.question || entry.text || '';
+        item.options = (entry.options || []).map(o => ({
+          text: o.text || '',
+          isCorrect: !!o.isCorrect,
+          imageUrl: o.imageUrl || null,
+          imageUrls: o.imageUrls || [],
+        }));
+        item.solutions = entry.solutions || [];
+        item.questionImageUrl = entry.questionImageUrl || null;
+        item.questionImageUrls = entry.questionImageUrls || [];
+      }
+
+      return item;
+    });
+
+    console.log('[Institution.listQuestions] ✓ returning', items.length, 'approved library questions (MCQ + CODING)');
     res.json({ success: true, data: items });
   } catch (err) {
     console.error('[Institution.listQuestions] ✗ error:', err.message);

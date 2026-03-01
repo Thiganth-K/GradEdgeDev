@@ -4,33 +4,56 @@ import { makeHeaders } from '../../lib/makeHeaders';
 
 interface Question {
   _id: string;
-  text: string;
-  options: { text: string; isCorrect?: boolean }[];
+  text?: string; // For MCQ
+  problemName?: string; // For Coding
+  options?: { text: string; isCorrect?: boolean; imageUrls?: string[] }[];
   correctIndex?: number;
   correctIndices?: number[];
-  category: string;
-  subtopic: string;
-  difficulty: 'easy' | 'medium' | 'hard';
+  category?: string;
+  subtopic?: string;
+  subTopic?: string;
+  difficulty: 'easy' | 'medium' | 'hard' | 'Easy' | 'Medium' | 'Hard';
   tags?: string[];
   details?: string;
   createdAt: string;
+  
+  // For all types
+  questionCategory?: 'MCQ' | 'CODING';
+  questionType?: 'mcq' | 'placement';
+  question?: string; // MCQ question text
+  questionImageUrls?: string[];
+  solutions?: Array<{ explanation?: string; imageUrls?: string[] }>;
+  
+  // For coding questions
+  problemStatement?: string;
+  supportedLanguages?: string[];
+  constraints?: string[];
+  sampleInput?: string;
+  sampleOutput?: string;
+  industrialTestCases?: Array<{ input: string; output: string }>;
+  hiddenTestCases?: Array<{ input: string; output: string }>;
+  solutionApproach?: string;
+  imageUrls?: string[];
+  imagePublicIds?: string[];
 }
 
 interface OrganizedQuestions {
   Aptitude: { [subtopic: string]: Question[] };
   Technical: { [subtopic: string]: Question[] };
   Psychometric: { [subtopic: string]: Question[] };
+  Coding: { [subtopic: string]: Question[] };
 }
 
 const ContributorLibrary: React.FC = () => {
   const [questions, setQuestions] = useState<OrganizedQuestions>({
     Aptitude: {},
     Technical: {},
-    Psychometric: {}
+    Psychometric: {},
+    Coding: {}
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [selectedTopic, setSelectedTopic] = useState<'Aptitude' | 'Technical' | 'Psychometric'>('Aptitude');
+  const [selectedTopic, setSelectedTopic] = useState<'Aptitude' | 'Technical' | 'Psychometric' | 'Coding'>('Aptitude');
   const [selectedSubtopic, setSelectedSubtopic] = useState<string | null>(null);
   const [expandedQuestion, setExpandedQuestion] = useState<string | null>(null);
 
@@ -73,7 +96,7 @@ const ContributorLibrary: React.FC = () => {
     }
     
     const correctIndices: number[] = [];
-    question.options.forEach((option, index) => {
+    question.options?.forEach((option, index) => {
       if (option.isCorrect) {
         correctIndices.push(index);
       }
@@ -83,6 +106,154 @@ const ContributorLibrary: React.FC = () => {
 
   const renderQuestion = (question: Question, index: number) => {
     const isExpanded = expandedQuestion === question._id;
+    const isCoding = question.questionCategory === 'CODING' || question.problemName;
+    
+    if (isCoding) {
+      // Render Coding Question
+      return (
+        <div key={question._id} className="border border-gray-200 rounded-lg p-4 mb-3 hover:shadow-md transition-shadow">
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="font-semibold text-gray-700">Q{index + 1}.</span>
+                <span className="text-xs px-2 py-1 rounded bg-green-100 text-green-700 font-bold">
+                  Coding
+                </span>
+                <span 
+                  className={`text-xs px-2 py-1 rounded ${
+                    (question.difficulty === 'easy' || question.difficulty === 'Easy') ? 'bg-green-100 text-green-700' :
+                    (question.difficulty === 'medium' || question.difficulty === 'Medium') ? 'bg-yellow-100 text-yellow-700' :
+                    'bg-red-100 text-red-700'
+                  }`}
+                >
+                  {question.difficulty}
+                </span>
+              </div>
+              <p className="text-gray-800 font-semibold mb-2">{question.problemName}</p>
+              {!isExpanded && question.problemStatement && (
+                <p className="text-sm text-gray-600 line-clamp-2">{question.problemStatement}</p>
+              )}
+            </div>?
+            <button
+              onClick={() => setExpandedQuestion(isExpanded ? null : question._id)}
+              className="ml-3 text-sm text-blue-600 hover:text-blue-800"
+            >
+              {isExpanded ? '▲ Less' : '▼ More'}
+            </button>
+          </div>
+          
+          {isExpanded && (
+            <div className="mt-4 space-y-3">
+              {question.problemStatement && (
+                <div>
+                  <h5 className="font-semibold mb-1">Problem Statement</h5>
+                  <p className="text-sm text-gray-800 whitespace-pre-wrap">{question.problemStatement}</p>
+                </div>
+              )}
+              
+              {question.imageUrls && question.imageUrls.length > 0 && (
+                <div>
+                  <h5 className="font-semibold mb-1">Problem Images</h5>
+                  <div className="flex gap-2 flex-wrap">
+                    {question.imageUrls.map((url, i) => (
+                      <img key={i} src={url} alt={`problem-img-${i}`} className="w-28 h-28 object-cover rounded-lg border border-gray-200 shadow-sm" />
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {question.constraints && question.constraints.length > 0 && (
+                <div>
+                  <h5 className="font-semibold mb-1">Constraints</h5>
+                  <ul className="list-disc list-inside space-y-1">
+                    {question.constraints.map((c, i) => (
+                      <li key={i} className="text-sm text-gray-700">{c}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              
+              {question.supportedLanguages && question.supportedLanguages.length > 0 && (
+                <div>
+                  <h5 className="font-semibold mb-1">Supported Languages</h5>
+                  <div className="flex gap-2 flex-wrap">
+                    {question.supportedLanguages.map((lang, i) => (
+                      <span key={i} className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded">{lang}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {question.sampleInput && question.sampleOutput && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <h5 className="font-semibold mb-1">Sample Input</h5>
+                    <pre className="text-xs bg-gray-100 p-3 rounded border overflow-x-auto">{question.sampleInput}</pre>
+                  </div>
+                  <div>
+                    <h5 className="font-semibold mb-1">Sample Output</h5>
+                    <pre className="text-xs bg-gray-100 p-3 rounded border overflow-x-auto">{question.sampleOutput}</pre>
+                  </div>
+                </div>
+              )}
+              
+              {question.solutionApproach && (
+                <div>
+                  <h5 className="font-semibold mb-1">Solution Approach</h5>
+                  <p className="text-sm text-gray-800 whitespace-pre-wrap bg-blue-50 p-3 rounded border border-blue-200">{question.solutionApproach}</p>
+                </div>
+              )}
+
+              {question.industrialTestCases && question.industrialTestCases.length > 0 && (
+                <div>
+                  <h5 className="font-semibold mb-1">Industrial Test Cases</h5>
+                  <div className="space-y-2">
+                    {question.industrialTestCases.map((tc, i) => (
+                      <div key={i} className="grid grid-cols-2 gap-3 p-3 bg-blue-50 border border-blue-200 rounded">
+                        <div>
+                          <p className="text-xs font-semibold text-blue-700 mb-1">Input {i + 1}</p>
+                          <pre className="text-xs bg-white p-2 rounded border overflow-x-auto">{tc.input}</pre>
+                        </div>
+                        <div>
+                          <p className="text-xs font-semibold text-blue-700 mb-1">Output {i + 1}</p>
+                          <pre className="text-xs bg-white p-2 rounded border overflow-x-auto">{tc.output}</pre>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {question.hiddenTestCases && question.hiddenTestCases.length > 0 && (
+                <div>
+                  <h5 className="font-semibold mb-1">Hidden Test Cases</h5>
+                  <div className="space-y-2">
+                    {question.hiddenTestCases.map((tc, i) => (
+                      <div key={i} className="grid grid-cols-2 gap-3 p-3 bg-gray-50 border border-gray-200 rounded">
+                        <div>
+                          <p className="text-xs font-semibold text-gray-700 mb-1">Input {i + 1}</p>
+                          <pre className="text-xs bg-white p-2 rounded border overflow-x-auto">{tc.input}</pre>
+                        </div>
+                        <div>
+                          <p className="text-xs font-semibold text-gray-700 mb-1">Output {i + 1}</p>
+                          <pre className="text-xs bg-white p-2 rounded border overflow-x-auto">{tc.output}</pre>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+          
+          <div className="text-xs text-gray-500 mt-2">
+            Added: {new Date(question.createdAt).toLocaleDateString()}
+          </div>
+        </div>
+      );
+    }
+    
+    // Render MCQ Question
     const correctAnswers = getCorrectAnswers(question);
 
     return (
@@ -101,7 +272,7 @@ const ContributorLibrary: React.FC = () => {
                 {question.difficulty}
               </span>
             </div>
-            <p className="text-gray-800 mb-2">{question.text}</p>
+            <p className="text-gray-800 mb-2">{question.question || question.text}</p>
             { (question as any).questionImageUrls && (question as any).questionImageUrls.length > 0 && (
               <div className="mt-2 flex gap-2 flex-wrap">
                 {(question as any).questionImageUrls.map((u: string, i: number) => (
@@ -110,7 +281,7 @@ const ContributorLibrary: React.FC = () => {
               </div>
             )}
             <div className="space-y-1 mb-2">
-              {question.options.map((option, optIndex) => (
+              {question.options?.map((option, optIndex) => (
                 <div key={optIndex} className={`text-sm p-2 rounded ${correctAnswers.includes(optIndex) ? 'bg-green-50 border border-green-300 font-medium' : 'bg-gray-50'}`}>
                   <div className="flex items-start gap-3">
                     <div className="w-6 font-semibold">{String.fromCharCode(65 + optIndex)}.</div>
@@ -171,7 +342,7 @@ const ContributorLibrary: React.FC = () => {
     );
   };
 
-  const topics: Array<'Aptitude' | 'Technical' | 'Psychometric'> = ['Aptitude', 'Technical', 'Psychometric'];
+  const topics: Array<'Aptitude' | 'Technical' | 'Psychometric' | 'Coding'> = ['Aptitude', 'Technical', 'Psychometric', 'Coding'];
   const subtopics = Object.keys(questions[selectedTopic] || {});
 
   if (loading) {

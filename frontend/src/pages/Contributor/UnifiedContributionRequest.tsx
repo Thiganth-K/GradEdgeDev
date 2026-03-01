@@ -51,6 +51,8 @@ const UnifiedContributionRequest: React.FC = () => {
       { text: '', isCorrect: false }
     ],
     topic: '',
+    // category corresponds to backend `topic` enum (Aptitude/Technical/Psychometric)
+    category: 'technical',
     subtopic: '',
     difficulty: 'medium',
     tags: '',
@@ -130,6 +132,10 @@ const UnifiedContributionRequest: React.FC = () => {
       setError('Please select a topic for the question');
       return;
     }
+    if (!newQuestion.category) {
+      setError('Please select a Topic category for the question');
+      return;
+    }
     if (!newQuestion.subtopic || !newQuestion.subtopic.trim()) {
       setError('Please enter a subtopic for the question');
       return;
@@ -173,6 +179,7 @@ const UnifiedContributionRequest: React.FC = () => {
         { text: '', isCorrect: false }
       ],
       topic: '',
+      category: 'technical',
       subtopic: '',
       difficulty: 'medium',
       tags: '',
@@ -386,7 +393,9 @@ const UnifiedContributionRequest: React.FC = () => {
         draftedQuestions: draftedQuestions.map(q => ({
           text: q.text,
           options: q.options, // Already includes { text, isCorrect }
-          topic: q.topic,
+          // `topic` here is the category enum expected by the backend (Aptitude/Technical/Psychometric)
+          topic: (q as any).category ? ((q as any).category.charAt(0).toUpperCase() + (q as any).category.slice(1)) : undefined,
+          // keep subject-level topic (question-level topic) in `subtopic` or `subtopic` field
           subtopic: q.subtopic,
           difficulty: q.difficulty,
           tags: q.tags ? q.tags.split(',').map(t => t.trim()).filter(Boolean) : [],
@@ -611,6 +620,18 @@ const UnifiedContributionRequest: React.FC = () => {
                         className="w-full px-3 py-2 border-2 border-gray-300 rounded-md focus:outline-none focus:border-red-600"
                         placeholder="e.g., Binary Search, Logic Gates"
                       />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-black mb-1">Topic Category *</label>
+                      <select
+                        value={(newQuestion as any).category}
+                        onChange={(e) => setNewQuestion({ ...newQuestion, category: e.target.value as any })}
+                        className="w-full px-3 py-2 border-2 border-gray-300 rounded-md focus:outline-none focus:border-red-600 bg-white"
+                      >
+                        <option value="aptitude">Aptitude</option>
+                        <option value="technical">Technical</option>
+                        <option value="psychometric">Psychometric</option>
+                      </select>
                     </div>
                   </div>
 
