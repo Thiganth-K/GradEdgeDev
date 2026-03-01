@@ -26,6 +26,8 @@ interface Question {
   hiddenTestCases?: Array<{ input: string; output: string }>;
   solutionApproach?: string;
   imageUrls?: string[];
+  timeLimit?: string;
+  memoryLimit?: string;
 }
 
 interface ContributorWithQuestions {
@@ -63,6 +65,7 @@ const AdminLibraryManagement: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [expandedQuestion, setExpandedQuestion] = useState<string | null>(null);
+  const [deleteModal, setDeleteModal] = useState<{ open: boolean; id?: string; title?: string } | null>(null);
 
   useEffect(() => {
     fetchContributors();
@@ -104,7 +107,26 @@ const AdminLibraryManagement: React.FC = () => {
 
       const result = await response.json();
       if (result.success) {
-        setSelectedContributor(result.data);
+        // Normalize library question entries so MCQ questions expose `text` (alias of `question`)
+        const data = result.data as DetailedContributor;
+        const normalized: OrganizedQuestions = { Aptitude: {}, Technical: {}, Psychometric: {}, Coding: {} };
+        Object.keys(data.questions || {}).forEach((topicKey) => {
+          const tk = topicKey as keyof OrganizedQuestions;
+          const topicObj = (data.questions as any)[tk] || {};
+          Object.keys(topicObj).forEach((sub) => {
+            const arr = (topicObj[sub] || []).map((entry: any) => {
+              // ensure MCQ entries have `text` field (frontend expects `text`)
+              if (!entry.text && entry.question) entry.text = entry.question;
+              // keep legacy aliases for compatibility
+              if (!entry.subtopic && entry.subTopic) entry.subtopic = entry.subTopic;
+              if (!entry.difficulty && entry.metadata && entry.metadata.difficulty) entry.difficulty = entry.metadata.difficulty;
+              return entry;
+            });
+            if (!normalized[tk]) normalized[tk] = {} as any;
+            normalized[tk][sub] = arr;
+          });
+        });
+        setSelectedContributor({ contributor: data.contributor, questions: normalized });
         setSelectedTopic('Aptitude');
         setSelectedSubtopic(null);
       } else {
@@ -155,6 +177,10 @@ const AdminLibraryManagement: React.FC = () => {
                 </span>
               </div>
               <p className="text-gray-100 font-semibold mb-2">{question.problemName}</p>
+              <div className="mt-2 text-sm text-gray-400 flex gap-4">
+                {question.timeLimit && <div>Time: <span className="font-medium text-gray-200">{question.timeLimit}</span></div>}
+                {question.memoryLimit && <div>Memory: <span className="font-medium text-gray-200">{question.memoryLimit}</span></div>}
+              </div>
               {!isExpanded && <p className="text-sm text-gray-400 line-clamp-2">{question.problemStatement}</p>}
               {isExpanded && (
                 <div className="space-y-3 mt-3">
@@ -261,6 +287,14 @@ const AdminLibraryManagement: React.FC = () => {
           <div className="text-xs text-gray-500 mt-2">
             Added: {new Date(question.createdAt).toLocaleDateString()}
           </div>
+          <div className="flex gap-2 mt-3">
+            <button
+              onClick={() => setDeleteModal({ open: true, id: question._id, title: (question.problemName || question.text || 'question') })}
+              className="px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700"
+            >
+              Delete from Library
+            </button>
+          </div>
         </div>
       );
     }
@@ -349,6 +383,14 @@ const AdminLibraryManagement: React.FC = () => {
         </div>
         <div className="text-xs text-gray-500 mt-2">
           Added: {new Date(question.createdAt).toLocaleDateString()}
+        </div>
+        <div className="flex gap-2 mt-3">
+          <button
+            onClick={() => setDeleteModal({ open: true, id: question._id, title: (question.problemName || question.text || 'question') })}
+            className="px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700"
+          >
+            Delete from Library
+          </button>
         </div>
       </div>
     );
@@ -550,6 +592,51 @@ const AdminLibraryManagement: React.FC = () => {
           )}
         </div>
       </div>
+      {/* Delete Confirmation Modal */}
+      {deleteModal?.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60" onClick={() => setDeleteModal(null)} />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+            <div className="bg-red-600 px-6 py-4 flex items-center justify-between">
+              <h2 className="text-white font-bold">Confirm Delete</h2>
+              <button onClick={() => setDeleteModal(null)} className="text-white/70">✕</button>
+            </div>
+            <div className="p-6">
+              <p className="text-gray-700">Are you sure you want to remove <strong>{deleteModal?.title}</strong> from the Library? This will only remove the Library entry and will not delete the original contributor submission.</p>
+            </div>
+            <div className="px-6 pb-6 flex gap-3 justify-end">
+              <button onClick={() => setDeleteModal(null)} className="px-4 py-2 bg-gray-100 rounded">Cancel</button>
+              <button
+                onClick={async () => {
+                  if (!deleteModal?.id) return;
+                  try {
+                    const res = await apiFetch(API_ENDPOINTS.admin.removeQuestionFromLibrary(deleteModal.id), {
+                      method: 'DELETE',
+                      headers: makeHeaders()
+                    });
+                    const body = await res.json();
+                    if (!res.ok) throw new Error(body.message || 'Delete failed');
+                    // refresh list
+                    if (selectedContributor) {
+                      fetchContributorDetails(selectedContributor.contributor.id);
+                    } else {
+                      fetchContributors();
+                    }
+                    setDeleteModal(null);
+                    setError('');
+                  } catch (err: any) {
+                    setError(err.message || 'Failed to delete');
+                    setDeleteModal(null);
+                  }
+                }}
+                className="px-4 py-2 bg-red-600 text-white rounded"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -41,6 +41,8 @@ interface CodingProblem {
   status: 'pending' | 'approved' | 'rejected';
   createdBy?: { _id: string; username?: string; email?: string };
   createdAt?: string;
+  timeLimit?: string;
+  memoryLimit?: string;
 }
 
 type FilterType = 'all' | 'mcq' | 'placement' | 'coding';
@@ -55,16 +57,25 @@ const PendingContributorQuestions: React.FC = () => {
 
   // Approve modal state
   const [approveModal, setApproveModal] = useState<{ open: boolean; question: PendingQuestion } | null>(null);
-  const [approveTopicSel, setApproveTopicSel] = useState<'Aptitude' | 'Technical' | 'Psychometric'>('Technical');
   const [approveSubtopic, setApproveSubtopic] = useState('');
   const [approving, setApproving] = useState(false);
-
   // Reject modal state (shared for MCQ and Coding)
   const [rejectModal, setRejectModal] = useState<{ open: boolean; questionId: string; questionText: string; isCoding?: boolean } | null>(null);
   const [rejectReason, setRejectReason] = useState('');
   const [rejecting, setRejecting] = useState(false);
 
   useEffect(() => { fetchPending(); }, []);
+
+  const normalizeTopic = (raw?: string) => {
+    if (!raw) return undefined;
+    const s = String(raw).trim();
+    if (!s) return undefined;
+    const l = s.toLowerCase();
+    if (l === 'aptitude') return 'Aptitude';
+    if (l === 'technical') return 'Technical';
+    if (l === 'psychometric') return 'Psychometric';
+    return undefined;
+  };
 
   const fetchPending = async () => {
     try {
@@ -90,7 +101,7 @@ const PendingContributorQuestions: React.FC = () => {
 
   const openApproveModal = (q: PendingQuestion) => {
     setApproveModal({ open: true, question: q });
-    setApproveTopicSel('Technical');
+    // Default topic should come from the contributor question itself
     setApproveSubtopic(q.subTopic || '');
   };
 
@@ -103,7 +114,7 @@ const PendingContributorQuestions: React.FC = () => {
       const res = await apiFetch(`/admin/contributor-questions/${approveModal.question._id}/approve`, {
         method: 'PUT',
         headers: makeHeaders('admin_token', 'application/json'),
-        body: JSON.stringify({ topic: approveTopicSel, subtopic: approveSubtopic.trim() || undefined })
+        body: JSON.stringify({ subtopic: approveSubtopic.trim() || undefined })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Approve failed');
@@ -274,7 +285,6 @@ const PendingContributorQuestions: React.FC = () => {
             ))}
           </div>
 
-          {/* Content */}
           {loading ? (
             <div className="flex items-center justify-center py-20">
               <div className="w-10 h-10 border-4 border-red-600 border-t-transparent rounded-full animate-spin" />
@@ -455,7 +465,11 @@ const PendingContributorQuestions: React.FC = () => {
                                 By <span className="font-medium text-gray-700">{cp.createdBy.username}</span>
                               </span>
                             )}
-                            <span className="text-xs text-gray-400">{cp.createdAt ? new Date(cp.createdAt).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }) : ''}</span>
+                              <span className="text-xs text-gray-400">{cp.createdAt ? new Date(cp.createdAt).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }) : ''}</span>
+                            </div>
+                            <div className="mt-2 text-sm text-gray-600 flex gap-4">
+                              {cp.timeLimit && <div>Time: <span className="font-medium text-gray-700">{cp.timeLimit}</span></div>}
+                              {cp.memoryLimit && <div>Memory: <span className="font-medium text-gray-700">{cp.memoryLimit}</span></div>}
                           </div>
                         </div>
 
@@ -627,21 +641,13 @@ const PendingContributorQuestions: React.FC = () => {
               {/* Question preview */}
               <div className="bg-gray-50 rounded-xl p-4 border border-gray-200 mb-5">
                 <p className="text-xs font-bold uppercase text-gray-400 tracking-wider mb-1">Question</p>
-                <p className="text-sm text-gray-800 font-medium line-clamp-3">{approveModal.question.question}</p>
+                <p className="text-sm text-gray-800 font-medium line-clamp-3">{approveModal?.question.question}</p>
               </div>
-              {/* Topic */}
-              <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                Topic <span className="text-red-500">*</span>
-              </label>
-              <select
-                value={approveTopicSel}
-                onChange={e => setApproveTopicSel(e.target.value as any)}
-                className="w-full border-2 border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100 transition-colors mb-4"
-              >
-                <option value="Aptitude">Aptitude</option>
-                <option value="Technical">Technical</option>
-                <option value="Psychometric">Psychometric</option>
-              </select>
+              {/* Topic (read-only) */}
+              <label className="block text-sm font-semibold text-gray-700 mb-1.5">Topic</label>
+              <div className="w-full px-4 py-2.5 text-sm text-gray-800 bg-gray-50 border border-gray-200 rounded-xl mb-4">
+                {normalizeTopic(approveModal?.question.topic) || 'Technical'}
+              </div>
               {/* Subtopic */}
               <label className="block text-sm font-semibold text-gray-700 mb-1.5">Subtopic <span className="text-gray-400 font-normal">(optional)</span></label>
               <input
@@ -697,7 +703,7 @@ const PendingContributorQuestions: React.FC = () => {
               {/* Question preview */}
               <div className="bg-gray-50 rounded-xl p-4 border border-gray-200 mb-5">
                 <p className="text-xs font-bold uppercase text-gray-400 tracking-wider mb-1">Question</p>
-                <p className="text-sm text-gray-800 font-medium line-clamp-3">{rejectModal.questionText}</p>
+                <p className="text-sm text-gray-800 font-medium line-clamp-3">{rejectModal?.questionText}</p>
               </div>
 
               {/* Reason textarea */}

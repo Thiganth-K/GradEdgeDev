@@ -77,7 +77,15 @@ const ContributorDashboard: React.FC = () => {
 
       const data = await response.json();
       if (data.success) {
-        setContributions(data.data);
+        // Normalize backend shape: `question` -> `text`, `topic` -> `category`
+        const normalized = (data.data || []).map((d: any) => {
+          const out: any = { ...d };
+          if (!out.text && out.question) out.text = out.question;
+          // backend uses `topic` enum (Aptitude/Technical/Psychometric)
+          out.category = out.topic || out.category || (out.category && typeof out.category === 'string' ? out.category : undefined);
+          return out;
+        });
+        setContributions(normalized);
       }
     } catch (err: any) {
       setError(err.message);

@@ -59,6 +59,14 @@ const CodingContributorSchema = new mongoose.Schema({
   solutionApproach: { 
     type: String 
   },
+  timeLimit: {
+    type: String,
+    trim: true
+  },
+  memoryLimit: {
+    type: String,
+    trim: true
+  },
   status: { 
     type: String, 
     enum: ['pending', 'approved', 'rejected'], 

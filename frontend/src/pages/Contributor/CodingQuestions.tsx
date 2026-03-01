@@ -23,6 +23,8 @@ interface CodingProblem {
   industrialTestCases?: TestCase[];
   hiddenTestCases?: TestCase[];
   solutionApproach?: string;
+  timeLimit?: string;
+  memoryLimit?: string;
   status: 'pending' | 'approved' | 'rejected';
   rejectionReason?: string;
   isPlacementReadyQuestion?: boolean;
@@ -33,6 +35,7 @@ const CodingQuestions: React.FC = () => {
   const [problems, setProblems] = useState<CodingProblem[]>([]);
   const [loading, setLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [viewingProblem, setViewingProblem] = useState<CodingProblem | null>(null);
 
   // Form state
@@ -44,6 +47,8 @@ const CodingQuestions: React.FC = () => {
   const [constraints, setConstraints] = useState<string[]>(['']);
   const [sampleInput, setSampleInput] = useState('');
   const [sampleOutput, setSampleOutput] = useState('');
+  const [timeLimit, setTimeLimit] = useState('');
+  const [memoryLimit, setMemoryLimit] = useState('');
   const [industrialTestCases, setIndustrialTestCases] = useState<TestCase[]>([{ input: '', output: '' }]);
   const [hiddenTestCases, setHiddenTestCases] = useState<TestCase[]>([{ input: '', output: '' }]);
   const [solutionApproach, setSolutionApproach] = useState('');
@@ -80,6 +85,9 @@ const CodingQuestions: React.FC = () => {
     setHiddenTestCases([{ input: '', output: '' }]);
     setSolutionApproach('');
     setSelectedImages([]);
+    setTimeLimit('');
+    setMemoryLimit('');
+    setEditingId(null);
   };
 
   const handleSubmit = async () => {
@@ -96,6 +104,14 @@ const CodingQuestions: React.FC = () => {
       toast.error('Problem statement is required');
       return;
     }
+    if (!timeLimit.trim()) {
+      toast.error('Time limit is required');
+      return;
+    }
+    if (!memoryLimit.trim()) {
+      toast.error('Memory limit is required');
+      return;
+    }
 
     setLoading(true);
     try {
@@ -104,6 +120,8 @@ const CodingQuestions: React.FC = () => {
         difficulty,
         problemName: problemName.trim(),
         problemStatement: problemStatement.trim(),
+        timeLimit: timeLimit.trim() || undefined,
+        memoryLimit: memoryLimit.trim() || undefined,
         supportedLanguages: JSON.stringify(supportedLanguages.filter(l => l.trim())),
         constraints: JSON.stringify(constraints.filter(c => c.trim())),
         sampleInput: sampleInput.trim() || undefined,
@@ -126,8 +144,10 @@ const CodingQuestions: React.FC = () => {
         formData.append('images', file);
       });
 
-      const res = await apiFetch('/contributor/coding-problems', {
-        method: 'POST',
+      const endpoint = editingId ? `/contributor/coding-problems/${editingId}` : '/contributor/coding-problems';
+      const method = editingId ? 'PUT' : 'POST';
+      const res = await apiFetch(endpoint, {
+        method,
         headers: makeHeaders('contributor_token'),
         body: formData
       });
@@ -135,7 +155,13 @@ const CodingQuestions: React.FC = () => {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Failed to create');
 
-      toast.success('Sent for admin approval!');
+      if (editingId) {
+        // If edited an approved question, backend moves it to pending
+        const msg = data && data.data && data.data.status === 'pending' ? 'Updated and sent for re-approval' : 'Updated successfully';
+        toast.success(msg);
+      } else {
+        toast.success('Sent for admin approval!');
+      }
       setShowForm(false);
       resetForm();
       fetchProblems();
@@ -144,6 +170,25 @@ const CodingQuestions: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const openEditForm = (p: CodingProblem) => {
+    setSubTopic(p.subTopic || '');
+    setDifficulty(p.difficulty || 'Medium');
+    setProblemName(p.problemName || '');
+    setProblemStatement(p.problemStatement || '');
+    setSupportedLanguages(p.supportedLanguages || ['JavaScript', 'Python', 'Java']);
+    setConstraints(p.constraints || ['']);
+    setSampleInput(p.sampleInput || '');
+    setSampleOutput(p.sampleOutput || '');
+    setIndustrialTestCases(p.industrialTestCases || [{ input: '', output: '' }]);
+    setHiddenTestCases(p.hiddenTestCases || [{ input: '', output: '' }]);
+    setSolutionApproach(p.solutionApproach || '');
+    setTimeLimit(p.timeLimit || '');
+    setMemoryLimit(p.memoryLimit || '');
+    setSelectedImages([]);
+    setEditingId(p._id);
+    setShowForm(true);
   };
 
   const addConstraint = () => setConstraints([...constraints, '']);
@@ -244,13 +289,25 @@ const CodingQuestions: React.FC = () => {
                     </div>
                     <h3 className="font-semibold text-lg text-gray-900">{p.problemName}</h3>
                     <p className="text-sm text-gray-600">{p.subTopic}</p>
+                    <div className="mt-2 text-xs text-gray-500 flex gap-3">
+                      {p.timeLimit && <div>Time: <span className="font-medium text-gray-700">{p.timeLimit}</span></div>}
+                      {p.memoryLimit && <div>Memory: <span className="font-medium text-gray-700">{p.memoryLimit}</span></div>}
+                    </div>
                   </div>
-                  <button 
-                    onClick={() => setViewingProblem(p)} 
-                    className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
-                  >
-                    View
-                  </button>
+                    <div className="flex gap-2">
+                      <button 
+                        onClick={() => setViewingProblem(p)} 
+                        className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
+                      >
+                        View
+                      </button>
+                      <button
+                        onClick={() => openEditForm(p)}
+                        className="px-3 py-1 bg-yellow-500 text-white text-sm rounded hover:bg-yellow-600"
+                      >
+                        Edit
+                      </button>
+                    </div>
                 </div>
                 <p className="text-sm text-gray-700 line-clamp-2">{p.problemStatement}</p>
                 {p.rejectionReason && (
@@ -305,6 +362,28 @@ const CodingQuestions: React.FC = () => {
                     <option>Medium</option>
                     <option>Hard</option>
                   </select>
+                </div>
+              </div>
+              {/* Time/Memory display in view modal */}
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-semibold mb-1">Time Limit (e.g. 1s, 2s) *</label>
+                  <input
+                    value={timeLimit}
+                    onChange={e => setTimeLimit(e.target.value)}
+                    placeholder="e.g., 1s"
+                    className="w-full p-2 border rounded"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold mb-1">Memory Limit (e.g. 256MB) *</label>
+                  <input
+                    value={memoryLimit}
+                    onChange={e => setMemoryLimit(e.target.value)}
+                    placeholder="e.g., 256MB"
+                    className="w-full p-2 border rounded"
+                  />
                 </div>
               </div>
 
@@ -529,6 +608,10 @@ const CodingQuestions: React.FC = () => {
                 </div>
                 <h3 className="text-xl font-bold">{viewingProblem.problemName}</h3>
                 <p className="text-sm text-gray-600 mt-1">{viewingProblem.subTopic}</p>
+                <div className="flex gap-3 mt-2 text-sm text-gray-500">
+                  {viewingProblem.timeLimit && <div>Time Limit: <span className="font-medium text-gray-700">{viewingProblem.timeLimit}</span></div>}
+                  {viewingProblem.memoryLimit && <div>Memory Limit: <span className="font-medium text-gray-700">{viewingProblem.memoryLimit}</span></div>}
+                </div>
               </div>
 
               <div>

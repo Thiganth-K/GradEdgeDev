@@ -1,10 +1,28 @@
 const ContributorQuestion = require('../../models/ContributorQuestion');
+
+const ALLOWED_TOPICS = ['Aptitude', 'Technical', 'Psychometric'];
+
+function normalizeTopic(raw) {
+  if (!raw) return null;
+  if (typeof raw !== 'string') return null;
+  const v = raw.trim();
+  if (!v) return null;
+  const lower = v.toLowerCase();
+  if (lower === 'aptitude') return 'Aptitude';
+  if (lower === 'technical') return 'Technical';
+  if (lower === 'psychometric') return 'Psychometric';
+  return null;
+}
 const { uploadBuffer, uploadBuffers, deletePublicId, deletePublicIds, extractPublicIdFromUrl } = require('../../utils/cloudinary');
 
 // Create a new contributor question (new schema)
 const createQuestion = async (req, res) => {
   try {
     const payload = req.body || {};
+    // Accept legacy `category` (lowercase) and map to new `topic` enum
+    if (!payload.topic && payload.category) payload.topic = payload.category;
+    const topicVal = normalizeTopic(payload.topic);
+    if (!topicVal) return res.status(400).json({ success: false, message: 'topic is required and must be one of Aptitude, Technical, Psychometric' });
     if (!payload.subTopic) return res.status(400).json({ success: false, message: 'subTopic is required' });
     if (!payload.difficulty) return res.status(400).json({ success: false, message: 'difficulty is required' });
     if (!payload.question) return res.status(400).json({ success: false, message: 'question is required' });
@@ -123,6 +141,7 @@ const createQuestion = async (req, res) => {
     const contributorId = req.contributor && req.contributor.id;
     const doc = new ContributorQuestion({
       subTopic: payload.subTopic,
+      topic: topicVal,
       difficulty: payload.difficulty,
       question: payload.question,
       questionImageUrl,
@@ -161,6 +180,8 @@ const updateQuestion = async (req, res) => {
   try {
     const id = req.params.id;
     const payload = req.body || {};
+    // Accept legacy `category` mapping
+    if (!payload.topic && payload.category) payload.topic = payload.category;
 
     const existing = await ContributorQuestion.findById(id);
     if (!existing) return res.status(404).json({ success: false, message: 'not found' });
@@ -172,23 +193,29 @@ const updateQuestion = async (req, res) => {
       try { payload.solutions = JSON.parse(payload.solutions); } catch (e) { payload.solutions = []; }
     }
 
+    const wasApproved = existing.status === 'approved';
     if (req.files) {
       // replace question images (support multiple). Accept `images` (new) or `image` (legacy single)
       const newQuestionFiles = (req.files.images && Array.isArray(req.files.images) && req.files.images.length) ? req.files.images : ((req.files.image && Array.isArray(req.files.image) && req.files.image.length) ? [req.files.image[0]] : []);
       if (newQuestionFiles.length) {
-        // delete all existing question image public ids (single and arrays)
-        try {
-          if (existing.questionImagePublicId) {
-            try { await deletePublicId(existing.questionImagePublicId); } catch (err) { console.warn('[updateQuestion] failed to delete old question image', err && err.message); }
-          }
-          if (Array.isArray(existing.questionImagePublicIds) && existing.questionImagePublicIds.length) {
-            try { await deletePublicIds(existing.questionImagePublicIds); } catch (err) { console.warn('[updateQuestion] failed to delete old question images array', err && err.message); }
-          }
-          // legacy field fallback name (doc.imagePublicIds) if present
-          if (Array.isArray(existing.imagePublicIds) && existing.imagePublicIds.length) {
-            try { await deletePublicIds(existing.imagePublicIds); } catch (err) { console.warn('[updateQuestion] failed to delete legacy imagePublicIds', err && err.message); }
-          }
-        } catch (err) { console.warn('[updateQuestion] error deleting previous question images', err && err.message); }
+        // delete existing question images only when it's safe to do so.
+        // If this question was already approved and is now being edited by the
+        // contributor, do NOT delete the previously approved images from cloud
+        // storage — the Library still references them until admin re-approves.
+        if (!wasApproved) {
+          try {
+            if (existing.questionImagePublicId) {
+              try { await deletePublicId(existing.questionImagePublicId); } catch (err) { console.warn('[updateQuestion] failed to delete old question image', err && err.message); }
+            }
+            if (Array.isArray(existing.questionImagePublicIds) && existing.questionImagePublicIds.length) {
+              try { await deletePublicIds(existing.questionImagePublicIds); } catch (err) { console.warn('[updateQuestion] failed to delete old question images array', err && err.message); }
+            }
+            // legacy field fallback name (doc.imagePublicIds) if present
+            if (Array.isArray(existing.imagePublicIds) && existing.imagePublicIds.length) {
+              try { await deletePublicIds(existing.imagePublicIds); } catch (err) { console.warn('[updateQuestion] failed to delete legacy imagePublicIds', err && err.message); }
+            }
+          } catch (err) { console.warn('[updateQuestion] error deleting previous question images', err && err.message); }
+        }
 
         // upload new ones
         payload.questionImageUrls = payload.questionImageUrls || [];
@@ -229,15 +256,17 @@ const updateQuestion = async (req, res) => {
           updatedSolutionIndices.add(targ);
         }
 
-        // delete existing images for updated solutions
-        for (const idx of updatedSolutionIndices) {
-          const sExisting = existing.solutions && existing.solutions[idx];
-          if (!sExisting) continue;
-          try {
-            if (sExisting.imagePublicId) {
-              try { await deletePublicId(sExisting.imagePublicId); } catch (err) { console.warn('[updateQuestion] failed to delete old solution image', err && err.message); }
-            }
-          } catch (err) { console.warn('[updateQuestion] error deleting existing solution images', err && err.message); }
+        // delete existing images for updated solutions only when safe
+        if (!wasApproved) {
+          for (const idx of updatedSolutionIndices) {
+            const sExisting = existing.solutions && existing.solutions[idx];
+            if (!sExisting) continue;
+            try {
+              if (sExisting.imagePublicId) {
+                try { await deletePublicId(sExisting.imagePublicId); } catch (err) { console.warn('[updateQuestion] failed to delete old solution image', err && err.message); }
+              }
+            } catch (err) { console.warn('[updateQuestion] error deleting existing solution images', err && err.message); }
+          }
         }
 
         // upload new images
@@ -281,7 +310,8 @@ const updateQuestion = async (req, res) => {
           updatedOptionIndices.add(targ);
         }
 
-        // delete existing images for updated options
+        // delete existing images for updated options only when safe
+        if (!wasApproved) {
           for (const idx of updatedOptionIndices) {
             const oExisting = existing.options && existing.options[idx];
             if (!oExisting) continue;
@@ -294,6 +324,7 @@ const updateQuestion = async (req, res) => {
               }
             } catch (err) { console.warn('[updateQuestion] error deleting existing option images', err && err.message); }
           }
+        }
 
         // upload new option images
         for (let i = 0; i < req.files.optionImages.length; i++) {
@@ -326,7 +357,10 @@ const updateQuestion = async (req, res) => {
           const existingPublicIds = existing.options[idx] && (Array.isArray(existing.options[idx].imagePublicIds) ? existing.options[idx].imagePublicIds : (existing.options[idx].imagePublicId ? [existing.options[idx].imagePublicId] : []));
           const newPublicIds = payload.options[idx] && (Array.isArray(payload.options[idx].imagePublicIds) ? payload.options[idx].imagePublicIds : (payload.options[idx] && payload.options[idx].imagePublicId ? [payload.options[idx].imagePublicId] : []));
           const toDelete = (existingPublicIds || []).filter(pid => !(newPublicIds || []).includes(pid));
-          if (toDelete.length) {
+          // Only delete images that were removed by contributor if the
+          // question was not previously approved; otherwise, defer deletion
+          // until admin approval to keep Library references intact.
+          if (toDelete.length && !wasApproved) {
             try { await deletePublicIds(toDelete); } catch (err) { console.warn('[updateQuestion] failed to delete option images removed by user', err && err.message); }
           }
         } catch (err) { /* swallow per-option errors */ }
@@ -341,7 +375,13 @@ const updateQuestion = async (req, res) => {
     // apply updates
     const allowedArrays = ['options', 'solutions'];
     allowedArrays.forEach(k => { if (payload[k] !== undefined) existing[k] = payload[k]; });
-    const allowedScalars = ['subTopic','difficulty','question','questionImageUrl','questionImagePublicId','questionImageUrls','questionImagePublicIds','questionType'];
+    const allowedScalars = ['subTopic','difficulty','question','questionImageUrl','questionImagePublicId','questionImageUrls','questionImagePublicIds','questionType','topic'];
+    // validate topic if provided
+    if (payload.topic !== undefined) {
+      const t = normalizeTopic(payload.topic);
+      if (!t) return res.status(400).json({ success: false, message: 'topic must be one of Aptitude, Technical, Psychometric' });
+      payload.topic = t;
+    }
     allowedScalars.forEach(k => { if (payload[k] !== undefined) existing[k] = payload[k]; });
 
     // If options were updated or created via images, validate they each have text or image
@@ -354,6 +394,14 @@ const updateQuestion = async (req, res) => {
           return res.status(400).json({ success: false, message: `Option ${oi + 1} must have text or an image` });
         }
       }
+    }
+
+    // If this question was previously approved, any contributor-side edit must
+    // move it back to pending so admin can re-review. Do not directly modify
+    // Library here — that will be handled by admin approval flow.
+    if (existing.status === 'approved') {
+      existing.status = 'pending';
+      existing.rejectionReason = undefined;
     }
 
     await existing.save();
@@ -445,6 +493,16 @@ const listQuestions = async (req, res) => {
     if (req.contributor && req.contributor.id) {
       q.contributor = req.contributor.id;
     }
+    // Allow both `topic` and legacy `category` query params
+    if (req.query.topic && !q.topic) {
+      const nt = normalizeTopic(req.query.topic);
+      if (nt) q.topic = nt;
+    }
+    if (req.query.category && !q.topic) {
+      const nt = normalizeTopic(req.query.category);
+      if (nt) q.topic = nt;
+    }
+
     const docs = await ContributorQuestion.find(q).sort({ createdAt: -1 }).limit(100);
     return res.json({ success: true, data: docs });
   } catch (err) {

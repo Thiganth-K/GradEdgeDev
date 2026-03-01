@@ -528,6 +528,9 @@ const listQuestions = async (req, res) => {
         item.industrialTestCases = codingQ.industrialTestCases || [];
         item.hiddenTestCases = codingQ.hiddenTestCases || [];
         item.solutionApproach = codingQ.solutionApproach;
+        // include resource limits so frontend can display them
+        item.timeLimit = codingQ.timeLimit;
+        item.memoryLimit = codingQ.memoryLimit;
       } else {
         // MCQ question format
         item.text = entry.question || entry.text || '';

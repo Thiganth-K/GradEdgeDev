@@ -25,6 +25,14 @@ const createCodingProblem = async (req, res) => {
       return res.status(400).json({ success: false, message: 'problemStatement is required' });
     }
 
+    // New required fields for coding problems
+    if (!payload.timeLimit) {
+      return res.status(400).json({ success: false, message: 'timeLimit is required' });
+    }
+    if (!payload.memoryLimit) {
+      return res.status(400).json({ success: false, message: 'memoryLimit is required' });
+    }
+
     // Validate difficulty enum
     if (!['Easy', 'Medium', 'Hard'].includes(payload.difficulty)) {
       return res.status(400).json({ 
@@ -310,6 +318,16 @@ const updateCodingProblem = async (req, res) => {
     delete payload.createdBy;
     delete payload.createdAt;
 
+    // If a contributor (non-admin) updates an already-approved problem,
+    // the update should move the problem back to 'pending' and clear any
+    // previous rejection reason so admin must re-approve. Admin edits can
+    // keep approved status when appropriate.
+    const wasApproved = problem.status === 'approved';
+    if (!isAdmin && wasApproved) {
+      payload.status = 'pending';
+      payload.rejectionReason = undefined;
+    }
+
     // Update the problem
     Object.assign(problem, payload);
     await problem.save();
@@ -341,14 +359,22 @@ const updateCodingProblem = async (req, res) => {
 const deleteCodingProblem = async (req, res) => {
   try {
     const { id } = req.params;
-
     const problem = await CodingContributor.findById(id);
 
     if (!problem) {
       return res.status(404).json({ success: false, message: 'Coding problem not found' });
     }
 
-    // Delete images from Cloudinary
+    // Authorization: allow admin or the original contributor
+    const isAdmin = req.admin && req.admin.role === 'admin';
+    const contributorId = req.contributor && req.contributor.id;
+    if (!isAdmin) {
+      if (!contributorId || problem.createdBy.toString() !== contributorId) {
+        return res.status(403).json({ success: false, message: 'Access denied. You can only delete your own problems' });
+      }
+    }
+
+    // Delete images from Cloudinary (best-effort)
     const cloudErrors = [];
     if (problem.imagePublicIds && problem.imagePublicIds.length > 0) {
       for (const publicId of problem.imagePublicIds) {
@@ -361,11 +387,14 @@ const deleteCodingProblem = async (req, res) => {
       }
     }
 
+    // Remove the coding document. Do NOT remove Library entries — library should remain pointing to approved content until admin explicitly removes it.
     await CodingContributor.findByIdAndDelete(id);
+
+    const msg = isAdmin ? 'Coding problem deleted successfully' : (problem.status === 'approved' ? 'Coding problem deleted; Library entry (approved copy) remains until admin removes it' : 'Coding problem deleted successfully');
 
     return res.status(200).json({ 
       success: true, 
-      message: 'Coding problem deleted successfully',
+      message: msg,
       cloudErrors: cloudErrors.length > 0 ? cloudErrors : undefined
     });
 

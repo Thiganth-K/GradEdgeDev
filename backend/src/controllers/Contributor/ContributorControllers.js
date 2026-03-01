@@ -499,6 +499,14 @@ const getLibraryQuestions = async (req, res) => {
 
     const total = await Library.countDocuments(query);
 
+    // Ensure coding entries include resource limits from populated coding doc when library doc lacks them
+    questions.forEach(q => {
+      if (q && q.questionCategory === 'CODING') {
+        if (!q.timeLimit && q.codingQuestionId && q.codingQuestionId.timeLimit) q.timeLimit = q.codingQuestionId.timeLimit;
+        if (!q.memoryLimit && q.codingQuestionId && q.codingQuestionId.memoryLimit) q.memoryLimit = q.codingQuestionId.memoryLimit;
+      }
+    });
+
     console.log('[Contributor.getLibraryQuestions] ✓ found', questions.length, 'library questions (MCQ + CODING)');
     
     return res.json({ 

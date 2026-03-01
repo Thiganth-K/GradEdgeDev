@@ -151,7 +151,7 @@ router.put(
 console.log('[CodingContributorRoutes] DELETE /contributor/coding-problems/:id - Delete coding problem');
 router.delete(
   '/:id',
-  verifyAdmin,
+  verifyContributorOrAdmin,
   CodingContributorController.deleteCodingProblem
 );
 
