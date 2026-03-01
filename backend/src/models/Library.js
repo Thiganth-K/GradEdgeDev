@@ -71,6 +71,9 @@ const LibrarySchema = new mongoose.Schema({
   // question type: 'mcq' = standard multiple choice, 'placement' = placement readiness question
   questionType: { type: String, enum: ['mcq', 'placement'], default: 'mcq' },
 
+  // question type: 'mcq' = standard multiple choice, 'placement' = placement readiness question
+  questionType: { type: String, enum: ['mcq', 'placement'], default: 'mcq' },
+
 }, { timestamps: true });
 
 // Indexes

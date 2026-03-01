@@ -206,6 +206,11 @@ const CustomQuestionForm: React.FC<{ onAdd: (q:any)=>void, globalTopic: string }
   // Coding State
   const [isCoding, setIsCoding] = useState(false);
   const [starterCode, setStarterCode] = useState('');
+  const [constraints, setConstraints] = useState('');
+  const [timeComplexity, setTimeComplexity] = useState('');
+  const [spaceComplexity, setSpaceComplexity] = useState('');
+  const [maxTimeMs, setMaxTimeMs] = useState(2000);
+  const [maxMemoryKb, setMaxMemoryKb] = useState(51200);
   const [testCases, setTestCases] = useState<{input:string, output:string, isHidden:boolean}[]>([{input:'', output:'', isHidden:false}]);
 
   const toggle = (i:number) => setCorrect(prev => prev.includes(i)?prev.filter(x=>x!==i):[...prev,i]);
@@ -251,12 +256,22 @@ solution();`);
             isCoding: true, 
             starterCode, 
             testCases,
+            constraints,
+            timeComplexity,
+            spaceComplexity,
+            maxTimeMs,
+            maxMemoryKb,
             category: globalTopic, 
             type: globalTopic,
             difficulty: 'medium'
         });
         setText('');
         setStarterCode('');
+        setConstraints('');
+        setTimeComplexity('');
+        setSpaceComplexity('');
+        setMaxTimeMs(2000);
+        setMaxMemoryKb(51200);
         setTestCases([{input:'', output:'', isHidden:false}]);
         // Only reset isCoding if the global topic isn't coding
         if (globalTopic !== 'coding') setIsCoding(false);
@@ -316,16 +331,61 @@ solution();`);
       
       {isCoding ? (
           <div className="space-y-3 border-t pt-2">
+              <div className="grid grid-cols-2 gap-3">
+                  <div>
+                      <label className="text-xs font-semibold text-gray-600">Time Complexity</label>
+                      <input 
+                        type="text"
+                        value={timeComplexity} 
+                        onChange={e => setTimeComplexity(e.target.value)}
+                        className="w-full border p-1 rounded text-xs"
+                        placeholder="e.g. O(n)"
+                      />
+                  </div>
+                  <div>
+                      <label className="text-xs font-semibold text-gray-600">Space Complexity</label>
+                      <input 
+                        type="text"
+                        value={spaceComplexity} 
+                        onChange={e => setSpaceComplexity(e.target.value)}
+                        className="w-full border p-1 rounded text-xs"
+                        placeholder="e.g. O(1)"
+                      />
+                  </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                  <div>
+                      <label className="text-xs font-semibold text-gray-600">Max Time (ms)</label>
+                      <input 
+                        type="number"
+                        value={maxTimeMs} 
+                        onChange={e => setMaxTimeMs(Number(e.target.value))}
+                        className="w-full border p-1 rounded text-xs"
+                      />
+                  </div>
+                  <div>
+                      <label className="text-xs font-semibold text-gray-600">Max Memory (KB)</label>
+                      <input 
+                        type="number"
+                        value={maxMemoryKb} 
+                        onChange={e => setMaxMemoryKb(Number(e.target.value))}
+                        className="w-full border p-1 rounded text-xs"
+                      />
+                  </div>
+              </div>
+
               <div>
-                  <label className="text-xs font-semibold text-gray-600">Starter Code</label>
+                  <label className="text-xs font-semibold text-gray-600">Constraints</label>
                   <textarea 
-                    value={starterCode} 
-                    onChange={e => setStarterCode(e.target.value)}
-                    className="w-full border p-1 rounded font-mono text-xs"
-                    rows={3}
-                    placeholder="// Starter code..."
+                    value={constraints} 
+                    onChange={e => setConstraints(e.target.value)}
+                    className="w-full border p-1 rounded text-xs"
+                    rows={2}
+                    placeholder="Enter constraints..."
                   />
               </div>
+
               <div>
                   <label className="text-xs font-semibold text-gray-600 mb-1 block">Test Cases</label>
                   {testCases.map((tc, i) => (

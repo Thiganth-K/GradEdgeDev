@@ -141,7 +141,7 @@ const TestCreateQuestions: React.FC = () => {
             <div className="lg:col-span-1">
               <div className="bg-white rounded-lg shadow p-4">
                 <h3 className="font-semibold mb-2">Custom Questions</h3>
-                <CustomQuestionForm onAdd={addCustom} />
+                <CustomQuestionForm onAdd={addCustom} globalTopic={topic === 'technical' ? 'coding' : topic} />
                 <div className="mt-3 space-y-2 max-h-64 overflow-auto">
                   {customQuestions.map((cq, i) => (
                     <div key={i} className="p-2 border rounded">{cq.text}</div>
@@ -161,24 +161,183 @@ const TestCreateQuestions: React.FC = () => {
   );
 };
 
-const CustomQuestionForm: React.FC<{ onAdd: (q:any)=>void }> = ({ onAdd }) => {
+const CustomQuestionForm: React.FC<{ onAdd: (q:any)=>void, globalTopic: string }> = ({ onAdd, globalTopic }) => {
   const [text, setText] = useState('');
+  
+  // MCQ State
   const [options, setOptions] = useState<string[]>(['','','','']);
   const [correct, setCorrect] = useState<number[]>([]);
+  
+  // Coding State
+  const [isCoding, setIsCoding] = useState(false);
+  const [starterCode, setStarterCode] = useState('');
+  const [constraints, setConstraints] = useState('');
+  const [timeComplexity, setTimeComplexity] = useState('');
+  const [spaceComplexity, setSpaceComplexity] = useState('');
+  const [maxTimeMs, setMaxTimeMs] = useState(2000);
+  const [maxMemoryKb, setMaxMemoryKb] = useState(51200);
+  const [testCases, setTestCases] = useState<{input:string, output:string, isHidden:boolean}[]>(
+    [{input:'', output:'', isHidden:false}]
+  );
+
   const toggle = (i:number) => setCorrect(prev => prev.includes(i)?prev.filter(x=>x!==i):[...prev,i]);
-  const add = () => { if (!text || options.filter(o=>o).length<2) return; if (correct.length===0) { alert('Select correct answer'); return; } onAdd({ text, options: options.filter(o=>o), correctIndices: correct }); setText(''); setOptions(['','','','']); setCorrect([]); };
+  
+  // Auto-check coding if global topic is coding
+  useEffect(() => {
+    if (globalTopic === 'coding') {
+        setIsCoding(true);
+        setStarterCode(`// Read from stdin to handle test cases\n// Example (Node.js):\n// const fs = require('fs');\n// const input = fs.readFileSync(0, 'utf8').trim();\n// console.log(input);\n\nfunction solution() {\n    // Your code here\n}\n\nsolution();`);
+    } else {
+        setIsCoding(false);
+        setStarterCode('');
+    }
+  }, [globalTopic]);
+  
+  const add = () => {
+    if (!text.trim()) {
+        alert('Please enter question text');
+        return;
+    }
+    
+    if (isCoding) {
+        if (testCases.length === 0 || !testCases[0].input.trim() || !testCases[0].output.trim()) { 
+            alert('Add at least one valid test per coding question'); 
+            return; 
+        }
+        onAdd({ 
+            text, 
+            isCoding: true, 
+            starterCode, 
+            testCases,
+            constraints,
+            timeComplexity,
+            spaceComplexity,
+            maxTimeMs,
+            maxMemoryKb,
+            category: globalTopic, 
+            type: globalTopic,
+            difficulty: 'medium'
+        });
+        setText('');
+        setStarterCode('');
+        setConstraints('');
+        setTimeComplexity('');
+        setSpaceComplexity('');
+        setMaxTimeMs(2000);
+        setMaxMemoryKb(51200);
+        setTestCases([{input:'', output:'', isHidden:false}]);
+        if (globalTopic !== 'coding') setIsCoding(false);
+    } else {
+        if (options.filter(o=>o.trim()).length < 2) {
+            alert('Please enter at least 2 options');
+            return;
+        }
+        if (correct.length === 0) { 
+            alert('Select at least one correct answer'); 
+            return; 
+        }
+        onAdd({ 
+            text, 
+            options: options.filter(o=>o).map((t,i) => ({ text: t, isCorrect: correct.includes(i) })),
+            isCoding: false,
+            category: globalTopic,
+            type: globalTopic
+        }); 
+        setText(''); setOptions(['','','','']); setCorrect([]);
+    }
+  };
+
+  const updateTestCase = (idx: number, field: string, val: any) => {
+    setTestCases(prev => prev.map((tc, k) => k === idx ? { ...tc, [field]: val } : tc));
+  };
+
   return (
-    <div>
-      <textarea value={text} onChange={e=>setText(e.target.value)} className="w-full border p-2 rounded" placeholder="Question text" />
-      <div className="grid grid-cols-1 gap-2 mt-2">
-        {options.map((o,i)=> (
-          <div key={i} className="flex items-center gap-2">
-            <input value={o} onChange={e=>{ const next=[...options]; next[i]=e.target.value; setOptions(next); }} className="flex-1 border px-2 py-1 rounded" placeholder={`Option ${i+1}`} />
-            <input type="checkbox" checked={correct.includes(i)} onChange={()=>toggle(i)} />
-          </div>
-        ))}
+    <div className="bg-white rounded border border-gray-200 p-4">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-xs font-bold text-gray-900 uppercase">Configure Question</h3>
+        {globalTopic !== 'coding' && (
+            <label className="flex items-center gap-2 text-xs font-medium text-gray-700 cursor-pointer">
+              <input type="checkbox" checked={isCoding} onChange={e => setIsCoding(e.target.checked)} className="accent-red-600" />
+              Coding Only
+            </label>
+        )}
       </div>
-      <button onClick={add} className="mt-2 px-3 py-1 bg-green-600 text-white rounded">Add</button>
+
+      <textarea
+        placeholder="Question text"
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:ring-1 focus:ring-red-500 mb-3 h-20"
+      />
+      
+      {isCoding ? (
+          <div className="space-y-3 border-t pt-2">
+              <div className="grid grid-cols-2 gap-2">
+                  <div>
+                      <label className="text-[10px] font-semibold text-gray-600 uppercase">Time Comp.</label>
+                      <input type="text" value={timeComplexity} onChange={e => setTimeComplexity(e.target.value)} className="w-full border p-1 rounded text-xs" placeholder="e.g. O(n)" />
+                  </div>
+                  <div>
+                      <label className="text-[10px] font-semibold text-gray-600 uppercase">Space Comp.</label>
+                      <input type="text" value={spaceComplexity} onChange={e => setSpaceComplexity(e.target.value)} className="w-full border p-1 rounded text-xs" placeholder="e.g. O(1)" />
+                  </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                  <div>
+                      <label className="text-[10px] font-semibold text-gray-600 uppercase">Max Time (ms)</label>
+                      <input type="number" value={maxTimeMs} onChange={e => setMaxTimeMs(Number(e.target.value))} className="w-full border p-1 rounded text-xs" />
+                  </div>
+                  <div>
+                      <label className="text-[10px] font-semibold text-gray-600 uppercase">Max Mem (KB)</label>
+                      <input type="number" value={maxMemoryKb} onChange={e => setMaxMemoryKb(Number(e.target.value))} className="w-full border p-1 rounded text-xs" />
+                  </div>
+              </div>
+
+              <div>
+                  <label className="text-[10px] font-semibold text-gray-600 uppercase">Constraints</label>
+                  <textarea value={constraints} onChange={e => setConstraints(e.target.value)} className="w-full border p-1 rounded text-xs" rows={2} placeholder="Constraints..." />
+              </div>
+
+              <div>
+                  <label className="text-[10px] font-semibold text-gray-600 mb-1 block uppercase">Test Cases</label>
+                  {testCases.map((tc, i) => (
+                      <div key={i} className="flex flex-col gap-1.5 p-2 bg-gray-50 rounded border border-gray-100 mb-2">
+                          <input placeholder="Input (stdin)" value={tc.input} onChange={e => updateTestCase(i, 'input', e.target.value)} className="text-xs border p-1 rounded w-full" />
+                          <input placeholder="Expected Output" value={tc.output} onChange={e => updateTestCase(i, 'output', e.target.value)} className="text-xs border p-1 rounded w-full" />
+                          <div className="flex items-center justify-between">
+                            <label className="flex items-center gap-1 text-[10px] text-gray-600">
+                                <input type="checkbox" checked={tc.isHidden} onChange={e => updateTestCase(i, 'isHidden', e.target.checked)} /> Hidden
+                            </label>
+                            {testCases.length > 1 && <button onClick={() => setTestCases(prev => prev.filter((_,k)=>k!==i))} className="text-red-500 text-[10px] hover:underline">Remove</button>}
+                          </div>
+                      </div>
+                  ))}
+                  <button onClick={() => setTestCases(prev => [...prev, {input:'', output:'', isHidden:false}])} className="text-blue-600 text-xs font-bold hover:underline">+ Add Case</button>
+              </div>
+          </div>
+      ) : (
+          <div className="space-y-2">
+              {options.map((opt, i) => (
+                  <div key={i} className="flex items-center gap-2">
+                      <input
+                          placeholder={`Option ${i+1}`}
+                          value={opt}
+                          onChange={(e) => setOptions(prev => prev.map((x, k) => k === i ? e.target.value : x))}
+                          className="flex-1 border border-gray-300 rounded px-2 py-1 text-xs focus:ring-1 focus:ring-red-500"
+                      />
+                      <input type="checkbox" checked={correct.includes(i)} onChange={() => toggle(i)} className="accent-green-600" />
+                  </div>
+              ))}
+          </div>
+      )}
+
+      <button
+        onClick={add}
+        className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 rounded transition-colors mt-4 text-xs"
+      >
+        Add to List
+      </button>
     </div>
   );
 };

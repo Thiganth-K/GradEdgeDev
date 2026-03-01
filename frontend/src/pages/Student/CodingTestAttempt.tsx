@@ -6,7 +6,7 @@ import axios from 'axios';
 
 const BACKEND = import.meta.env.VITE_API_URL || 'http://localhost:5001';
 
-const CodingTestAttempt: React.FC = () => {
+export default function CodingTestAttempt() {
   const { testId } = useParams();
   const navigate = useNavigate();
   const [questions, setQuestions] = useState<any[]>([]);
@@ -475,6 +475,4 @@ const CodingTestAttempt: React.FC = () => {
       </div>
     </div>
   );
-};
-
-export default CodingTestAttempt;
+}
